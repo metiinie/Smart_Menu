@@ -9,9 +9,9 @@ Comprehensive technical documentation for the **ArifSmart Menu** system: a produ
 The project is architected as a **Monorepo** using `pnpm` workspaces to ensure strict contract sharing and ease of deployment.
 
 ### Workspace Structure
-- **`apps/api`**: NestJS backend providing the core RESTful services and real-time state management.
-- **`apps/web`**: Next.js (App Router) mobile-first frontend designed for customer ordering and staff operations.
-- **`packages/shared`**: The "Source of Truth" containing shared Zod validation schemas, API DTOs (Data Transfer Objects), and Type Definitions.
+- **`backend`**: NestJS backend providing the core RESTful services and real-time state management.
+- **`frontend`**: Next.js (App Router) mobile-first frontend designed for customer ordering and staff operations.
+- **`backend/shared`**: The "Source of Truth" containing shared Zod validation schemas, API DTOs (Data Transfer Objects), and Type Definitions.
 
 ---
 
@@ -73,10 +73,10 @@ To handle unstable restaurant networks:
 ### Environment Configuration
 | Variable | Description | Location |
 | :--- | :--- | :--- |
-| `DATABASE_URL` | PostgreSQL connection string | `apps/api/.env` |
-| `JWT_SECRET` | Secret key for staff tokens | `apps/api/.env` |
-| `NEXT_PUBLIC_API_URL` | Backend REST endpoint | `apps/web/.env.local` |
-| `NEXT_PUBLIC_BRANCH_ID` | Default branch for testing | `apps/web/.env.local` |
+| `DATABASE_URL` | PostgreSQL connection string | `backend/.env` |
+| `JWT_SECRET` | Secret key for staff tokens | `backend/.env` |
+| `NEXT_PUBLIC_API_URL` | Backend REST endpoint | `frontend/.env.local` |
+| `NEXT_PUBLIC_BRANCH_ID` | Default branch for testing | `frontend/.env.local` |
 
 ### Getting Started
 1. **Infrastructure**: Run `docker-compose up -d` to start the PostgreSQL instance.
