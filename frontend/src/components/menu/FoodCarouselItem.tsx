@@ -13,40 +13,44 @@ interface Props {
 }
 
 export function FoodCarouselItem({ item, quantity, onAdd, onTap }: Props) {
+  // Helper to get Pinterest premium image path if available
+  const displayImageUrl = item.imageUrl?.replace('.jpg', '.png');
+
   return (
-    <div className="w-[280px] flex-shrink-0 flex flex-col items-center px-4">
+    <div className="w-[300px] flex-shrink-0 flex flex-col items-center px-4">
       {/* Decorative Base & Image Container */}
       <div 
-        className="relative w-full aspect-[4/5] flex items-center justify-center cursor-pointer"
+        className="relative w-full aspect-square flex items-center justify-center cursor-pointer mb-4"
         onClick={onTap}
       >
-        {/* Decorative Orange Base (Glow) */}
-        <div className="absolute bottom-[20%] left-1/2 -translate-x-1/2 w-[80%] h-[30%] bg-brand-500/20 blur-3xl rounded-full" />
-        <div 
-          className="absolute bottom-[10%] left-1/2 -translate-x-1/2 w-[70%] h-[15%] bg-brand-500/10 rounded-[50%] rotate-x-60" 
-          style={{ transform: 'translateX(-50%) rotateX(70deg)' }}
-        />
+        {/* Decorative shadow base */}
+        <div className="absolute bottom-[10%] left-1/2 -translate-x-1/2 w-[70%] h-[15%] bg-black/10 blur-xl rounded-full" />
+        
+        {/* Floating Ring / Glow */}
+        <div className="absolute inset-0 bg-brand-500/5 rounded-full scale-90 blur-2xl" />
 
         {/* Main Image */}
         <motion.div 
-          whileHover={{ y: -10 }}
-          className="relative w-[180px] h-[240px] z-10"
+          className="relative w-[220px] h-[220px] z-10 flex items-center justify-center"
+          animate={{ y: [0, -8, 0] }}
+          transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
         >
           {item.imageUrl ? (
             <Image
-              src={item.imageUrl}
+              src={displayImageUrl || item.imageUrl}
               alt={item.name}
               fill
-              sizes="180px"
-              className="object-contain drop-shadow-2xl"
+              sizes="220px"
+              className="object-contain drop-shadow-[0_20px_40px_rgba(0,0,0,0.3)]"
               priority
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-7xl bg-white/50 backdrop-blur-sm rounded-3xl border border-white/20">
+            <div className="w-40 h-40 flex items-center justify-center text-7xl bg-white/20 backdrop-blur-md rounded-full border border-white/30 shadow-inner">
               🍽️
             </div>
           )}
         </motion.div>
+
 
         {/* Quantity Badge if > 0 */}
         {quantity > 0 && (

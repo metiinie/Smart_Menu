@@ -1,5 +1,4 @@
 import { ordersApi } from './api';
-import { useLocalOrderStore } from '../stores/localOrderStore';
 import { LocalOrder, LocalOrderStatus } from '@arifsmart/shared';
 
 let isSyncing = false;
@@ -17,6 +16,7 @@ export const syncManager = {
    * Adds to local store immediately, then attempts to send to server.
    */
   async placeOrder(localOrder: LocalOrder) {
+    const { useLocalOrderStore } = await import('@/stores/localOrderStore');
     // 1. Ensure it's in the store
     useLocalOrderStore.getState().addOrder(localOrder);
 
@@ -57,6 +57,7 @@ export const syncManager = {
    */
   async startSync() {
     if (isSyncing || typeof window === 'undefined') return;
+    const { useLocalOrderStore } = await import('@/stores/localOrderStore');
     const queue = this._getQueue();
     if (queue.length === 0) return;
 
@@ -101,6 +102,7 @@ export const syncManager = {
    * Manually retry a failed order.
    */
   async retryOrder(localId: string) {
+    const { useLocalOrderStore } = await import('@/stores/localOrderStore');
     const order = useLocalOrderStore.getState().orders[localId];
     if (!order) throw new Error('Order not found');
 
@@ -149,6 +151,10 @@ export const syncManager = {
 
     queue.push({ id, payload, timestamp: Date.now() });
     localStorage.setItem('arifsmart_offline_queue', JSON.stringify(queue));
-    useLocalOrderStore.getState().updateOrderStatus(id, LocalOrderStatus.PENDING);
+    
+    // Lazy update
+    import('@/stores/localOrderStore').then(({ useLocalOrderStore }) => {
+      useLocalOrderStore.getState().updateOrderStatus(id, LocalOrderStatus.PENDING);
+    });
   },
 };

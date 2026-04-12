@@ -148,13 +148,14 @@ export default function MenuPage({ params }: PageProps) {
           <AnimatePresence mode="wait">
             <motion.div
               key={activeCategoryName}
-              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              initial={{ opacity: 0, scale: 0.9, y: 15 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: -10 }}
+              exit={{ opacity: 0, scale: 0.9, y: -15 }}
+              transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
               className="space-y-0"
             >
-              <h2 className="font-display text-2xl font-black text-slate-800 tracking-tight leading-none uppercase">I Want</h2>
-              <h1 className="font-display text-5xl font-black text-brand-500 tracking-tighter leading-none uppercase">{activeCategoryName}</h1>
+              <h2 className="font-display text-2xl font-black text-slate-800 tracking-tight leading-none uppercase opacity-80">I Want</h2>
+              <h1 className="font-display text-6xl font-black text-brand-500 tracking-tighter leading-none uppercase my-1">{activeCategoryName}</h1>
             </motion.div>
           </AnimatePresence>
         </div>
@@ -192,34 +193,42 @@ export default function MenuPage({ params }: PageProps) {
             {/* Horizontal Swiper Container */}
             <div className="flex-1 relative flex items-center overflow-hidden">
               <motion.div
-                className="flex items-center cursor-grab active:cursor-grabbing"
+                className="flex items-center cursor-grab active:cursor-grabbing h-full"
                 drag="x"
                 dragConstraints={{
-                  left: -((filteredItems.length - 1) * 280),
+                  left: -((filteredItems.length - 1) * 300),
                   right: 0
                 }}
-                animate={{ x: -(currentIndex * 280) }}
+                animate={{ x: -(currentIndex * 300) }}
                 onDragEnd={(_, info) => {
-                  const threshold = 50;
-                  if (info.offset.x < -threshold && currentIndex < filteredItems.length - 1) {
-                    setCurrentIndex(currentIndex + 1);
-                  } else if (info.offset.x > threshold && currentIndex > 0) {
-                    setCurrentIndex(currentIndex - 1);
+                  const threshold = 40;
+                  const velocity = info.velocity.x;
+                  
+                  if (info.offset.x < -threshold || velocity < -500) {
+                    if (currentIndex < filteredItems.length - 1) {
+                      setCurrentIndex(currentIndex + 1);
+                    }
+                  } else if (info.offset.x > threshold || velocity > 500) {
+                    if (currentIndex > 0) {
+                      setCurrentIndex(currentIndex - 1);
+                    }
                   }
                 }}
-                transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                style={{ paddingLeft: 'calc(50% - 140px)' }}
+                transition={{ type: 'spring', stiffness: 200, damping: 25, mass: 0.8 }}
+                style={{ paddingLeft: 'calc(50% - 150px)' }}
               >
                 {filteredItems.map((item, i) => (
                   <motion.div
                     key={item.id}
                     initial={false}
                     animate={{
-                      scale: currentIndex === i ? 1 : 0.85,
-                      opacity: currentIndex === i ? 1 : 0.4,
-                      filter: currentIndex === i ? 'blur(0px)' : 'blur(2px)'
+                      scale: currentIndex === i ? 1 : 0.8,
+                      opacity: currentIndex === i ? 1 : 0.3,
+                      filter: currentIndex === i ? 'blur(0px)' : 'blur(4px)',
+                      z: currentIndex === i ? 0 : -100
                     }}
-                    transition={{ duration: 0.4 }}
+                    transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                    className="perspective-1000"
                   >
                     <FoodCarouselItem
                       item={item}
@@ -240,16 +249,18 @@ export default function MenuPage({ params }: PageProps) {
             </div>
 
             {/* Pagination Dots */}
-            <div className="flex justify-center gap-1.5 py-6">
+            <div className="flex justify-center gap-2 py-8">
               {filteredItems.map((_, i) => (
                 <motion.div
                   key={i}
                   initial={false}
                   animate={{
-                    width: currentIndex === i ? 24 : 6,
-                    backgroundColor: currentIndex === i ? '#F97316' : '#E2E8F0'
+                    width: currentIndex === i ? 32 : 8,
+                    backgroundColor: currentIndex === i ? '#F97316' : '#E2E8F0',
+                    opacity: currentIndex === i ? 1 : 0.5
                   }}
-                  className="h-1.5 rounded-full"
+                  className="h-2 rounded-full cursor-pointer"
+                  onClick={() => setCurrentIndex(i)}
                 />
               ))}
             </div>
