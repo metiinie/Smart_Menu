@@ -49,11 +49,9 @@ export function AdminOrderTable({ orders }: Props) {
               ETB {Number(order.totalPrice).toFixed(0)}
             </span>
           </div>
-          <div className="mt-2 pt-2 border-t border-surface-200">
             <p className="text-white/50 text-xs">
-              {order.items.map((i) => `${i.menuItem.name} ×${i.quantity}`).join(' · ')}
+              {(order.items || []).map((i) => `${i.menuItem?.name ?? 'Item'} ×${i.quantity}`).join(' · ')}
             </p>
-          </div>
           {order.status === 'DELIVERED' && (
             <div className="mt-3 pt-3 border-t border-surface-200 flex justify-end">
               <button

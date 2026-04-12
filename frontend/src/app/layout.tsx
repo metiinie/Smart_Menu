@@ -28,6 +28,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <Providers>{children}</Providers>
         <script
+          defer
           dangerouslySetInnerHTML={{
             __html: `
               if ('serviceWorker' in navigator) {

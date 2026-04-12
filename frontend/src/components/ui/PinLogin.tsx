@@ -90,7 +90,7 @@ export function PinLogin({ branchId, onSuccess }: Props) {
                 Choose your profile to sign in
               </p>
               <div className="space-y-3">
-                {staff.map((s, i) => (
+                {(staff || []).map((s, i) => (
                   <motion.button
                     key={s.id}
                     initial={{ opacity: 0, x: -20 }}

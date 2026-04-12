@@ -9,20 +9,24 @@ import { MeshBackground, FoodPatternOverlay } from '@/components/ui/Backgrounds'
 function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const branchId = process.env.NEXT_PUBLIC_BRANCH_ID ?? '3ea2a044-ae51-488b-b13e-dc4e7afafb7a';
+  const login = useAuthStore((state) => state.login);
+  const branchId = process.env.NEXT_PUBLIC_BRANCH_ID ?? '';
+  const returnUrl = searchParams.get('returnUrl') || '/admin/menu';
 
-  useEffect(() => {
-    // Redirect to default menu for simplicity
-    router.replace(`/menu/${branchId}/T1`);
-  }, [router, branchId]);
+  const handleSuccess = (token: string, user: any) => {
+    login(user, token);
+    router.replace(returnUrl);
+  };
 
   return (
-    <div className="min-h-dvh relative flex flex-col items-center justify-center p-6 overflow-hidden">
+    <div className="min-h-dvh relative flex flex-col items-center justify-center p-6 overflow-hidden bg-surface">
       <MeshBackground />
-      <div className="w-8 h-8 border-2 border-gold-500/20 border-t-gold-500 rounded-full animate-spin relative z-10" />
-      <p className="mt-4 text-white/40 text-xs font-bold uppercase tracking-widest relative z-10">
-        Redirecting to menu...
-      </p>
+      <div className="relative z-10 w-full">
+        <PinLogin 
+          branchId={branchId} 
+          onSuccess={handleSuccess} 
+        />
+      </div>
     </div>
   );
 }
