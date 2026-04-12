@@ -28,7 +28,7 @@ const STATUS_BADGE: Record<string, string> = {
 export function AdminOrderTable({ orders }: Props) {
   return (
     <div className="space-y-3">
-      {orders.map((order) => (
+      {(orders || []).map((order) => (
         <div
           key={order.id}
           className="card p-4"

@@ -66,9 +66,9 @@ export default function KitchenPage() {
   }
 
   const grouped = {
-    CREATED:   orders.filter((o: { status: string }) => o.status === 'CREATED'),
-    CONFIRMED: orders.filter((o: { status: string }) => o.status === 'CONFIRMED'),
-    PREPARING: orders.filter((o: { status: string }) => o.status === 'PREPARING'),
+    CREATED:   (orders || []).filter((o: { status: string }) => o?.status === 'CREATED'),
+    CONFIRMED: (orders || []).filter((o: { status: string }) => o?.status === 'CONFIRMED'),
+    PREPARING: (orders || []).filter((o: { status: string }) => o?.status === 'PREPARING'),
   };
 
   return (

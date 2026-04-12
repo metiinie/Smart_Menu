@@ -33,10 +33,10 @@ async function bootstrap() {
   // API prefix
   app.setGlobalPrefix('api');
 
-  // Root endpoint (redirect to docs screen)
-  app.getHttpAdapter().get('/', (req, res) => {
-    res.redirect('/api/docs');
-  });
+  // Root redirects to Swagger Docs
+  const adapter = app.getHttpAdapter();
+  adapter.get('/', (req, res) => res.redirect('/api/docs'));
+  adapter.get('/api', (req, res) => res.redirect('/api/docs'));
 
   // Swagger docs
   const config = new DocumentBuilder()

@@ -22,8 +22,10 @@ api.interceptors.request.use((config) => {
 // Unwrap data from {success, data, timestamp} wrapper
 api.interceptors.response.use(
   (res) => {
-    if (res.data && 'success' in res.data && 'data' in res.data) {
-      return { ...res, data: res.data.data };
+    // If it's the standard wrapper, extract the data payload
+    if (res.data && typeof res.data === 'object' && 'success' in res.data) {
+      // Return the data if it exists, otherwise a safe fallback
+      return { ...res, data: res.data.data ?? res.data };
     }
     return res;
   },
