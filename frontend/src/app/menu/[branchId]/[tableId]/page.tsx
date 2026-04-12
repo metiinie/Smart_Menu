@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, use } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
 import { Filter, Leaf, Search, X as CloseIcon, Clock, ChevronRight } from 'lucide-react';
@@ -12,6 +12,7 @@ import { LocalOrderStatus } from '@arifsmart/shared';
 import Link from 'next/link';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { FoodCard } from '@/components/menu/FoodCard';
+import { FoodCarouselItem } from '@/components/menu/FoodCarouselItem';
 import { ItemModal } from '@/components/menu/ItemModal';
 import { FloatingCartButton } from '@/components/menu/FloatingCartButton';
 import { CartDrawer } from '@/components/cart/CartDrawer';
@@ -21,10 +22,11 @@ import { getSocket } from '@/lib/socket';
 import type { MenuItem, Category, MenuCategoryDto, Order } from '@arifsmart/shared';
 
 interface PageProps {
-  params: { branchId: string; tableId: string };
+  params: Promise<{ branchId: string; tableId: string }>;
 }
 
 export default function MenuPage({ params }: PageProps) {
+  const resolvedParams = use(params);
   const [branchId, setBranchId] = useState('');
   const [tableId, setTableId] = useState('');
   const [fastingOnly, setFastingOnly] = useState(false);
@@ -32,13 +34,14 @@ export default function MenuPage({ params }: PageProps) {
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
   const [cartOpen, setCartOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [currentIndex, setCurrentIndex] = useState(0);
 
   const { setContext, addItem, updateQuantity, items, totalItems, totalPrice } = useCartStore();
 
   useEffect(() => {
-    setBranchId(params.branchId);
-    setTableId(params.tableId);
-  }, [params]);
+    setBranchId(resolvedParams.branchId);
+    setTableId(resolvedParams.tableId);
+  }, [resolvedParams]);
 
   const { data: contextData } = useQuery({
     queryKey: ['table-context', branchId, tableId],
@@ -107,52 +110,53 @@ export default function MenuPage({ params }: PageProps) {
     );
   });
 
+  const activeCategoryName = categories.find(c => c.id === activeCategory)?.name || 'FOOD';
+
   return (
-    <div className="min-h-dvh flex flex-col bg-surface">
+    <div className="min-h-dvh flex flex-col bg-surface relative overflow-hidden">
+      {/* Background patterns */}
+      <div className="absolute inset-0 opacity-[0.02] pointer-events-none select-none z-0">
+        <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+          <pattern id="food-pattern-home" x="0" y="0" width="100" height="100" patternUnits="userSpaceOnUse">
+            <path d="M10 10 Q 15 5, 20 10 T 30 10" stroke="black" fill="transparent" />
+            <circle cx="50" cy="50" r="2" fill="black" />
+          </pattern>
+          <rect width="100%" height="100%" fill="url(#food-pattern-home)" />
+        </svg>
+      </div>
+
       {/* Header */}
-      <header className="sticky top-0 z-20 bg-surface/90 backdrop-blur border-b border-surface-200 safe-top">
-        <div className="flex items-center justify-between px-4 py-3">
-          <div>
-            <h1 className="font-display font-bold text-lg text-white">Menu</h1>
-            {tableId && (
-              <p className="text-white/40 text-xs">Table {tableId.slice(-4).toUpperCase()}</p>
-            )}
+      <header className="sticky top-0 z-20 safe-top bg-surface/80 backdrop-blur-sm">
+        <div className="flex items-center justify-between px-6 py-4">
+          <div className="w-8 h-8 rounded-full bg-white/80 shadow-sm flex items-center justify-center border border-black/5">
+            <div className="flex flex-col gap-1">
+              <div className="w-4 h-0.5 bg-slate-800 rounded-full" />
+              <div className="w-2.5 h-0.5 bg-slate-800 rounded-full" />
+              <div className="w-4 h-0.5 bg-slate-800 rounded-full" />
+            </div>
           </div>
-          <motion.button
-            whileTap={{ scale: 0.9 }}
-            onClick={() => setFastingOnly(!fastingOnly)}
-            className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-semibold
-              transition-colors ${fastingOnly
-                ? 'bg-emerald-500 text-white'
-                : 'bg-surface-100 text-white/60'}`}
-            id="fasting-filter-btn"
-          >
-            <Leaf size={13} />
-            Fasting
-          </motion.button>
+          <div className="flex-1 text-center">
+             <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] -mb-1">Table {tableId.slice(-4).toUpperCase()}</h4>
+          </div>
+          <div className="w-10 h-10 rounded-full bg-white/80 shadow-sm flex items-center justify-center border border-black/5 relative active:scale-95 transition-transform" onClick={() => setCartOpen(true)}>
+             <Search size={18} className="text-slate-800" />
+          </div>
         </div>
 
-        <div className="px-4 pb-3">
-          <div className="relative">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search dishes..."
-              className="w-full bg-surface-100 border border-surface-200 rounded-2xl pl-9 pr-9 py-2 
-                         text-sm text-white outline-none focus:border-brand-500/50 transition-colors
-                         placeholder:text-white/20"
-            />
-            {searchQuery && (
-              <button 
-                onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30"
-              >
-                <CloseIcon size={14} />
-              </button>
-            )}
-          </div>
+        {/* Premium Title */}
+        <div className="px-6 pt-2 pb-6 text-center">
+           <AnimatePresence mode="wait">
+             <motion.div
+               key={activeCategoryName}
+               initial={{ opacity: 0, scale: 0.95, y: 10 }}
+               animate={{ opacity: 1, scale: 1, y: 0 }}
+               exit={{ opacity: 0, scale: 0.95, y: -10 }}
+               className="space-y-0"
+             >
+                <h2 className="font-display text-2xl font-black text-slate-800 tracking-tight leading-none uppercase">I Want</h2>
+                <h1 className="font-display text-5xl font-black text-brand-500 tracking-tighter leading-none uppercase">{activeCategoryName}</h1>
+             </motion.div>
+           </AnimatePresence>
         </div>
 
         {/* Category tabs */}
@@ -162,57 +166,108 @@ export default function MenuPage({ params }: PageProps) {
           <CategoryTabs
             categories={categories}
             activeId={activeCategory}
-            onChange={setActiveCategory}
+            onChange={(id) => {
+              setActiveCategory(id);
+              setCurrentIndex(0);
+            }}
           />
         )}
-        {/* Pending Orders Indicator */}
-        <PendingOrders branchId={branchId} tableId={tableId} />
-
-        <div className="h-2" />
       </header>
 
-      {/* Menu items */}
-      <main className="flex-1 px-4 pb-32 space-y-3 pt-2">
+      {/* Main Swiper Content */}
+      <main className="flex-1 relative z-10 pt-4 overflow-hidden">
         {isError ? (
-          <ErrorState
-            message="Could not load the menu. Please check your connection."
-            onRetry={refetch}
-          />
+          <ErrorState message="Could not load the menu." onRetry={refetch} />
         ) : isLoading ? (
-          Array.from({ length: 5 }).map((_, i) => <SkeletonCard key={i} />)
+          <div className="flex justify-center items-center h-64">
+            <Loader2 className="w-10 h-10 text-brand-500 animate-spin" />
+          </div>
         ) : filteredItems.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-white/30">
+          <div className="flex flex-col items-center justify-center py-20 text-slate-300">
             <span className="text-5xl mb-3">🔍</span>
-            <p className="text-sm">No items match your search</p>
+            <p className="text-sm font-bold">No results found</p>
           </div>
         ) : (
-          <AnimatePresence mode="popLayout">
-            {filteredItems.map((item, i) => (
-              <motion.div
-                key={item.id}
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ delay: i * 0.04 }}
-              >
-                <FoodCard
-                  item={item}
-                  quantity={getQuantity(item.id)}
-                  onAdd={() =>
-                    addItem({
-                      menuItemId: item.id,
-                      name: item.name,
-                      priceAtAdd: item.price,
-                      imageUrl: item.imageUrl,
-                    })
+          <div className="h-full flex flex-col">
+            {/* Horizontal Swiper Container */}
+            <div className="flex-1 relative flex items-center overflow-hidden">
+              <motion.div 
+                className="flex items-center cursor-grab active:cursor-grabbing"
+                drag="x"
+                dragConstraints={{
+                  left: -((filteredItems.length - 1) * 280),
+                  right: 0
+                }}
+                animate={{ x: -(currentIndex * 280) }}
+                onDragEnd={(_, info) => {
+                  const threshold = 50;
+                  if (info.offset.x < -threshold && currentIndex < filteredItems.length - 1) {
+                    setCurrentIndex(currentIndex + 1);
+                  } else if (info.offset.x > threshold && currentIndex > 0) {
+                    setCurrentIndex(currentIndex - 1);
                   }
-                  onTap={() => setSelectedItem(item)}
-                />
+                }}
+                transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                style={{ paddingLeft: 'calc(50% - 140px)' }}
+              >
+                {filteredItems.map((item, i) => (
+                  <motion.div 
+                    key={item.id}
+                    initial={false}
+                    animate={{ 
+                      scale: currentIndex === i ? 1 : 0.85,
+                      opacity: currentIndex === i ? 1 : 0.4,
+                      filter: currentIndex === i ? 'blur(0px)' : 'blur(2px)'
+                    }}
+                    transition={{ duration: 0.4 }}
+                  >
+                    <FoodCarouselItem
+                      item={item}
+                      quantity={getQuantity(item.id)}
+                      onAdd={() =>
+                        addItem({
+                          menuItemId: item.id,
+                          name: item.name,
+                          priceAtAdd: item.price,
+                          imageUrl: item.imageUrl,
+                        })
+                      }
+                      onTap={() => setSelectedItem(item)}
+                    />
+                  </motion.div>
+                ))}
               </motion.div>
-            ))}
-          </AnimatePresence>
+            </div>
+
+            {/* Pagination Dots */}
+            <div className="flex justify-center gap-1.5 py-6">
+              {filteredItems.map((_, i) => (
+                <motion.div 
+                  key={i} 
+                  initial={false}
+                  animate={{ 
+                    width: currentIndex === i ? 24 : 6,
+                    backgroundColor: currentIndex === i ? '#F97316' : '#E2E8F0'
+                  }}
+                  className="h-1.5 rounded-full" 
+                />
+              ))}
+            </div>
+          </div>
         )}
       </main>
+
+      {/* Floating cart */}
+      <div className="fixed bottom-8 right-6 z-50">
+        <FloatingCartButton
+          totalItems={totalItems()}
+          totalPrice={totalPrice()}
+          onClick={() => setCartOpen(true)}
+        />
+      </div>
+
+      {/* Cart drawer */}
+      <CartDrawer open={cartOpen} onClose={() => setCartOpen(false)} />
 
       {/* Item modal */}
       <ItemModal
@@ -236,18 +291,15 @@ export default function MenuPage({ params }: PageProps) {
         }}
       />
 
-      {/* Floating cart */}
-      <FloatingCartButton
-        totalItems={totalItems()}
-        totalPrice={totalPrice()}
-        onClick={() => setCartOpen(true)}
-      />
-
-      {/* Cart drawer */}
-      <CartDrawer open={cartOpen} onClose={() => setCartOpen(false)} />
-
       {/* Resume Order Persistent Bar (FIX 9) */}
       <ActiveOrderBar orders={activeOrders} />
+
+      {/* Version Tag */}
+      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 opacity-20 pointer-events-none">
+        <span className="text-[8px] font-mono text-slate-400 uppercase tracking-tighter">
+          v2.0-PREMIUM
+        </span>
+      </div>
     </div>
   );
 }
@@ -263,11 +315,11 @@ function ActiveOrderBar({ orders }: { orders: Order[] }) {
     <motion.div
       initial={{ y: 100 }}
       animate={{ y: 0 }}
-      className="fixed bottom-0 left-0 right-0 z-40 px-4 pb-20 pt-4"
+      className="fixed bottom-0 left-0 right-0 z-40 px-4 pb-24 pt-4"
     >
       <Link
         href={`/order/${latest.id}`}
-        className="block bg-surface-100/80 backdrop-blur-xl border border-brand-500/20 rounded-2xl p-3 shadow-2xl overflow-hidden relative group"
+        className="block bg-white/80 backdrop-blur-xl border border-brand-500/20 rounded-2xl p-3 shadow-2xl overflow-hidden relative group"
       >
         <div className="absolute inset-0 bg-brand-500/5 group-active:bg-brand-500/10 transition-colors" />
         <div className="flex items-center justify-between relative z-10">
@@ -276,14 +328,14 @@ function ActiveOrderBar({ orders }: { orders: Order[] }) {
               <Clock size={18} className="animate-pulse" />
             </div>
             <div>
-              <h4 className="text-white text-xs font-bold uppercase tracking-wider mb-0.5">Order in Progress</h4>
-              <p className="text-white/60 text-[11px] flex items-center gap-1.5">
+              <h4 className="text-slate-800 text-xs font-bold uppercase tracking-wider mb-0.5">Order in Progress</h4>
+              <p className="text-slate-500 text-[11px] flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-brand-400 animate-ping" />
                 Status: {latest.status} · Order #{latest.displayNumber}
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-1 text-brand-400 font-bold text-xs uppercase">
+          <div className="flex items-center gap-1 text-brand-600 font-bold text-xs uppercase">
             Resume <ChevronRight size={14} />
           </div>
         </div>
@@ -305,15 +357,15 @@ function PendingOrders({ branchId, tableId }: { branchId: string; tableId: strin
   if (orders.length === 0) return null;
 
   return (
-    <div className="px-4 py-2 space-y-2">
+    <div className="px-6 py-2 pb-0 space-y-2 relative z-20">
       {orders.map((order) => (
         <Link
           key={order.id}
           href={`/order/local/${order.id}`}
           className={`flex items-center justify-between px-3 py-2.5 rounded-xl border animate-in fade-in slide-in-from-top-2
             ${order.status === LocalOrderStatus.FAILED
-              ? 'bg-red-500/10 border-red-500/20 text-red-400'
-              : 'bg-amber-500/10 border-amber-500/20 text-amber-400'}`}
+              ? 'bg-red-500/10 border-red-500/20 text-red-600'
+              : 'bg-orange-500/10 border-orange-500/20 text-orange-600'}`}
         >
           <div className="flex items-center gap-2">
             {order.status === LocalOrderStatus.FAILED ? (
@@ -321,14 +373,14 @@ function PendingOrders({ branchId, tableId }: { branchId: string; tableId: strin
             ) : (
               <Loader2 size={14} className="animate-spin" />
             )}
-            <span className="text-xs font-bold">
+            <span className="text-[10px] font-bold uppercase">
               {order.status === LocalOrderStatus.FAILED
                 ? 'Order Sync Failed'
                 : 'Syncing Order...'}
             </span>
           </div>
-          <span className="text-[10px] opacity-70 font-mono">
-            {order.id.slice(0, 8).toUpperCase()}
+          <span className="text-[9px] opacity-50 font-mono">
+            #{order.id.slice(0, 6).toUpperCase()}
           </span>
         </Link>
       ))}

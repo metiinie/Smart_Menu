@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, use } from 'react';
 import { motion } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
 import { CheckCircle, Clock, Utensils, ArrowLeft } from 'lucide-react';
@@ -25,11 +25,12 @@ const STATUS_MESSAGES: Record<string, { title: string; subtitle: string; emoji: 
 };
 
 export default function OrderStatusPage({ params }: PageProps) {
+  const resolvedParams = use(params);
   const [orderId, setOrderId] = useState('');
 
   useEffect(() => {
-    setOrderId(params.id);
-  }, [params]);
+    setOrderId(resolvedParams.id);
+  }, [resolvedParams]);
 
   const { data: order, isLoading, isError, error, refetch } = useQuery<Order>({
     queryKey: ['order', orderId],

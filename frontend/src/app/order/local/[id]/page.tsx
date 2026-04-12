@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, use } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Clock, Utensils, ArrowLeft, WifiOff, AlertCircle, RefreshCw, CheckCircle2 } from 'lucide-react';
 import { useLocalOrderStore } from '@/stores/localOrderStore';
@@ -10,12 +10,13 @@ import { LocalOrderStatus } from '@arifsmart/shared';
 import { syncManager } from '@/lib/syncManager';
 
 interface PageProps {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 export default function LocalOrderPage({ params }: PageProps) {
   const router = useRouter();
-  const { id } = params;
+  const resolvedParams = use(params);
+  const { id } = resolvedParams;
   const order = useLocalOrderStore((state) => state.orders[id]);
   const [isRetrying, setIsRetrying] = useState(false);
 
