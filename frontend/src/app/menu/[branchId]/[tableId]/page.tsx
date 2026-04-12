@@ -136,27 +136,27 @@ export default function MenuPage({ params }: PageProps) {
             </div>
           </div>
           <div className="flex-1 text-center">
-             <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] -mb-1">Table {tableId.slice(-4).toUpperCase()}</h4>
+            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] -mb-1">Table {tableId.slice(-4).toUpperCase()}</h4>
           </div>
           <div className="w-10 h-10 rounded-full bg-white/80 shadow-sm flex items-center justify-center border border-black/5 relative active:scale-95 transition-transform" onClick={() => setCartOpen(true)}>
-             <Search size={18} className="text-slate-800" />
+            <Search size={18} className="text-slate-800" />
           </div>
         </div>
 
         {/* Premium Title */}
         <div className="px-6 pt-2 pb-6 text-center">
-           <AnimatePresence mode="wait">
-             <motion.div
-               key={activeCategoryName}
-               initial={{ opacity: 0, scale: 0.95, y: 10 }}
-               animate={{ opacity: 1, scale: 1, y: 0 }}
-               exit={{ opacity: 0, scale: 0.95, y: -10 }}
-               className="space-y-0"
-             >
-                <h2 className="font-display text-2xl font-black text-slate-800 tracking-tight leading-none uppercase">I Want</h2>
-                <h1 className="font-display text-5xl font-black text-brand-500 tracking-tighter leading-none uppercase">{activeCategoryName}</h1>
-             </motion.div>
-           </AnimatePresence>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeCategoryName}
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: -10 }}
+              className="space-y-0"
+            >
+              <h2 className="font-display text-2xl font-black text-slate-800 tracking-tight leading-none uppercase">I Want</h2>
+              <h1 className="font-display text-5xl font-black text-brand-500 tracking-tighter leading-none uppercase">{activeCategoryName}</h1>
+            </motion.div>
+          </AnimatePresence>
         </div>
 
         {/* Category tabs */}
@@ -191,7 +191,7 @@ export default function MenuPage({ params }: PageProps) {
           <div className="h-full flex flex-col">
             {/* Horizontal Swiper Container */}
             <div className="flex-1 relative flex items-center overflow-hidden">
-              <motion.div 
+              <motion.div
                 className="flex items-center cursor-grab active:cursor-grabbing"
                 drag="x"
                 dragConstraints={{
@@ -211,10 +211,10 @@ export default function MenuPage({ params }: PageProps) {
                 style={{ paddingLeft: 'calc(50% - 140px)' }}
               >
                 {filteredItems.map((item, i) => (
-                  <motion.div 
+                  <motion.div
                     key={item.id}
                     initial={false}
-                    animate={{ 
+                    animate={{
                       scale: currentIndex === i ? 1 : 0.85,
                       opacity: currentIndex === i ? 1 : 0.4,
                       filter: currentIndex === i ? 'blur(0px)' : 'blur(2px)'
@@ -242,14 +242,14 @@ export default function MenuPage({ params }: PageProps) {
             {/* Pagination Dots */}
             <div className="flex justify-center gap-1.5 py-6">
               {filteredItems.map((_, i) => (
-                <motion.div 
-                  key={i} 
+                <motion.div
+                  key={i}
                   initial={false}
-                  animate={{ 
+                  animate={{
                     width: currentIndex === i ? 24 : 6,
                     backgroundColor: currentIndex === i ? '#F97316' : '#E2E8F0'
                   }}
-                  className="h-1.5 rounded-full" 
+                  className="h-1.5 rounded-full"
                 />
               ))}
             </div>

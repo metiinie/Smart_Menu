@@ -13,9 +13,26 @@ export class TableSessionsService {
       throw new NotFoundException('Branch not found');
     }
 
-    const table = await this.prisma.diningTable.findUnique({
+    let table = await this.prisma.diningTable.findUnique({
       where: { id: tableId },
     });
+
+    // If not found by UUID, try looking up by tableNumber (fallback)
+    if (!table) {
+      // Extract numeric part from strings like "table-01" or "1"
+      const match = tableId.match(/\d+/);
+      if (match) {
+        const tableNumber = parseInt(match[0], 10);
+        table = await this.prisma.diningTable.findUnique({
+          where: { 
+            branchId_tableNumber: { 
+              branchId, 
+              tableNumber 
+            } 
+          },
+        });
+      }
+    }
     
     // Ensure table exists and belongs to the specified branch
     if (!table || table.branchId !== branchId) {
