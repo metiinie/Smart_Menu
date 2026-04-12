@@ -1,63 +1,85 @@
-import Link from 'next/link';
-import { QrCode, Utensils, ChefHat, ShieldCheck } from 'lucide-react';
+'use client';
+
+import React from 'react';
+import { Utensils } from 'lucide-react';
 
 export default function HomePage() {
+  const languages = [
+    { code: 'en', label: 'English', active: true },
+    { code: 'am', label: 'አማርኛ', active: false },
+    { code: 'or', label: 'Afaan Oromoo', active: false },
+  ];
+
   return (
-    <main className="min-h-dvh flex flex-col items-center justify-center px-6 py-12">
-      {/* Logo */}
-      <div className="mb-8 text-center">
-        <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-brand-500 shadow-glow mb-4">
-          <Utensils size={36} className="text-white" />
+    <main className="min-h-dvh relative flex flex-col items-center justify-between bg-[#FCFAF7] px-6 py-20 overflow-hidden">
+      {/* Background Pattern Overlay */}
+      <div className="absolute inset-0 opacity-[0.03] pointer-events-none select-none">
+        <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+          <pattern id="food-pattern-home" x="0" y="0" width="100" height="100" patternUnits="userSpaceOnUse">
+            <path d="M10 10 Q 15 5, 20 10 T 30 10" stroke="black" fill="transparent" />
+            <circle cx="50" cy="50" r="2" fill="black" />
+            <rect x="70" y="20" width="10" height="10" rx="2" stroke="black" fill="transparent" />
+            <path d="M20 70 L 30 80 L 40 70" stroke="black" fill="transparent" />
+          </pattern>
+          <rect width="100%" height="100%" fill="url(#food-pattern-home)" />
+        </svg>
+      </div>
+
+      {/* Decorative Blobs */}
+      <div className="absolute -top-20 -right-20 w-80 h-80 bg-orange-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-20 -left-20 w-96 h-96 bg-orange-600/5 rounded-full blur-3xl pointer-events-none" />
+
+      {/* Center Content */}
+      <div className="flex-1 flex flex-col items-center justify-center z-10 text-center">
+        {/* Golden Cloche Icon */}
+        <div className="mb-12 transform scale-125">
+          <svg width="100" height="75" viewBox="0 0 80 60" fill="none" xmlns="http://www.w3.org/2000/svg" className="drop-shadow-sm">
+            <path d="M40 10C25 10 12 18 10 28H70C68 18 55 10 40 10Z" fill="url(#gold_grad_home)" stroke="#D97706" strokeWidth="1" />
+            <rect x="8" y="28" width="64" height="4" rx="2" fill="#D97706" />
+            <circle cx="40" cy="8" r="4" fill="#F59E0B" stroke="#D97706" strokeWidth="1" />
+            <defs>
+              <linearGradient id="gold_grad_home" x1="40" y2="28" x2="40" y1="10" gradientUnits="userSpaceOnUse">
+                <stop stopColor="#FDE68A" />
+                <stop offset="1" stopColor="#F59E0B" />
+              </linearGradient>
+            </defs>
+          </svg>
         </div>
-        <h1 className="font-display text-4xl font-bold text-white">
-          Arif<span className="text-gradient">Smart</span>
-        </h1>
-        <p className="text-white/50 mt-2 text-sm">QR-based restaurant ordering</p>
+
+        <div className="space-y-4">
+          <span className="font-display text-sm font-medium tracking-[0.3em] text-slate-400 uppercase block">
+            Welcome To
+          </span>
+          <h1 className="font-display text-2xl md:text-4xl font-extrabold text-[#1E293B] leading-tight tracking-tight">
+            ARIFSMART<br />
+            <span className="text-[#F97316]">MENU</span>
+          </h1>
+        </div>
       </div>
 
-      {/* Instructions */}
-      <div className="card w-full max-w-sm p-6 space-y-4 mb-8">
-        <h2 className="font-display text-lg font-semibold text-white text-center">
-          How it works
-        </h2>
-        {[
-          { icon: QrCode, title: 'Scan QR code', desc: 'Find the QR code on your table' },
-          { icon: Utensils, title: 'Browse menu', desc: 'Explore categories and add items' },
-          { icon: ShieldCheck, title: 'Place order', desc: 'Confirm and we\'ll handle the rest' },
-        ].map(({ icon: Icon, title, desc }) => (
-          <div key={title} className="flex items-start gap-3">
-            <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-brand-500/20 flex items-center justify-center">
-              <Icon size={18} className="text-brand-400" />
-            </div>
-            <div>
-              <p className="font-semibold text-white text-sm">{title}</p>
-              <p className="text-white/50 text-xs mt-0.5">{desc}</p>
-            </div>
-          </div>
-        ))}
-      </div>
+      {/* Language Selector Footer */}
+      <div className="w-full flex flex-col items-center gap-6 z-10">
+        <span className="font-display text-[10px] text-slate-400 font-bold tracking-widest uppercase opacity-70">
+          Select Language
+        </span>
+        <div className="flex flex-wrap justify-center gap-3">
+          {languages.map((lang) => (
+            <button
+              key={lang.code}
+              className={`px-5 py-2.5 rounded-full text-sm font-semibold transition-all duration-300 border ${lang.active
+                ? 'bg-[#F97316] text-white border-transparent shadow-lg shadow-orange-500/25 ring-2 ring-orange-100 ring-offset-1'
+                : 'bg-white text-slate-600 border-slate-100 hover:border-orange-200 hover:bg-orange-50/30'
+                }`}
+            >
+              {lang.label}
+            </button>
+          ))}
+        </div>
 
-      {/* Staff Links */}
-      <div className="flex gap-4 w-full max-w-sm">
-        <Link
-          href="/kitchen"
-          className="flex-1 flex items-center justify-center gap-2 btn-secondary text-sm py-3"
-        >
-          <ChefHat size={16} />
-          Kitchen
-        </Link>
-        <Link
-          href="/admin/menu"
-          className="flex-1 flex items-center justify-center gap-2 btn-secondary text-sm py-3"
-        >
-          <ShieldCheck size={16} />
-          Admin
-        </Link>
+        <p className="mt-8 text-[10px] text-slate-400 font-medium">
+          Scan a table QR code to begin your journey
+        </p>
       </div>
-
-      <p className="text-white/25 text-xs mt-8">
-        Scan a table QR code to start ordering
-      </p>
     </main>
   );
 }
