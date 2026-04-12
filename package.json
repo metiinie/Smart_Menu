@@ -1,0 +1,18 @@
+{
+  "name": "arifsmart-menu",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --parallel --filter ./apps/* dev",
+    "dev:api": "pnpm --filter api run dev",
+    "dev:web": "pnpm --filter web run dev",
+    "build": "pnpm -r run build",
+    "db:migrate": "pnpm --filter api run db:migrate",
+    "db:seed": "pnpm --filter api run db:seed",
+    "db:studio": "pnpm --filter api run db:studio",
+    "db:reset": "pnpm --filter api run db:reset"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5"
+  }
+}

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ArifSmart Menu — Offline</title>
+  <style>
+    body { background: #0f0f0f; color: white; font-family: system-ui, sans-serif;
+           display: flex; flex-direction: column; align-items: center;
+           justify-content: center; min-height: 100vh; margin: 0; text-align: center; padding: 1rem; }
+    h1 { font-size: 2rem; margin-bottom: 0.5rem; }
+    p { color: rgba(255,255,255,0.5); font-size: 0.9rem; }
+    button { margin-top: 1.5rem; background: #ff6b0f; color: white; border: none;
+             padding: 0.75rem 2rem; border-radius: 9999px; font-size: 1rem;
+             cursor: pointer; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div style="font-size:4rem;margin-bottom:1rem">📶</div>
+  <h1>You're offline</h1>
+  <p>Check your internet connection.<br/>Your cart is saved and ready when you reconnect.</p>
+  <button onclick="window.location.reload()">Try Again</button>
+</body>
+</html>

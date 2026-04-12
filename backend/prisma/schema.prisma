@@ -1,0 +1,147 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum OrderStatus {
+  CREATED
+  CONFIRMED
+  PREPARING
+  READY
+  DELIVERED
+}
+
+enum Role {
+  ADMIN
+  KITCHEN
+}
+
+// ─── Models ───────────────────────────────────────────────────────────────────
+
+model Branch {
+  id         String       @id @default(uuid())
+  name       String
+  address    String
+  phone      String?
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  tables     DiningTable[]
+  categories Category[]
+  staffUsers StaffUser[]
+
+  @@map("branches")
+}
+
+model DiningTable {
+  id           String         @id @default(uuid())
+  branchId     String
+  tableNumber  Int
+  qrCode       String         @unique
+  isActive     Boolean        @default(true)
+  createdAt    DateTime       @default(now())
+  branch       Branch         @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  sessions     TableSession[]
+  orders       Order[]
+
+  @@unique([branchId, tableNumber])
+  @@map("dining_tables")
+}
+
+/// Prevents order conflicts: only one active session per table at a time.
+model TableSession {
+  id        String      @id @default(uuid())
+  tableId   String
+  isActive  Boolean     @default(true)
+  startedAt DateTime    @default(now())
+  endedAt   DateTime?
+  table     DiningTable @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  orders    Order[]
+
+  @@map("table_sessions")
+}
+
+model Category {
+  id        String     @id @default(uuid())
+  name      String
+  sortOrder Int        @default(0)
+  imageUrl  String?
+  branchId  String
+  branch    Branch     @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  items     MenuItem[]
+  createdAt DateTime   @default(now())
+
+  @@map("categories")
+}
+
+model MenuItem {
+  id          String      @id @default(uuid())
+  name        String
+  description String?
+  price       Float
+  isAvailable Boolean     @default(true)
+  isFasting   Boolean     @default(false)
+  imageUrl    String?
+  categoryId  String
+  category    Category    @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  orderItems  OrderItem[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@map("menu_items")
+}
+
+model Order {
+  id         String       @id @default(uuid())
+  tableId    String
+  sessionId  String
+  status     OrderStatus  @default(CREATED)
+  displayNumber String
+  totalPrice Float
+  customerRef String
+  notes      String?
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  table      DiningTable  @relation(fields: [tableId], references: [id])
+  session    TableSession @relation(fields: [sessionId], references: [id])
+  items      OrderItem[]
+
+  @@index([tableId])
+  @@index([sessionId])
+  @@map("orders")
+}
+
+model OrderItem {
+  id         String   @id @default(uuid())
+  orderId    String
+  menuItemId String
+  quantity   Int
+  unitPrice  Float
+  note       String?
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  menuItem   MenuItem @relation(fields: [menuItemId], references: [id])
+
+  @@map("order_items")
+}
+
+model StaffUser {
+  id        String   @id @default(uuid())
+  name      String
+  role      Role
+  pinHash   String
+  branchId  String
+  isActive  Boolean  @default(true)
+  branch    Branch   @relation(fields: [branchId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@map("staff_users")
+}

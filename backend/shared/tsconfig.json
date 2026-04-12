@@ -1,0 +1,11 @@
+{
+  "scripts": {
+    "build": "tsc"
+  },
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src"
+  },
+  "include": ["src"]
+}
