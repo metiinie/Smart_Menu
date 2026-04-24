@@ -28,10 +28,10 @@ export class KitchenController {
       },
     });
 
-    return orders.map((o) => ({
+    return orders.map((o: any) => ({
       ...o,
       totalPrice: Number(o.totalPrice),
-      items: o.items.map((i) => ({ ...i, unitPrice: Number(i.unitPrice) })),
+      items: o.items.map((i: any) => ({ ...i, unitPrice: Number(i.unitPrice) })),
     }));
   }
 }

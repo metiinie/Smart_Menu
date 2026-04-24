@@ -41,11 +41,12 @@ export class OrdersService {
       throw new BadRequestException('One or more items are unavailable or do not exist');
     }
 
-    const priceMap = new Map(menuItems.map((m) => [m.id, Number(m.price)]));
+    const priceMap = new Map(menuItems.map((m: any) => [m.id, Number(m.price)]));
 
     // 3. Calculate total server-side
     const totalPrice = dto.items.reduce((sum, item) => {
-      return sum + priceMap.get(item.menuItemId)! * item.quantity;
+      const price = priceMap.get(item.menuItemId) || 0;
+      return sum + price * item.quantity;
     }, 0);
 
     // 4. Calculate Sequential Display Number (FIX 10)
@@ -74,7 +75,7 @@ export class OrdersService {
     const displayNumber = nextNum.toString();
 
     // 5. Create order + items in a single transaction
-    const order = await this.prisma.$transaction(async (tx) => {
+    const order = await this.prisma.$transaction(async (tx: any) => {
       const newOrder = await tx.order.create({
         data: {
           tableId: dto.tableId,
@@ -107,7 +108,7 @@ export class OrdersService {
     return {
       ...order,
       totalPrice: Number(order.totalPrice),
-      items: order.items.map((i) => ({ ...i, unitPrice: Number(i.unitPrice) })),
+      items: order.items.map((i: any) => ({ ...i, unitPrice: Number(i.unitPrice) })),
     };
   }
 
@@ -124,7 +125,7 @@ export class OrdersService {
     return {
       ...order,
       totalPrice: Number(order.totalPrice),
-      items: order.items.map((i) => ({ ...i, unitPrice: Number(i.unitPrice) })),
+      items: order.items.map((i: any) => ({ ...i, unitPrice: Number(i.unitPrice) })),
     };
   }
 
@@ -176,6 +177,6 @@ export class OrdersService {
       },
     });
 
-    return orders.map((o) => ({ ...o, totalPrice: Number(o.totalPrice) }));
+    return orders.map((o: any) => ({ ...o, totalPrice: Number(o.totalPrice) }));
   }
 }

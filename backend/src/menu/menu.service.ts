@@ -24,8 +24,8 @@ export class MenuService {
 
     // Hidden categories rule: filter categories that don't have available items
     return categories
-      .filter((cat) => cat.items.length > 0)
-      .map((cat) => ({
+      .filter((cat: any) => cat.items.length > 0)
+      .map((cat: any) => ({
         category: {
           id: cat.id,
           name: cat.name,
@@ -34,7 +34,7 @@ export class MenuService {
           branchId: cat.branchId,
           createdAt: cat.createdAt,
         },
-        items: cat.items.map((item) => ({
+        items: cat.items.map((item: any) => ({
           ...item,
           price: Number(item.price),
         })),
