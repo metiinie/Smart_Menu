@@ -41,7 +41,6 @@ export default function MenuPage({ params }: PageProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [introReady, setIntroReady] = useState(false);
   const carouselRef = useRef<HTMLDivElement>(null);
-  const [carouselWidth, setCarouselWidth] = useState(360);
 
   // Welcome splash - only show once per session
   const [showSplash, setShowSplash] = useState(() => {
@@ -159,18 +158,7 @@ export default function MenuPage({ params }: PageProps) {
     }
   }, [showSplash]);
 
-  useEffect(() => {
-    const el = carouselRef.current;
-    if (!el) return;
-    const observer = new ResizeObserver((entries) => {
-      const width = entries[0]?.contentRect.width ?? 360;
-      setCarouselWidth(width);
-    });
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
-
-  // Reset swiper when search or category changes - FIX 12
+  // Reset swiper when search or category changes
   useEffect(() => {
     setCurrentIndex(0);
   }, [searchQuery, activeCategory]);
@@ -194,15 +182,28 @@ export default function MenuPage({ params }: PageProps) {
   });
 
   const activeCategoryName = categories.find(c => c.id === activeCategory)?.name || 'FOOD';
+  
+  // Keep current index valid whenever result set changes.
+  useEffect(() => {
+    if (filteredItems.length === 0) {
+      setCurrentIndex(0);
+      return;
+    }
+    if (currentIndex >= filteredItems.length) {
+      setCurrentIndex(0);
+    }
+  }, [filteredItems.length, currentIndex]);
 
-  const arcStep = Math.max(110, Math.min(175, carouselWidth * 0.38));
-  const arcDepth = Math.max(52, Math.min(92, carouselWidth * 0.2));
+  const count = filteredItems.length;
+  const currentItem = filteredItems[currentIndex] ?? filteredItems[0];
+  const prevItem = count > 1 ? filteredItems[(currentIndex - 1 + count) % count] : null;
+  const nextItem = count > 1 ? filteredItems[(currentIndex + 1) % count] : null;
 
   return (
     <div className="min-h-dvh flex flex-col relative overflow-hidden font-sans" style={{ backgroundColor: palette.appGreen }}>
       {showSplash && <WelcomeSplash onComplete={handleSplashComplete} />}
 
-      <div className="relative z-10 w-full max-w-md mx-auto min-h-dvh">
+      <div className="relative z-10 w-full min-h-dvh">
         {/* ── WHITE TOP SECTION (Hand-Drawn Style) ── */}
         <motion.div
           className="absolute top-0 left-0 right-0 z-10 overflow-hidden"
@@ -215,7 +216,7 @@ export default function MenuPage({ params }: PageProps) {
             mass: 1.1,
             delay: 0.04 
           }}
-          style={{ height: '46%', minHeight: '370px', backgroundColor: palette.appWhite }}
+          style={{ height: '36%', minHeight: '240px', backgroundColor: palette.appWhite }}
         >
           {/* Subtle Watermark Food Sketches */}
           <div className="absolute inset-0 opacity-[0.07] pointer-events-none">
@@ -231,16 +232,16 @@ export default function MenuPage({ params }: PageProps) {
             </svg>
           </div>
 
-          <div className="relative z-10 h-full flex flex-col">
+          <div className="relative z-10 h-full max-w-md mx-auto w-full flex flex-col">
             {/* Elegant Header Navigation */}
-            <header className="px-7 pt-14 pb-0 flex justify-between items-center">
+            <header className="px-4 sm:px-5 pt-4 sm:pt-6 pb-0 flex justify-between items-start gap-3">
               <div className="flex flex-col gap-[7px] cursor-pointer group">
-                <div className="w-9 h-[3.5px] bg-[#1E1E1E] rounded-full group-hover:w-6 transition-all duration-300"></div>
-                <div className="w-9 h-[3.5px] bg-[#1E1E1E] rounded-full group-hover:w-9 transition-all duration-300"></div>
-                <div className="w-9 h-[3.5px] bg-[#1E1E1E] rounded-full group-hover:w-4 transition-all duration-300"></div>
+                <div className="w-8 h-[2.5px] bg-[#1E1E1E] rounded-full group-hover:w-6 transition-all duration-300"></div>
+                <div className="w-8 h-[2.5px] bg-[#1E1E1E] rounded-full group-hover:w-8 transition-all duration-300"></div>
+                <div className="w-8 h-[2.5px] bg-[#1E1E1E] rounded-full group-hover:w-5 transition-all duration-300"></div>
               </div>
               <div className="relative cursor-pointer active:scale-90 transition-transform p-1 bg-black/5 rounded-2xl" onClick={() => setCartOpen(true)}>
-                <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#1E1E1E" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#1E1E1E" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/>
                   <line x1="3" y1="6" x2="21" y2="6"/>
                   <path d="M16 10a4 4 0 01-8 0"/>
@@ -255,25 +256,22 @@ export default function MenuPage({ params }: PageProps) {
             </header>
 
             {/* Premium Branding Section */}
-            <div className="flex-1 flex items-center justify-center px-4">
-              <div className="flex items-center gap-1.5 mt-2">
-                <div className="flex flex-col items-center">
-                  <h1 className="text-[#1E1E1E] text-[4.5rem] font-black uppercase tracking-[-0.05em] leading-[0.65] italic select-none font-['Impact']">
+            <div className="flex-1 flex items-start justify-center px-3 sm:px-4 pt-1 sm:pt-2">
+              <div className="flex flex-col items-center">
+                  <h1 className="text-[#1E1E1E] text-[1.95rem] sm:text-[2.55rem] font-semibold uppercase tracking-[-0.01em] leading-[0.95] select-none font-serif">
                     I WANT
                   </h1>
-                  <h2 className="text-[#C59B76] text-[5.2rem] font-black uppercase tracking-[-0.05em] leading-[0.65] italic select-none font-['Impact']">
-                    {activeCategoryName}
+                  <h2 className="text-[#C59B76] text-[2.4rem] sm:text-[3.25rem] font-semibold uppercase tracking-[-0.02em] leading-[0.9] select-none font-serif inline-flex items-end gap-1.5 sm:gap-2">
+                    <span>{activeCategoryName}</span>
+                    <span className="w-[42px] h-[34px] sm:w-[54px] sm:h-[44px] -translate-y-1">
+                      <svg viewBox="0 0 80 55" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full drop-shadow-sm">
+                        <path d="M12 20 Q24 8 34 20" stroke="#1E1E1E" strokeWidth="3" strokeLinecap="round" fill="none"/>
+                        <path d="M48 20 Q60 8 70 20" stroke="#1E1E1E" strokeWidth="3" strokeLinecap="round" fill="none"/>
+                        <path d="M6 35 Q40 60 76 35" stroke="#1E1E1E" strokeWidth="3.5" strokeLinecap="round" fill="none"/>
+                        <path d="M54 44 C54 62 74 62 74 46 C70 38 58 38 54 44Z" fill="#E53935" stroke="#1E1E1E" strokeWidth="2"/>
+                      </svg>
+                    </span>
                   </h2>
-                </div>
-                {/* Licking Face Icon */}
-                <div className="w-24 h-20 flex-shrink-0 mt-10">
-                  <svg viewBox="0 0 80 55" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full drop-shadow-md">
-                    <path d="M12 20 Q24 8 34 20" stroke="#1E1E1E" strokeWidth="4" strokeLinecap="round" fill="none"/>
-                    <path d="M48 20 Q60 8 70 20" stroke="#1E1E1E" strokeWidth="4" strokeLinecap="round" fill="none"/>
-                    <path d="M6 35 Q40 60 76 35" stroke="#1E1E1E" strokeWidth="5" strokeLinecap="round" fill="none"/>
-                    <path d="M54 44 C54 62 74 62 74 46 C70 38 58 38 54 44Z" fill="#E53935" stroke="#1E1E1E" strokeWidth="2.5"/>
-                  </svg>
-                </div>
               </div>
             </div>
           </div>
@@ -288,139 +286,188 @@ export default function MenuPage({ params }: PageProps) {
             transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
             style={{ 
               backgroundColor: palette.appGreen,
-              top: 'calc(46% - 50px)',
-              borderTopLeftRadius: '100% 70px',
-              borderTopRightRadius: '100% 70px'
+              top: 'calc(36% - 62px)',
+              borderTopLeftRadius: '100% 118px',
+              borderTopRightRadius: '100% 118px'
             }}
           >
-            <motion.div
-              className="mt-10"
-              initial={{ y: 46, opacity: 0 }}
-              animate={introReady ? { y: 0, opacity: 1 } : { y: 46, opacity: 0 }}
-              transition={{ delay: 0.18, duration: 0.52 }}
-            >
-              <div className="mt-2">
-                {isLoading ? (
-                  <SkeletonCategoryTab />
-                ) : (
-                  <CategoryTabs
-                    categories={categories}
-                    activeId={activeCategory}
-                    onChange={(id: string) => { setActiveCategory(id); setCurrentIndex(0); }}
-                  />
-                )}
-              </div>
-            </motion.div>
-
-            {/* Stage Carousel */}
-            <div className="flex-1 flex flex-col justify-center">
+            <div className="max-w-md mx-auto w-full flex-1 flex flex-col">
               <motion.div
-                className="relative flex items-center overflow-visible h-[450px]"
-                initial={{ y: 56, opacity: 0 }}
-                animate={introReady ? { y: 0, opacity: 1 } : { y: 56, opacity: 0 }}
-                transition={{ delay: 0.28, duration: 0.55 }}
+                className="mt-2 overflow-visible"
+                initial={{ y: 46, opacity: 0 }}
+                animate={introReady ? { y: 0, opacity: 1 } : { y: 46, opacity: 0 }}
+                transition={{ delay: 0.18, duration: 0.52 }}
               >
+                <div className="mt-0 overflow-visible">
+                  {isLoading ? (
+                    <SkeletonCategoryTab />
+                  ) : (
+                    <CategoryTabs
+                      categories={categories}
+                      activeId={activeCategory}
+                      onChange={(id: string) => { setActiveCategory(id); setCurrentIndex(0); }}
+                    />
+                  )}
+                </div>
+              </motion.div>
+
+              {/* Food carousel: true center hero + half-peek prev/next (flex, not absolute) */}
+              <div className="flex-1 flex flex-col justify-start min-h-0">
                 <motion.div
-                  ref={carouselRef}
-                  className="relative w-full h-full cursor-grab active:cursor-grabbing touch-pan-y"
-                  drag="x"
-                  onDragEnd={(_, info) => {
-                    const count = filteredItems.length;
-                    if (count <= 1) return;
-                    if (info.offset.x < -40 || info.velocity.x < -500) {
-                      setCurrentIndex((prev) => (prev + 1) % count);
-                    } else if (info.offset.x > 40 || info.velocity.x > 500) {
-                      setCurrentIndex((prev) => (prev - 1 + count) % count);
-                    }
-                  }}
+                  className="w-full pt-1 sm:pt-2"
+                  initial={{ y: 24, opacity: 0 }}
+                  animate={introReady ? { y: 0, opacity: 1 } : { y: 24, opacity: 0 }}
+                  transition={{ delay: 0.22, duration: 0.45 }}
                 >
-                  {filteredItems.map((item, i) => (
-                    (() => {
-                      const count = filteredItems.length;
-                      let offset = i - currentIndex;
-                      if (count > 2) {
-                        if (offset > count / 2) offset -= count;
-                        if (offset < -count / 2) offset += count;
+                  <motion.div
+                    ref={carouselRef}
+                    className="flex w-full max-w-md mx-auto items-end justify-center gap-0 min-h-[232px] sm:min-h-[256px] overflow-hidden px-0 select-none touch-pan-y cursor-grab active:cursor-grabbing"
+                    drag="x"
+                    dragConstraints={{ left: 0, right: 0 }}
+                    dragElastic={0.12}
+                    onDragEnd={(_, info) => {
+                      if (count <= 1) return;
+                      if (info.offset.x < -48 || info.velocity.x < -420) {
+                        setCurrentIndex((prev) => (prev + 1) % count);
+                      } else if (info.offset.x > 48 || info.velocity.x > 420) {
+                        setCurrentIndex((prev) => (prev - 1 + count) % count);
                       }
-                      const absOffset = Math.abs(offset);
-                      if (absOffset > 1) return null;
-
-                      const theta = offset * 0.62;
-                      const x = Math.sin(theta) * arcStep * 1.34;
-                      const y = (1 - Math.cos(theta)) * arcDepth - 46;
-
-                      return (
+                    }}
+                  >
+                    {/* Previous (right half visible at left edge) */}
+                    <div
+                      className={`min-w-0 shrink-0 flex justify-end items-end overflow-hidden pb-5 sm:pb-7 ${count > 1 ? 'w-[26%] sm:w-[24%]' : 'w-0 overflow-hidden p-0 m-0'}`}
+                    >
+                      {prevItem ? (
                         <motion.div
-                          key={item.id}
-                          className="absolute left-1/2 top-1/2 -translate-x-1/2"
-                          animate={{
-                            x,
-                            y,
-                            scale: absOffset === 0 ? 1.04 : 0.64,
-                            opacity: absOffset === 0 ? 1 : 0.36,
-                            rotate: offset * -12,
-                            zIndex: 30 - absOffset,
-                          }}
-                          transition={{ type: 'spring', stiffness: 160, damping: 22 }}
+                          key={prevItem.id}
+                          className="translate-x-[38%] sm:translate-x-[44%] translate-y-2 sm:translate-y-3 opacity-90 origin-bottom"
+                          initial={false}
+                          animate={{ opacity: 0.9 }}
+                          transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
                         >
                           <FoodCarouselItem
-                            item={item}
-                            quantity={getQuantity(item.id)}
-                            onTap={() => {
-                              if (offset === 0) {
-                                setSelectedItem(item);
-                                return;
-                              }
-                              setCurrentIndex(i);
-                            }}
+                            item={prevItem}
+                            quantity={getQuantity(prevItem.id)}
+                            variant="side"
+                            onTap={() =>
+                              setCurrentIndex((currentIndex - 1 + count) % count)
+                            }
                           />
                         </motion.div>
-                      );
-                    })()
-                  ))}
+                      ) : (
+                        <div className="w-full h-24" aria-hidden />
+                      )}
+                    </div>
+
+                    {/* Center hero — always screen-centered in row */}
+                    <div
+                      className={`min-w-0 shrink-0 flex justify-center items-end z-10 pb-0 ${count > 1 ? 'w-[48%] sm:w-[52%]' : 'w-full flex-1'}`}
+                    >
+                      {currentItem ? (
+                        <motion.div
+                          key={currentItem.id}
+                          className="w-full flex justify-center -translate-y-3 sm:-translate-y-5"
+                          initial={false}
+                          animate={{ scale: 1 }}
+                          transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+                        >
+                          <FoodCarouselItem
+                            item={currentItem}
+                            quantity={getQuantity(currentItem.id)}
+                            variant="center"
+                            onTap={() => setSelectedItem(currentItem)}
+                          />
+                        </motion.div>
+                      ) : null}
+                    </div>
+
+                    {/* Next (left half visible at right edge) */}
+                    <div
+                      className={`min-w-0 shrink-0 flex justify-start items-end overflow-hidden pb-5 sm:pb-7 ${count > 1 ? 'w-[26%] sm:w-[24%]' : 'w-0 overflow-hidden p-0 m-0'}`}
+                    >
+                      {nextItem ? (
+                        <motion.div
+                          key={nextItem.id}
+                          className="-translate-x-[38%] sm:-translate-x-[44%] translate-y-2 sm:translate-y-3 opacity-90 origin-bottom"
+                          initial={false}
+                          animate={{ opacity: 0.9 }}
+                          transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+                        >
+                          <FoodCarouselItem
+                            item={nextItem}
+                            quantity={getQuantity(nextItem.id)}
+                            variant="side"
+                            onTap={() =>
+                              setCurrentIndex((currentIndex + 1) % count)
+                            }
+                          />
+                        </motion.div>
+                      ) : (
+                        <div className="w-full h-24" aria-hidden />
+                      )}
+                    </div>
+                  </motion.div>
                 </motion.div>
+              </div>
+
+              {currentItem && (
+                <motion.div
+                  className="text-center mt-2 mb-3 px-3"
+                  initial={{ y: 16, opacity: 0 }}
+                  animate={introReady ? { y: 0, opacity: 1 } : { y: 16, opacity: 0 }}
+                  transition={{ delay: 0.32, duration: 0.4 }}
+                >
+                  <h3 className="text-white text-[13px] sm:text-[14px] leading-[1.25] font-medium font-serif px-6 sm:px-8 line-clamp-2">
+                    {currentItem.name}
+                  </h3>
+                  <p className="text-black text-[29px] sm:text-[33px] leading-none font-black mt-1.5 sm:mt-2">
+                    {Math.round(currentItem.price)}
+                    <span className="text-[14px] sm:text-[16px] ml-1">ETB</span>
+                  </p>
+                </motion.div>
+              )}
+
+              {/* Dots */}
+              <motion.div
+                className="flex justify-center gap-2.5 sm:gap-3 mb-6 sm:mb-10"
+                initial={{ y: 26, opacity: 0 }}
+                animate={introReady ? { y: 0, opacity: 1 } : { y: 26, opacity: 0 }}
+                transition={{ delay: 0.36, duration: 0.45 }}
+              >
+                {filteredItems.map((_, i) => (
+                  <motion.div
+                    key={i}
+                    animate={{ 
+                      width: currentIndex === i ? 20 : 10,
+                      opacity: currentIndex === i ? 1 : 0.35, 
+                    }}
+                    className="h-2.5 rounded-full bg-white border border-white/50 cursor-pointer shadow-sm"
+                    onClick={() => setCurrentIndex(i)}
+                  />
+                ))}
+              </motion.div>
+
+              {/* Dark Action Button (Deep Teal) */}
+              <motion.div
+                className="px-8 sm:px-14 pb-8 sm:pb-12 mt-auto"
+                initial={{ y: 28, opacity: 0 }}
+                animate={introReady ? { y: 0, opacity: 1 } : { y: 28, opacity: 0 }}
+                transition={{ delay: 0.42, duration: 0.45 }}
+              >
+                <motion.button
+                  whileTap={{ scale: 0.94 }}
+                  onClick={() => {
+                    const item = filteredItems[currentIndex];
+                    if (item) addItem({ menuItemId: item.id, name: item.name, priceAtAdd: item.price, imageUrl: item.imageUrl });
+                  }}
+                  className="w-full text-white font-black text-[18px] sm:text-[22px] tracking-[0.26em] sm:tracking-[0.4em] uppercase py-4 sm:py-6 rounded-[2.1rem] sm:rounded-[2.5rem] shadow-2xl border border-white/5 transition-all"
+                  style={{ backgroundColor: palette.darkButton }}
+                >
+                  ORDER
+                </motion.button>
               </motion.div>
             </div>
-
-            {/* Dots */}
-            <motion.div
-              className="flex justify-center gap-3 mb-12"
-              initial={{ y: 26, opacity: 0 }}
-              animate={introReady ? { y: 0, opacity: 1 } : { y: 26, opacity: 0 }}
-              transition={{ delay: 0.36, duration: 0.45 }}
-            >
-              {filteredItems.map((_, i) => (
-                <motion.div
-                  key={i}
-                  animate={{ 
-                    width: currentIndex === i ? 20 : 10,
-                    opacity: currentIndex === i ? 1 : 0.35, 
-                  }}
-                  className="h-2.5 rounded-full bg-white border border-white/50 cursor-pointer shadow-sm"
-                  onClick={() => setCurrentIndex(i)}
-                />
-              ))}
-            </motion.div>
-
-            {/* Dark Action Button (Deep Teal) */}
-            <motion.div
-              className="px-14 pb-14 mt-auto"
-              initial={{ y: 28, opacity: 0 }}
-              animate={introReady ? { y: 0, opacity: 1 } : { y: 28, opacity: 0 }}
-              transition={{ delay: 0.42, duration: 0.45 }}
-            >
-              <motion.button
-                whileTap={{ scale: 0.94 }}
-                onClick={() => {
-                  const item = filteredItems[currentIndex];
-                  if (item) addItem({ menuItemId: item.id, name: item.name, priceAtAdd: item.price, imageUrl: item.imageUrl });
-                }}
-                className="w-full text-white font-black text-[22px] tracking-[0.4em] uppercase py-6 rounded-[2.5rem] shadow-2xl border border-white/5 transition-all"
-                style={{ backgroundColor: palette.darkButton }}
-              >
-                ORDER
-              </motion.button>
-            </motion.div>
           </motion.div>
         )}
 
