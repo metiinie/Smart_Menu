@@ -21,16 +21,20 @@ export function CategoryTabs({ categories, activeId, onChange }: Props) {
   };
 
   return (
-    <div className="flex items-start justify-between gap-3 overflow-x-auto no-scrollbar py-3 px-6 snap-x">
-      {categories.map((cat) => {
+    <div className="flex items-start justify-center gap-3 overflow-x-auto no-scrollbar py-3 px-5 snap-x">
+      {categories.map((cat, index) => {
         const isActive = activeId === cat.id;
         const meta = getIcon(cat.name);
+        const mid = (categories.length - 1) / 2;
+        const distance = Math.abs(index - mid);
+        const curveY = Math.min(10, distance * 5);
         return (
           <button
             key={cat.id}
             id={`category-tab-${cat.id}`}
             onClick={() => onChange(cat.id)}
             className="flex flex-col items-center gap-2.5 min-w-[76px] flex-shrink-0 transition-all duration-300 active:scale-90 snap-start"
+            style={{ transform: `translateY(${curveY}px)` }}
           >
             <div
               className={`w-[74px] h-[74px] rounded-full flex items-center justify-center relative transition-all duration-300
@@ -39,8 +43,8 @@ export function CategoryTabs({ categories, activeId, onChange }: Props) {
                   : 'bg-white text-[#1E1E1E] border border-black/5 shadow-sm hover:border-[#C59B76]/30'}`}
             >
               <motion.span
-                animate={isActive ? { rotate: [0, 8, -8, 0], scale: [1, 1.06, 1] } : { rotate: 0, scale: 1 }}
-                transition={{ duration: 1.2, repeat: isActive ? Infinity : 0, repeatDelay: 1.8 }}
+                animate={isActive ? { y: [0, -2, 0], scale: [1, 1.04, 1] } : { y: 0, scale: 1 }}
+                transition={{ duration: 1.3, repeat: isActive ? Infinity : 0, repeatDelay: 2.1 }}
                 className={`text-[30px] transition-opacity duration-300 ${isActive ? 'opacity-0' : 'opacity-100'}`}
               >
                 {meta.emoji}
@@ -49,8 +53,8 @@ export function CategoryTabs({ categories, activeId, onChange }: Props) {
                 <motion.div
                   layoutId="active-icon-bg"
                   initial={{ scale: 0.75, opacity: 0 }}
-                  animate={{ scale: [1, 1.08, 1], opacity: 1, rotate: [0, 10, 0] }}
-                  transition={{ duration: 1.1, repeat: Infinity, repeatDelay: 2.2 }}
+                  animate={{ scale: [1, 1.05, 1], opacity: 1 }}
+                  transition={{ duration: 1.15, repeat: Infinity, repeatDelay: 2.4 }}
                   className="absolute inset-0 flex items-center justify-center text-[#1E1E1E]"
                 >
                   {meta.icon}

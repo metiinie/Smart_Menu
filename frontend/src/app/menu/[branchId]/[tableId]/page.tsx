@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect, useCallback, use, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useEffect, useCallback, use, useMemo, useRef } from 'react';
+import { motion } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
-import { Filter, Leaf, Search, X as CloseIcon, Clock, ChevronRight, Plus } from 'lucide-react';
+import { Clock, ChevronRight } from 'lucide-react';
 import { menuApi, contextApi, ordersApi } from '@/lib/api';
 import { useCartStore } from '@/stores/cartStore';
 import { CategoryTabs } from '@/components/menu/CategoryTabs';
@@ -14,12 +14,9 @@ import { AlertCircle, Loader2 } from 'lucide-react';
 import { FoodCarouselItem } from '@/components/menu/FoodCarouselItem';
 import { ItemModal } from '@/components/menu/ItemModal';
 import { CartDrawer } from '@/components/cart/CartDrawer';
-import { SkeletonCard, SkeletonCategoryTab } from '@/components/ui/SkeletonCard';
-import { ErrorState } from '@/components/ui/StatusStates';
+import { SkeletonCategoryTab } from '@/components/ui/SkeletonCard';
 import { getSocket } from '@/lib/socket';
-import { PageTransition } from '@/components/ui/PageTransition';
 import { WelcomeSplash } from '@/components/ui/WelcomeSplash';
-import Image from 'next/image';
 import type { MenuItem, Category, MenuCategoryDto, Order } from '@arifsmart/shared';
 
 interface PageProps {
@@ -41,9 +38,10 @@ export default function MenuPage({ params }: PageProps) {
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
   const [cartOpen, setCartOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [showSearch, setShowSearch] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [introReady, setIntroReady] = useState(false);
+  const carouselRef = useRef<HTMLDivElement>(null);
+  const [carouselWidth, setCarouselWidth] = useState(360);
 
   // Welcome splash - only show once per session
   const [showSplash, setShowSplash] = useState(() => {
@@ -72,11 +70,6 @@ export default function MenuPage({ params }: PageProps) {
     [items]
   );
 
-  const totalPriceValue = useMemo(() => 
-    items.reduce((sum, i) => sum + i.priceAtAdd * i.quantity, 0),
-    [items]
-  );
-
   useEffect(() => {
     setBranchId(resolvedParams.branchId);
     setTableId(resolvedParams.tableId);
@@ -88,7 +81,7 @@ export default function MenuPage({ params }: PageProps) {
     enabled: !!branchId && !!tableId,
   });
 
-  const { data: menuData, isLoading, isError, refetch } = useQuery({
+  const { data: menuData, isLoading, isError } = useQuery({
     queryKey: ['menu', branchId, fastingOnly],
     queryFn: () => menuApi.getMenu(branchId, fastingOnly || undefined),
     enabled: !!branchId,
@@ -166,6 +159,17 @@ export default function MenuPage({ params }: PageProps) {
     }
   }, [showSplash]);
 
+  useEffect(() => {
+    const el = carouselRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver((entries) => {
+      const width = entries[0]?.contentRect.width ?? 360;
+      setCarouselWidth(width);
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   // Reset swiper when search or category changes - FIX 12
   useEffect(() => {
     setCurrentIndex(0);
@@ -191,8 +195,8 @@ export default function MenuPage({ params }: PageProps) {
 
   const activeCategoryName = categories.find(c => c.id === activeCategory)?.name || 'FOOD';
 
-  // Find the index of the first currently visible item for styling or tracking if needed
-  const currentItem = filteredItems[currentIndex] || filteredItems[0];
+  const arcStep = Math.max(110, Math.min(175, carouselWidth * 0.38));
+  const arcDepth = Math.max(52, Math.min(92, carouselWidth * 0.2));
 
   return (
     <div className="min-h-dvh flex flex-col relative overflow-hidden font-sans" style={{ backgroundColor: palette.appGreen }}>
@@ -317,6 +321,7 @@ export default function MenuPage({ params }: PageProps) {
                 transition={{ delay: 0.28, duration: 0.55 }}
               >
                 <motion.div
+                  ref={carouselRef}
                   className="relative w-full h-full cursor-grab active:cursor-grabbing touch-pan-y"
                   drag="x"
                   onDragEnd={(_, info) => {
@@ -338,18 +343,22 @@ export default function MenuPage({ params }: PageProps) {
                         if (offset < -count / 2) offset += count;
                       }
                       const absOffset = Math.abs(offset);
-                      if (absOffset > 2) return null;
+                      if (absOffset > 1) return null;
+
+                      const theta = offset * 0.62;
+                      const x = Math.sin(theta) * arcStep * 1.34;
+                      const y = (1 - Math.cos(theta)) * arcDepth - 46;
 
                       return (
                         <motion.div
                           key={item.id}
                           className="absolute left-1/2 top-1/2 -translate-x-1/2"
                           animate={{
-                            x: offset * 165,
-                            y: absOffset === 0 ? -36 : absOffset * 42,
-                            scale: absOffset === 0 ? 1.04 : absOffset === 1 ? 0.78 : 0.62,
-                            opacity: absOffset === 0 ? 1 : absOffset === 1 ? 0.58 : 0.24,
-                            rotate: offset * -14,
+                            x,
+                            y,
+                            scale: absOffset === 0 ? 1.04 : 0.64,
+                            opacity: absOffset === 0 ? 1 : 0.36,
+                            rotate: offset * -12,
                             zIndex: 30 - absOffset,
                           }}
                           transition={{ type: 'spring', stiffness: 160, damping: 22 }}
@@ -357,7 +366,13 @@ export default function MenuPage({ params }: PageProps) {
                           <FoodCarouselItem
                             item={item}
                             quantity={getQuantity(item.id)}
-                            onTap={() => setSelectedItem(item)}
+                            onTap={() => {
+                              if (offset === 0) {
+                                setSelectedItem(item);
+                                return;
+                              }
+                              setCurrentIndex(i);
+                            }}
                           />
                         </motion.div>
                       );

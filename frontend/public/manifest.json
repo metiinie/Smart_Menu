@@ -2,11 +2,14 @@
   "name": "ArifSmart Menu",
   "short_name": "ArifSmart",
   "description": "Premium QR-based restaurant ordering system",
-  "start_url": "/",
+  "id": "/",
+  "start_url": "/?source=pwa",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#FCFAF7",
-  "theme_color": "#F97316",
-  "orientation": "any",
+  "display_override": ["standalone", "window-controls-overlay"],
+  "background_color": "#FBF8F3",
+  "theme_color": "#08AE75",
+  "orientation": "portrait",
   "icons": [
     {
       "src": "/icons/icon-192.png",
@@ -32,5 +35,6 @@
       "type": "image/png",
       "purpose": "maskable"
     }
-  ]
+  ],
+  "categories": ["food", "lifestyle", "shopping"]
 }

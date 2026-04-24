@@ -11,70 +11,53 @@ interface Props {
 }
 
 export function FoodCarouselItem({ item, quantity, onTap }: Props) {
-  const palette = {
-    halo: '#44CFA0',
-    shadow: 'rgba(12, 74, 58, 0.35)',
-  };
-  // Helper to get Pinterest premium image path if available
-  const displayImageUrl = item.imageUrl?.replace('.jpg', '.png');
-
   return (
-    <div 
-      className="w-[320px] flex-shrink-0 flex flex-col items-center cursor-pointer"
+    <button
+      type="button"
+      className="w-[240px] sm:w-[270px] flex-shrink-0 flex flex-col items-center bg-transparent"
       onClick={onTap}
     >
-      {/* Decorative Base & Image Container */}
-      <div className="relative w-[280px] h-[280px] flex items-center justify-center">
-        {/* Decorative shadow base */}
-        <div className="absolute bottom-[5%] left-1/2 -translate-x-1/2 w-[80%] h-[15%] blur-2xl rounded-full" style={{ backgroundColor: palette.shadow }} />
-        
-        {/* Floating Ring / Glow */}
-        <div className="absolute inset-0 rounded-full scale-90 blur-3xl" style={{ backgroundColor: palette.halo }} />
+      <div className="relative w-[220px] h-[220px] sm:w-[250px] sm:h-[250px] flex items-center justify-center">
+        <div className="absolute bottom-[8%] w-[82%] h-[14%] bg-[#0A6D52]/35 blur-2xl rounded-full" />
+        <div className="absolute inset-0 rounded-full scale-[0.88] blur-2xl bg-[#44CFA0]" />
+        <div className="absolute inset-[22%] rounded-full bg-[#39C798]" />
 
-        {/* Main Image */}
-        <motion.div 
-          className="relative w-[240px] h-[240px] z-10 flex items-center justify-center"
-          animate={{ y: [0, -10, 0] }}
-          transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+        <motion.div
+          className="relative z-10 w-[170px] h-[170px] sm:w-[200px] sm:h-[200px]"
+          animate={{ y: [0, -8, 0] }}
+          transition={{ duration: 3.8, repeat: Infinity, ease: 'easeInOut' }}
         >
           {item.imageUrl ? (
             <Image
-              src={displayImageUrl || item.imageUrl}
+              src={item.imageUrl}
               alt={item.name}
               fill
-              sizes="240px"
-              className="object-contain drop-shadow-[0_30px_50px_rgba(0,0,0,0.4)]"
-              priority
+              sizes="(max-width: 640px) 170px, 200px"
+              className="object-contain drop-shadow-[0_18px_22px_rgba(0,0,0,0.28)]"
             />
           ) : (
-            <div className="w-48 h-48 flex items-center justify-center text-8xl bg-white/10 backdrop-blur-xl rounded-full border border-white/20 shadow-2xl">
-              🍱
+            <div className="w-full h-full rounded-full bg-white/20 flex items-center justify-center text-6xl">
+              🍽️
             </div>
           )}
         </motion.div>
 
-        {/* Quantity Badge if > 0 */}
         {quantity > 0 && (
-          <motion.div 
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            className="absolute top-4 right-4 z-20 bg-[#E53935] text-white w-10 h-10 rounded-full flex items-center justify-center font-black text-lg shadow-xl border-4 border-white"
-          >
+          <div className="absolute top-3 right-4 z-20 w-8 h-8 rounded-full bg-[#E53935] text-white text-sm font-bold flex items-center justify-center border-2 border-white">
             {quantity}
-          </motion.div>
+          </div>
         )}
       </div>
 
-      {/* Details */}
-      <div className="text-center mt-3 space-y-1.5">
-        <h3 className="font-medium text-[14px] leading-[1.25] text-white line-clamp-2 drop-shadow-sm px-2">
+      <div className="text-center mt-1">
+        <h3 className="text-white text-[34px] leading-[1.1] font-medium font-serif px-3 line-clamp-2">
           {item.name}
         </h3>
-        <p className="font-black text-[34px] leading-none text-black flex items-center justify-center gap-1">
-          {item.price.toFixed(0)} 
-          <span className="text-[18px] font-black text-black tracking-tight uppercase">ETB</span>
+        <p className="text-black text-[40px] leading-none font-black mt-1">
+          {Math.round(item.price)}
+          <span className="text-[18px] ml-1">ETB</span>
         </p>
       </div>
-    </div>
+    </button>
   );
 }
