@@ -13,9 +13,14 @@ export class TableSessionsService {
       throw new NotFoundException('Branch not found');
     }
 
-    let table = await this.prisma.diningTable.findUnique({
-      where: { id: tableId },
-    });
+    let table = null;
+
+    const isUuid = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(tableId);
+    if (isUuid) {
+      table = await this.prisma.diningTable.findUnique({
+        where: { id: tableId },
+      });
+    }
 
     // If not found by UUID, try looking up by tableNumber (fallback)
     if (!table) {
@@ -41,12 +46,12 @@ export class TableSessionsService {
 
     // Enforce "Only ONE active session per table" - get it or create it
     let activeSession = await this.prisma.tableSession.findFirst({
-      where: { tableId, isActive: true },
+      where: { tableId: table.id, isActive: true },
     });
 
     if (!activeSession) {
       activeSession = await this.prisma.tableSession.create({
-        data: { tableId, isActive: true },
+        data: { tableId: table.id, isActive: true },
       });
     }
 

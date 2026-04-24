@@ -8,6 +8,7 @@ import Image from 'next/image';
 import { adminApi } from '@/lib/api';
 import { MenuItemForm } from '@/components/admin/MenuItemForm';
 import { PinLogin } from '@/components/ui/PinLogin';
+import { AdminHeader } from '@/components/admin/AdminHeader';
 import type { MenuItem, StaffUser, Category } from '@arifsmart/shared';
 
 const BRANCH_ID = process.env.NEXT_PUBLIC_BRANCH_ID ?? '';
@@ -73,28 +74,16 @@ export default function AdminMenuPage() {
 
   return (
     <div className="min-h-dvh bg-surface">
-      {/* Header */}
-      <header className="sticky top-0 z-20 bg-surface/90 backdrop-blur border-b border-surface-200 safe-top">
-        <div className="flex items-center justify-between px-4 py-3">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-brand-500 flex items-center justify-center">
-              <ShieldCheck size={16} className="text-white" />
-            </div>
-            <h1 className="font-display font-bold text-white text-sm">Admin · Menu</h1>
-          </div>
-          <div className="flex items-center gap-2">
-            <motion.button whileTap={{ scale: 0.9 }} onClick={() => { setEditItem(null); setFormOpen(true); }}
-              className="flex items-center gap-1 bg-brand-500 text-white text-xs font-semibold px-3 py-2 rounded-xl"
-              id="new-item-btn">
-              <Plus size={14} /> New Item
-            </motion.button>
-            <motion.button whileTap={{ scale: 0.9 }} onClick={logout}
-              className="w-8 h-8 rounded-full bg-surface-100 flex items-center justify-center">
-              <LogOut size={14} className="text-white/60" />
-            </motion.button>
-          </div>
-        </div>
-      </header>
+      <AdminHeader 
+        title="Admin · Menu" 
+        onLogout={logout}
+      >
+        <motion.button whileTap={{ scale: 0.9 }} onClick={() => { setEditItem(null); setFormOpen(true); }}
+          className="flex items-center gap-1 bg-brand-500 text-white text-xs font-semibold px-3 py-2 rounded-xl"
+          id="new-item-btn">
+          <Plus size={14} /> New Item
+        </motion.button>
+      </AdminHeader>
 
       <main className="p-4 pb-12">
         {!branchId && (

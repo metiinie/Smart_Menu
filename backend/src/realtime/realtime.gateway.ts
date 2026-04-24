@@ -10,7 +10,10 @@ import { Server, Socket } from 'socket.io';
 import { Logger } from '@nestjs/common';
 
 @WebSocketGateway({
-  cors: { origin: ['http://localhost:3000', 'http://127.0.0.1:3000'], credentials: true },
+  cors: { 
+    origin: true, // true allows all origins in Socket.io
+    credentials: true 
+  },
   namespace: '/',
 })
 export class RealtimeGateway

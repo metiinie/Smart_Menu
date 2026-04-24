@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { PinLogin } from '@/components/ui/PinLogin';
 import { useAuthStore } from '@/stores/authStore';
 import { MeshBackground, FoodPatternOverlay } from '@/components/ui/Backgrounds';
+import { PageTransition } from '@/components/ui/PageTransition';
 
 function LoginContent() {
   const router = useRouter();
@@ -19,15 +20,17 @@ function LoginContent() {
   };
 
   return (
-    <div className="min-h-dvh relative flex flex-col items-center justify-center p-6 overflow-hidden bg-surface">
-      <MeshBackground />
-      <div className="relative z-10 w-full">
-        <PinLogin 
-          branchId={branchId} 
-          onSuccess={handleSuccess} 
-        />
+    <PageTransition>
+      <div className="min-h-dvh relative flex flex-col items-center justify-center p-6 overflow-hidden bg-surface">
+        <MeshBackground />
+        <div className="relative z-10 w-full max-w-md mx-auto">
+          <PinLogin 
+            branchId={branchId} 
+            onSuccess={handleSuccess} 
+          />
+        </div>
       </div>
-    </div>
+    </PageTransition>
   );
 }
 

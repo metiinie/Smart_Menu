@@ -2,37 +2,39 @@
 
 import { motion } from 'framer-motion';
 import Image from 'next/image';
-import { Plus } from 'lucide-react';
 import type { MenuItem } from '@arifsmart/shared';
 
 interface Props {
   item: MenuItem;
   quantity: number;
-  onAdd: () => void;
   onTap: () => void;
 }
 
-export function FoodCarouselItem({ item, quantity, onAdd, onTap }: Props) {
+export function FoodCarouselItem({ item, quantity, onTap }: Props) {
+  const palette = {
+    halo: '#44CFA0',
+    shadow: 'rgba(12, 74, 58, 0.35)',
+  };
   // Helper to get Pinterest premium image path if available
   const displayImageUrl = item.imageUrl?.replace('.jpg', '.png');
 
   return (
-    <div className="w-[300px] flex-shrink-0 flex flex-col items-center px-4">
+    <div 
+      className="w-[320px] flex-shrink-0 flex flex-col items-center cursor-pointer"
+      onClick={onTap}
+    >
       {/* Decorative Base & Image Container */}
-      <div 
-        className="relative w-full aspect-square flex items-center justify-center cursor-pointer mb-4"
-        onClick={onTap}
-      >
+      <div className="relative w-[280px] h-[280px] flex items-center justify-center">
         {/* Decorative shadow base */}
-        <div className="absolute bottom-[10%] left-1/2 -translate-x-1/2 w-[70%] h-[15%] bg-black/10 blur-xl rounded-full" />
+        <div className="absolute bottom-[5%] left-1/2 -translate-x-1/2 w-[80%] h-[15%] blur-2xl rounded-full" style={{ backgroundColor: palette.shadow }} />
         
         {/* Floating Ring / Glow */}
-        <div className="absolute inset-0 bg-brand-500/5 rounded-full scale-90 blur-2xl" />
+        <div className="absolute inset-0 rounded-full scale-90 blur-3xl" style={{ backgroundColor: palette.halo }} />
 
         {/* Main Image */}
         <motion.div 
-          className="relative w-[220px] h-[220px] z-10 flex items-center justify-center"
-          animate={{ y: [0, -8, 0] }}
+          className="relative w-[240px] h-[240px] z-10 flex items-center justify-center"
+          animate={{ y: [0, -10, 0] }}
           transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
         >
           {item.imageUrl ? (
@@ -40,48 +42,39 @@ export function FoodCarouselItem({ item, quantity, onAdd, onTap }: Props) {
               src={displayImageUrl || item.imageUrl}
               alt={item.name}
               fill
-              sizes="220px"
-              className="object-contain drop-shadow-[0_20px_40px_rgba(0,0,0,0.3)]"
+              sizes="240px"
+              className="object-contain drop-shadow-[0_30px_50px_rgba(0,0,0,0.4)]"
               priority
             />
           ) : (
-            <div className="w-40 h-40 flex items-center justify-center text-7xl bg-white/20 backdrop-blur-md rounded-full border border-white/30 shadow-inner">
-              🍽️
+            <div className="w-48 h-48 flex items-center justify-center text-8xl bg-white/10 backdrop-blur-xl rounded-full border border-white/20 shadow-2xl">
+              🍱
             </div>
           )}
         </motion.div>
 
-
         {/* Quantity Badge if > 0 */}
         {quantity > 0 && (
-          <div className="absolute top-4 right-4 z-20 bg-brand-500 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold shadow-lg">
+          <motion.div 
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            className="absolute top-4 right-4 z-20 bg-[#E53935] text-white w-10 h-10 rounded-full flex items-center justify-center font-black text-lg shadow-xl border-4 border-white"
+          >
             {quantity}
-          </div>
+          </motion.div>
         )}
       </div>
 
       {/* Details */}
-      <div className="text-center mt-6 space-y-2">
-        <h3 className="font-display font-bold text-xl text-slate-800 line-clamp-1">
+      <div className="text-center mt-3 space-y-1.5">
+        <h3 className="font-medium text-[14px] leading-[1.25] text-white line-clamp-2 drop-shadow-sm px-2">
           {item.name}
         </h3>
-        <p className="font-display font-black text-2xl text-slate-900">
-          {item.price.toFixed(0)} <span className="text-sm font-bold text-slate-400 ml-1">ETB</span>
+        <p className="font-black text-[34px] leading-none text-black flex items-center justify-center gap-1">
+          {item.price.toFixed(0)} 
+          <span className="text-[18px] font-black text-black tracking-tight uppercase">ETB</span>
         </p>
       </div>
-
-      {/* Add Button */}
-      <motion.button
-        whileTap={{ scale: 0.9 }}
-        onClick={(e) => {
-          e.stopPropagation();
-          onAdd();
-        }}
-        className="mt-6 bg-brand-500 hover:bg-brand-600 active:bg-brand-700 text-white font-black text-lg
-                   px-10 py-4 rounded-full shadow-lg shadow-brand-500/30 transition-all active:scale-95"
-      >
-        ORDER
-      </motion.button>
     </div>
   );
 }

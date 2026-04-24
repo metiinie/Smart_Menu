@@ -64,35 +64,35 @@ async function main() {
   await prisma.menuItem.createMany({
     data: [
       // Appetizers
-      { name: 'Sambusa', description: 'Crispy fried pastry filled with spiced lentils or meat', price: 35, categoryId: appetizers.id, isFasting: false, imageUrl: '/images/menu/sambusa.jpg' },
-      { name: 'Lentil Sambusa', description: 'Crispy pastry with herbed lentil filling (fasting-friendly)', price: 30, categoryId: appetizers.id, isFasting: true, imageUrl: '/images/menu/lentil-sambusa.jpg' },
-      { name: 'Fatira', description: 'Ethiopian flatbread with egg and honey', price: 45, categoryId: appetizers.id, isFasting: false, imageUrl: '/images/menu/fatira.jpg' },
+      { name: 'Sambusa', description: 'Crispy fried pastry filled with spiced lentils or meat', price: 35, categoryId: appetizers.id, isFasting: false, imageUrl: '/images/menu/sambusa.png' },
+      { name: 'Lentil Sambusa', description: 'Crispy pastry with herbed lentil filling (fasting-friendly)', price: 30, categoryId: appetizers.id, isFasting: true, imageUrl: '/images/menu/lentil-sambusa.png' },
+      { name: 'Fatira', description: 'Ethiopian flatbread with egg and honey', price: 45, categoryId: appetizers.id, isFasting: false, imageUrl: '/images/menu/fatira.png' },
 
       // Main Dishes
-      { name: 'Doro Wat', description: 'Spicy Ethiopian chicken stew with boiled eggs in berbere sauce', price: 280, categoryId: mainDishes.id, isFasting: false, imageUrl: '/images/menu/doro-wat.jpg' },
-      { name: 'Tibs (Beef)', description: 'Sautéed tender beef with onions, rosemary and spiced butter', price: 320, categoryId: mainDishes.id, isFasting: false, imageUrl: '/images/menu/beef-tibs.jpg' },
-      { name: 'Kitfo', description: 'Ethiopian steak tartare marinated with mitmita and spiced butter', price: 350, categoryId: mainDishes.id, isFasting: false, imageUrl: '/images/menu/kitfo.jpg' },
-      { name: 'Shiro Fitfit', description: 'Chickpea flour sauce with torn injera', price: 180, categoryId: mainDishes.id, isFasting: true, imageUrl: '/images/menu/shiro-fitfit.jpg' },
-      { name: 'Lamb Tibs', description: 'Tender lamb sautéed with herbs and berbere', price: 380, categoryId: mainDishes.id, isFasting: false, imageUrl: '/images/menu/lamb-tibs.jpg' },
-      { name: 'Firfir (Beef)', description: 'Torn injera mixed with beef and berbere sauce', price: 220, categoryId: mainDishes.id, isFasting: false, imageUrl: '/images/menu/firfir.jpg' },
+      { name: 'Doro Wat', description: 'Spicy Ethiopian chicken stew with boiled eggs in berbere sauce', price: 280, categoryId: mainDishes.id, isFasting: false, imageUrl: '/images/menu/doro-wat.png' },
+      { name: 'Tibs (Beef)', description: 'Sautéed tender beef with onions, rosemary and spiced butter', price: 320, categoryId: mainDishes.id, isFasting: false, imageUrl: '/images/menu/beef-tibs.png' },
+      { name: 'Kitfo', description: 'Ethiopian steak tartare marinated with mitmita and spiced butter', price: 350, categoryId: mainDishes.id, isFasting: false, imageUrl: '/images/menu/kitfo.png' },
+      { name: 'Shiro Fitfit', description: 'Chickpea flour sauce with torn injera', price: 180, categoryId: mainDishes.id, isFasting: true, imageUrl: '/images/menu/shiro-fitfit.png' },
+      { name: 'Lamb Tibs', description: 'Tender lamb sautéed with herbs and berbere', price: 380, categoryId: mainDishes.id, isFasting: false, imageUrl: '/images/menu/lamb-tibs.png' },
+      { name: 'Firfir (Beef)', description: 'Torn injera mixed with beef and berbere sauce', price: 220, categoryId: mainDishes.id, isFasting: false, imageUrl: null },
 
       // Fasting Menu
-      { name: 'Misir Wat', description: 'Spiced red lentil stew — hearty and nutritious', price: 160, categoryId: fastingMenu.id, isFasting: true, imageUrl: '/images/menu/misir-wat.jpg' },
-      { name: 'Gomen', description: 'Ethiopian collard greens sautéed with garlic and ginger', price: 140, categoryId: fastingMenu.id, isFasting: true, imageUrl: '/images/menu/gomen.jpg' },
-      { name: 'Beyaynetu (Fasting)', description: 'Assorted fasting platter: misir, gomen, shiro, tikel gomen', price: 220, categoryId: fastingMenu.id, isFasting: true, imageUrl: '/images/menu/beyaynetu-fasting.jpg' },
-      { name: 'Shiro Wat', description: 'Smooth chickpea flour stew with Ethiopian spices', price: 150, categoryId: fastingMenu.id, isFasting: true, imageUrl: '/images/menu/shiro-wat.jpg' },
-      { name: 'Tikel Gomen', description: 'Mild curried cabbage and carrots', price: 120, categoryId: fastingMenu.id, isFasting: true, imageUrl: '/images/menu/tikel-gomen.jpg' },
+      { name: 'Misir Wat', description: 'Spiced red lentil stew — hearty and nutritious', price: 160, categoryId: fastingMenu.id, isFasting: true, imageUrl: null },
+      { name: 'Gomen', description: 'Ethiopian collard greens sautéed with garlic and ginger', price: 140, categoryId: fastingMenu.id, isFasting: true, imageUrl: null },
+      { name: 'Beyaynetu (Fasting)', description: 'Assorted fasting platter: misir, gomen, shiro, tikel gomen', price: 220, categoryId: fastingMenu.id, isFasting: true, imageUrl: '/images/menu/beyaynetu-fasting.png' },
+      { name: 'Shiro Wat', description: 'Smooth chickpea flour stew with Ethiopian spices', price: 150, categoryId: fastingMenu.id, isFasting: true, imageUrl: null },
+      { name: 'Tikel Gomen', description: 'Mild curried cabbage and carrots', price: 120, categoryId: fastingMenu.id, isFasting: true, imageUrl: null },
 
       // Drinks
-      { name: 'Ethiopian Coffee', description: 'Traditional coffee ceremony brew — bold and aromatic', price: 60, categoryId: drinks.id, isFasting: true, imageUrl: '/images/menu/coffee.jpg' },
-      { name: 'Fresh Avocado Juice', description: 'Creamy blended avocado with optional honey', price: 80, categoryId: drinks.id, isFasting: true, imageUrl: '/images/menu/avocado-juice.jpg' },
-      { name: 'Fresh Mango Juice', description: 'Cold-pressed fresh mango juice', price: 70, categoryId: drinks.id, isFasting: true, imageUrl: '/images/menu/mango-juice.jpg' },
-      { name: 'Sprite / Fanta / Coca-Cola', description: 'Chilled soda — 330ml', price: 40, categoryId: drinks.id, isFasting: true, imageUrl: '/images/menu/soda.jpg' },
-      { name: 'Water (500ml)', description: 'Still bottled water', price: 20, categoryId: drinks.id, isFasting: true, isAvailable: true, imageUrl: '/images/menu/water.jpg' },
+      { name: 'Ethiopian Coffee', description: 'Traditional coffee ceremony brew — bold and aromatic', price: 60, categoryId: drinks.id, isFasting: true, imageUrl: '/images/menu/coffee.png' },
+      { name: 'Fresh Avocado Juice', description: 'Creamy blended avocado with optional honey', price: 80, categoryId: drinks.id, isFasting: true, imageUrl: '/images/menu/avocado-juice.png' },
+      { name: 'Fresh Mango Juice', description: 'Cold-pressed fresh mango juice', price: 70, categoryId: drinks.id, isFasting: true, imageUrl: null },
+      { name: 'Sprite / Fanta / Coca-Cola', description: 'Chilled soda — 330ml', price: 40, categoryId: drinks.id, isFasting: true, imageUrl: null },
+      { name: 'Water (500ml)', description: 'Still bottled water', price: 20, categoryId: drinks.id, isFasting: true, isAvailable: true, imageUrl: null },
 
       // Desserts
-      { name: 'Baklava', description: 'Honey-soaked pastry with mixed nuts', price: 90, categoryId: desserts.id, isFasting: false, imageUrl: '/images/menu/baklava.jpg' },
-      { name: 'Fruit Salad', description: 'Seasonal fresh fruit mix', price: 75, categoryId: desserts.id, isFasting: true, imageUrl: '/images/menu/fruit-salad.jpg' },
+      { name: 'Baklava', description: 'Honey-soaked pastry with mixed nuts', price: 90, categoryId: desserts.id, isFasting: false, imageUrl: null },
+      { name: 'Fruit Salad', description: 'Seasonal fresh fruit mix', price: 75, categoryId: desserts.id, isFasting: true, imageUrl: null },
     ],
   });
 

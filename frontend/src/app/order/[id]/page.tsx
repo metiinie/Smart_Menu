@@ -9,6 +9,7 @@ import { getSocket, joinRoom, leaveRoom } from '@/lib/socket';
 import { OrderTimeline } from '@/components/order/OrderTimeline';
 import { ErrorState, NotFoundState } from '@/components/ui/StatusStates';
 import { SkeletonCard } from '@/components/ui/SkeletonCard';
+import { PageTransition } from '@/components/ui/PageTransition';
 import Link from 'next/link';
 import type { Order } from '@arifsmart/shared';
 
@@ -97,74 +98,80 @@ export default function OrderStatusPage({ params }: PageProps) {
   }
 
   return (
-    <div className="min-h-dvh bg-surface flex flex-col">
-      {/* Header */}
-      <header className="safe-top px-4 py-4 flex items-center gap-3">
-        <Link href="/" className="w-9 h-9 rounded-full bg-surface-100 flex items-center justify-center">
-          <ArrowLeft size={18} className="text-white/70" />
-        </Link>
-        <h1 className="font-display font-bold text-white text-lg">Order Status</h1>
-      </header>
+    <PageTransition>
+      <div className="min-h-dvh bg-surface flex flex-col">
+        {/* Header */}
+        <header className="safe-top bg-white/80 backdrop-blur-md border-b border-brand-500/5 sticky top-0 z-20">
+          <div className="max-w-2xl mx-auto w-full px-4 py-4 flex items-center gap-3">
+            <Link href="/" className="w-10 h-10 rounded-2xl bg-white shadow-sm flex items-center justify-center border border-slate-100 hover:border-brand-200 transition-colors">
+              <ArrowLeft size={20} className="text-slate-800" />
+            </Link>
+            <div>
+              <h1 className="font-display font-black text-slate-800 text-lg uppercase tracking-tight">Order Status</h1>
+              <p className="text-slate-400 text-[10px] uppercase font-bold tracking-widest leading-none">Real-time Updates</p>
+            </div>
+          </div>
+        </header>
 
-      <main className="flex-1 px-4 pb-8">
+        <main className="flex-1 max-w-2xl mx-auto w-full px-4 pb-20 pt-6">
         {/* Status hero */}
-        <div
-          className="card p-6 mb-6 text-center relative"
-        >
-          <div className="absolute top-4 right-4 bg-brand-500/20 text-brand-400 font-mono font-bold px-3 py-1 rounded-full text-xs">
-            #{order.displayNumber}
-          </div>
-          <div
-            className="text-6xl mb-4 mt-2"
-          >
-            {msg?.emoji}
-          </div>
-          <h2 className="font-display font-bold text-2xl text-white">{msg?.title}</h2>
-          <p className="text-white/50 text-sm mt-1">{msg?.subtitle}</p>
+          <div className="bg-white rounded-[2.5rem] p-8 mb-6 text-center relative border border-brand-500/5 shadow-xl shadow-brand-500/5">
+            <div className="absolute top-6 right-6 bg-brand-500/10 text-brand-600 font-mono font-black px-4 py-1.5 rounded-2xl text-[10px] uppercase tracking-widest border border-brand-500/10">
+              #{order.displayNumber}
+            </div>
+            <motion.div
+              initial={{ scale: 0.5, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="text-7xl mb-6 mt-4 drop-shadow-lg"
+            >
+              {msg?.emoji}
+            </motion.div>
+            <h2 className="font-display font-black text-3xl text-slate-800 uppercase tracking-tighter leading-none">{msg?.title}</h2>
+            <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-2">{msg?.subtitle}</p>
 
-          <div className="flex items-center justify-center gap-4 mt-4 pt-4 border-t border-surface-200">
-            <div className="text-center">
-              <p className="text-white/40 text-xs">Table</p>
-              <p className="font-bold text-white text-lg">{order.table?.tableNumber ?? '—'}</p>
-            </div>
-            <div className="w-px h-8 bg-surface-200" />
-            <div className="text-center">
-              <p className="text-white/40 text-xs">Total</p>
-              <p className="font-bold text-brand-400 text-lg">ETB {Number(order.totalPrice).toFixed(0)}</p>
-            </div>
-            <div className="w-px h-8 bg-surface-200" />
-            <div className="text-center">
-              <p className="text-white/40 text-xs">Items</p>
-              <p className="font-bold text-white text-lg">{order.items?.length ?? 0}</p>
+            <div className="flex items-center justify-center gap-6 mt-8 pt-8 border-t border-slate-100">
+              <div className="text-center">
+                <p className="text-slate-400 text-[10px] uppercase font-black tracking-widest mb-1">Table</p>
+                <p className="font-display font-black text-slate-800 text-xl">{order.table?.tableNumber ?? '—'}</p>
+              </div>
+              <div className="w-px h-10 bg-slate-100" />
+              <div className="text-center">
+                <p className="text-slate-400 text-[10px] uppercase font-black tracking-widest mb-1">Total</p>
+                <p className="font-display font-black text-brand-500 text-xl">ETB {Number(order.totalPrice).toFixed(0)}</p>
+              </div>
+              <div className="w-px h-10 bg-slate-100" />
+              <div className="text-center">
+                <p className="text-slate-400 text-[10px] uppercase font-black tracking-widest mb-1">Items</p>
+                <p className="font-display font-black text-slate-800 text-xl">{order.items?.length ?? 0}</p>
+              </div>
             </div>
           </div>
-        </div>
 
         {/* Items list */}
-        <div className="card p-4 mb-6 space-y-2">
-          <h3 className="font-semibold text-white text-sm mb-3 flex items-center gap-2">
-            <Utensils size={14} className="text-brand-400" /> Your Order
+        <div className="bg-white rounded-3xl p-6 mb-6 border border-brand-500/5 shadow-sm">
+          <h3 className="font-display font-black text-[10px] uppercase tracking-[0.2em] text-slate-400 mb-4 flex items-center gap-2">
+            <Utensils size={14} className="text-brand-500" /> Your Selection
           </h3>
-          {order.items?.map((item) => (
-            <div key={item.id} className="flex justify-between items-center py-1.5 border-b border-surface-200 last:border-0">
-              <span className="text-white/80 text-sm">{item.menuItem?.name ?? 'Item'}</span>
-              <div className="flex items-center gap-3">
-                <span className="text-white/40 text-xs">×{item.quantity}</span>
-                <span className="text-white text-sm font-semibold">
+          <div className="space-y-4">
+            {order.items?.map((item) => (
+              <div key={item.id} className="flex justify-between items-center py-2 border-b border-slate-50 last:border-0 border-dashed">
+                <div>
+                  <span className="text-slate-800 text-sm font-bold block">{item.menuItem?.name ?? 'Item'}</span>
+                  <span className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">Qty: {item.quantity}</span>
+                </div>
+                <span className="text-slate-800 text-sm font-display font-black">
                   ETB {(Number(item.unitPrice) * item.quantity).toFixed(0)}
                 </span>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
 
         {/* Timeline */}
-        <div className="card">
-          <div className="px-4 pt-4 pb-1">
-            <h3 className="font-semibold text-white text-sm flex items-center gap-2">
-              <Clock size={14} className="text-brand-400" /> Progress
-            </h3>
-          </div>
+        <div className="bg-white rounded-3xl p-6 border border-brand-500/5 shadow-sm">
+          <h3 className="font-display font-black text-[10px] uppercase tracking-[0.2em] text-slate-400 mb-6 flex items-center gap-2">
+            <Clock size={14} className="text-brand-500" /> Progress Timeline
+          </h3>
           <OrderTimeline status={order.status} />
         </div>
 
@@ -177,6 +184,7 @@ export default function OrderStatusPage({ params }: PageProps) {
           </div>
         )}
       </main>
-    </div>
+      </div>
+    </PageTransition>
   );
 }

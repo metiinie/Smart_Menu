@@ -28,6 +28,7 @@ export function ItemModal({ item, quantity, onClose, onAdd, onRemove }: Props) {
       onClose();
     }
   };
+
   return (
     <AnimatePresence>
       {item && (
@@ -38,7 +39,7 @@ export function ItemModal({ item, quantity, onClose, onAdd, onRemove }: Props) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40"
+            className="fixed inset-0 bg-black/80 backdrop-blur-md z-[60]"
           />
 
           {/* Sheet */}
@@ -47,109 +48,112 @@ export function ItemModal({ item, quantity, onClose, onAdd, onRemove }: Props) {
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            className="fixed bottom-0 left-0 right-0 z-50 bg-surface-50 rounded-t-3xl
-                       max-h-[90dvh] overflow-y-auto safe-bottom"
+            className="fixed bottom-0 left-0 right-0 z-[70] bg-[#FDFBF7] rounded-t-[3rem]
+                       max-h-[85dvh] overflow-y-auto safe-bottom shadow-[0_-20px_60px_rgba(0,0,0,0.3)]"
           >
-            {/* Drag handle */}
-            <div className="flex justify-center pt-3 pb-1">
-              <div className="w-10 h-1 rounded-full bg-surface-300" />
-            </div>
-
-            {/* Image */}
-            <div className="relative w-full h-56 bg-surface-100 mx-0">
-              {item.imageUrl ? (
-                <Image
-                  src={item.imageUrl}
-                  alt={item.name}
-                  fill
-                  className="object-cover"
-                  sizes="100vw"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-6xl">
-                  🍽️
-                </div>
-              )}
-              <button
+            {/* Header / Drag Handle */}
+            <div className="sticky top-0 bg-[#FDFBF7] z-10 px-6 pt-6 pb-2 flex justify-between items-center">
+               <div className="w-12 h-1.5 rounded-full bg-slate-200 mx-auto absolute top-3 left-1/2 -translate-x-1/2" />
+               <h2 className="font-display font-black text-2xl text-slate-800 uppercase tracking-tighter">
+                 Details
+               </h2>
+               <button
                 onClick={onClose}
-                className="absolute top-3 right-3 w-9 h-9 rounded-full bg-black/50
-                           backdrop-blur flex items-center justify-center"
-                id="close-item-modal"
+                className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 active:scale-90 transition-transform"
               >
-                <X size={18} className="text-white" />
+                <X size={20} />
               </button>
-              {item.isFasting && (
-                <span className="absolute top-3 left-3 badge-fasting">🌿 Fasting</span>
-              )}
             </div>
 
-            {/* Content */}
-            <div className="p-5">
-              <div className="flex items-start justify-between gap-4 mb-3">
-                <h2 className="font-display font-bold text-xl text-white leading-tight">
+            {/* Image Section */}
+            <div className="px-6 pb-6">
+              <div className="relative w-full aspect-square rounded-[2rem] overflow-hidden bg-slate-100 shadow-inner">
+                {item.imageUrl ? (
+                  <Image
+                    src={item.imageUrl}
+                    alt={item.name}
+                    fill
+                    className="object-cover"
+                    sizes="100vw"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-8xl">
+                    🍱
+                  </div>
+                )}
+                {item.isFasting && (
+                  <span className="absolute top-4 left-4 bg-green-500 text-white text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full shadow-lg">
+                    Fasting
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Content Section */}
+            <div className="px-8 pb-12">
+              <div className="flex flex-col gap-2 mb-6">
+                <h1 className="font-display font-black text-4xl text-slate-900 leading-[0.9] tracking-tighter uppercase">
                   {item.name}
-                </h2>
-                <span className="font-display font-bold text-brand-400 text-xl flex-shrink-0">
-                  ETB {item.price.toFixed(0)}
+                </h1>
+                <p className="text-slate-500 text-base leading-relaxed">
+                  {item.description || "A masterfully prepared dish using the finest seasonal ingredients, curated for the ultimate culinary experience."}
+                </p>
+              </div>
+
+              {/* Price Row */}
+              <div className="flex items-center justify-between mb-8 pb-8 border-b border-slate-100">
+                <span className="text-slate-400 font-bold uppercase tracking-widest text-xs">Price per unit</span>
+                <span className="font-display font-black text-3xl text-[#009A66]">
+                  {item.price.toFixed(0)} <span className="text-sm font-bold opacity-40">ETB</span>
                 </span>
               </div>
 
-              {item.description && (
-                <p className="text-white/60 text-sm leading-relaxed mb-6">
-                  {item.description}
-                </p>
-              )}
-
               {/* Special Instructions */}
-              <div className="mb-6 space-y-2">
-                <label className="flex items-center gap-2 text-white/50 text-[11px] font-bold uppercase tracking-wider">
-                  <MessageSquare size={12} />
-                  Special Instructions
+              <div className="mb-8 space-y-4">
+                <label className="flex items-center gap-3 text-slate-400 text-xs font-black uppercase tracking-[0.2em]">
+                  <MessageSquare size={14} className="text-[#C59B76]" />
+                  Customization
                 </label>
                 <textarea
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
-                  placeholder="e.g. No onions, extra spicy, etc."
-                  className="w-full bg-surface-100 border border-surface-200 rounded-2xl p-3 
-                             text-white text-sm outline-none focus:border-brand-500/50 transition-colors
-                             placeholder:text-white/20 resize-none h-20"
+                  placeholder="Any special requests? (e.g., No onions, extra spicy...)"
+                  className="w-full bg-slate-50 border-2 border-slate-100 rounded-3xl p-5 
+                             text-slate-800 text-base outline-none focus:border-[#C59B76]/30 transition-all
+                             placeholder:text-slate-300 resize-none h-32"
                 />
               </div>
 
-              {/* Quantity + Add */}
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-3 bg-surface-100 rounded-2xl p-1">
+              {/* Action Bar */}
+              <div className="flex items-center gap-4 sticky bottom-0">
+                <div className="flex items-center gap-2 bg-slate-100 rounded-full p-2">
                   <motion.button
-                    whileTap={{ scale: 0.85 }}
+                    whileTap={{ scale: 0.8 }}
                     onClick={onRemove}
                     disabled={quantity === 0}
-                    className="w-10 h-10 rounded-xl flex items-center justify-center
-                               disabled:opacity-30 text-white"
-                    id="modal-decrease"
+                    className="w-12 h-12 rounded-full flex items-center justify-center bg-white text-slate-400 shadow-sm disabled:opacity-30"
                   >
-                    <Minus size={18} />
+                    <Minus size={20} />
                   </motion.button>
-                  <span className="font-bold text-white w-6 text-center text-lg">
+                  <span className="font-black text-slate-800 w-8 text-center text-xl">
                     {quantity}
                   </span>
                   <motion.button
-                    whileTap={{ scale: 0.85 }}
+                    whileTap={{ scale: 0.8 }}
                     onClick={handleAdd}
-                    className="w-10 h-10 rounded-xl bg-brand-500 flex items-center justify-center"
-                    id="modal-increase"
+                    className="w-12 h-12 rounded-full bg-[#009A66] text-white flex items-center justify-center shadow-lg"
                   >
-                    <Plus size={18} className="text-white" />
+                    <Plus size={20} />
                   </motion.button>
                 </div>
 
                 <motion.button
-                  whileTap={{ scale: 0.97 }}
+                  whileTap={{ scale: 0.95 }}
                   onClick={handleAdd}
-                  className="flex-1 btn-primary flex items-center justify-center gap-2"
-                  id="modal-add-to-cart"
+                  className="flex-1 bg-[#1E3E34] text-white h-16 rounded-full font-black text-lg uppercase tracking-[0.2em] shadow-xl flex items-center justify-center gap-3"
                 >
-                  <ShoppingCart size={18} />
-                  {quantity > 0 ? `Added (${quantity})` : 'Add to Cart'}
+                  <ShoppingCart size={20} />
+                  {quantity > 0 ? `Update Order` : 'Add to Order'}
                 </motion.button>
               </div>
             </div>

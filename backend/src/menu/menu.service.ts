@@ -6,6 +6,7 @@ export class MenuService {
   constructor(private readonly prisma: PrismaService) {}
 
   async getMenu(branchId: string, fasting?: boolean) {
+    console.log(`[MenuService] getMenu called for branchId: ${branchId}, fasting: ${fasting}`);
     const categories = await this.prisma.category.findMany({
       where: { branchId }, // Branch Isolation Enforcement
       orderBy: { sortOrder: 'asc' },

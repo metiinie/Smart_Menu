@@ -8,16 +8,18 @@ export const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
-// Attach JWT if present (DISABLED for open access)
-/*
+import { useAuthStore } from '@/stores/authStore';
+
+// Attach JWT if present
 api.interceptors.request.use((config) => {
-  const token = useAuthStore.getState().token;
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+  if (typeof window !== 'undefined') {
+    const token = useAuthStore.getState().token;
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
   }
   return config;
 });
-*/
 
 // Unwrap data from {success, data, timestamp} wrapper
 api.interceptors.response.use(

@@ -2,7 +2,7 @@
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useState, useEffect } from 'react';
-// import { syncManager } from '@/lib/syncManager'; // Removed to break circularity
+import { syncManager } from '@/lib/syncManager';
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
@@ -19,8 +19,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   );
 
   useEffect(() => {
-    const handleOnline = async () => {
-      const { syncManager } = await import('@/lib/syncManager');
+    const handleOnline = () => {
       syncManager.startSync();
     };
 

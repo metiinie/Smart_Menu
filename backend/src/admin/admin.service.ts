@@ -1,10 +1,14 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { OrdersService } from '../orders/orders.service';
 import { CreateMenuItemDto, ToggleAvailabilityDto } from './dto/create-menu-item.dto';
 
 @Injectable()
 export class AdminService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly ordersService: OrdersService,
+  ) {}
 
   // ─── Menu Items ──────────────────────────────────────────────────
 
@@ -56,16 +60,7 @@ export class AdminService {
   // ─── Orders (admin view) ─────────────────────────────────────────
 
   async getAllOrders(branchId: string) {
-    const orders = await this.prisma.order.findMany({
-      where: { table: { branchId } },
-      orderBy: { createdAt: 'desc' },
-      take: 100,
-      include: {
-        items: { include: { menuItem: { select: { name: true } } } },
-        table: { select: { tableNumber: true } },
-      },
-    });
-    return orders.map((o) => ({ ...o, totalPrice: Number(o.totalPrice) }));
+    return this.ordersService.getOrdersByBranch(branchId);
   }
 
   // ─── Categories ──────────────────────────────────────────────────

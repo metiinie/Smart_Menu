@@ -86,11 +86,32 @@ To handle unstable restaurant networks:
 
 ---
 
-## 6. Production Checklist
-- [ ] Set `NODE_ENV` to `production`.
-- [ ] Change `JWT_SECRET` to a cryptographically strong string.
-- [ ] Configure `cors` in NestJS to allowed domains only.
-- [ ] Set up daily database backups.
-- [ ] Enable SSL for all traffic.
+---
+
+## 6. Production Deployment
+
+### 6.1 Backend (Railway / Render / VPS)
+The backend uses a multi-stage Docker build for efficiency.
+1.  **Infrastructure**: Provision a PostgreSQL database (e.g., Supabase, Neon).
+2.  **Deploy**: 
+    - Connect your repo to **Railway**.
+    - Set the **Root Directory** to `/backend`.
+    - Provide the Environment Variables: `DATABASE_URL`, `JWT_SECRET`, `PORT`.
+    - The `Dockerfile` in `/backend` will be auto-detected.
+
+### 6.2 Frontend (Vercel)
+1.  **Deploy**: 
+    - Connect your repo to **Vercel**.
+    - Set the **Root Directory** to `/frontend`.
+    - Provide the Environment Variables: `NEXT_PUBLIC_API_URL` (URL of your backend) and `NEXT_PUBLIC_BRANCH_ID`.
+
+### 6.3 CI/CD Pipeline
+A GitHub Action is configured in `.github/workflows/deploy.yml`:
+- **Triggers**: On push to `main` or `master`.
+- **Requirements**: Add the following secrets to GitHub:
+    - `RAILWAY_TOKEN`: For backend updates.
+    - `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`: For frontend updates.
+
+---
 
 *ArifSmart Menu — Building the future of Ethiopian hospitality.*

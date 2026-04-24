@@ -39,7 +39,8 @@ export class HttpExceptionFilter implements ExceptionFilter {
     };
 
     if (status >= 500) {
-      this.logger.error(`${request.method} ${request.url}`, JSON.stringify(errorBody));
+      const stack = exception instanceof Error ? exception.stack : 'No stack trace';
+      this.logger.error(`${request.method} ${request.url}\n${stack}`);
     }
 
     response.status(status).json(errorBody);
