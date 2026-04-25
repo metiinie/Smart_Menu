@@ -270,11 +270,11 @@ export default function MenuPage({ params }: PageProps) {
             {/* Premium Branding Section */}
             <div className="flex-1 flex items-start justify-center px-3 sm:px-4 pt-1 sm:pt-2">
               <div className="flex flex-col items-center">
-                  <h1 className="text-[#1E1E1E] text-[1.95rem] sm:text-[2.55rem] font-semibold uppercase tracking-[-0.01em] leading-[0.95] select-none font-serif">
-                    I WANT
+                  <h1 className="text-[#1E1E1E] text-[1.85rem] sm:text-[2.45rem] font-semibold uppercase tracking-[-0.01em] leading-[0.95] select-none font-serif">
+                    ORDER SMARTER,
                   </h1>
-                  <h2 className="text-[#C59B76] text-[2.4rem] sm:text-[3.25rem] font-semibold uppercase tracking-[-0.02em] leading-[0.9] select-none font-serif inline-flex items-end gap-1.5 sm:gap-2">
-                    <span>{activeCategoryName}</span>
+                  <h2 className="text-[#C59B76] text-[2.2rem] sm:text-[3.05rem] font-semibold uppercase tracking-[-0.02em] leading-[0.9] select-none font-serif inline-flex items-end gap-1.5 sm:gap-2">
+                    <span>EAT BETTER</span>
                     <span className="w-[42px] h-[34px] sm:w-[54px] sm:h-[44px] -translate-y-1">
                       <svg viewBox="0 0 80 55" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full drop-shadow-sm">
                         <path d="M12 20 Q24 8 34 20" stroke="#1E1E1E" strokeWidth="3" strokeLinecap="round" fill="none"/>
