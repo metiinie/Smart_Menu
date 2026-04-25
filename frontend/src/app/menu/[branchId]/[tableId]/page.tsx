@@ -12,7 +12,7 @@ import { LocalOrderStatus } from '@arifsmart/shared';
 import Link from 'next/link';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { FoodCarouselItem } from '@/components/menu/FoodCarouselItem';
-import { ItemModal } from '@/components/menu/ItemModal';
+import { MenuItemDetailPanel } from '@/components/menu/MenuItemDetailPanel';
 import { CartDrawer } from '@/components/cart/CartDrawer';
 import { SkeletonCategoryTab } from '@/components/ui/SkeletonCard';
 import { getSocket } from '@/lib/socket';
@@ -472,10 +472,11 @@ export default function MenuPage({ params }: PageProps) {
         )}
 
         <CartDrawer open={cartOpen} onClose={() => setCartOpen(false)} />
-        <ItemModal
+        <MenuItemDetailPanel
           item={selectedItem}
           quantity={selectedItem ? getQuantity(selectedItem.id) : 0}
           onClose={() => setSelectedItem(null)}
+          onOpenCart={() => setCartOpen(true)}
           onAdd={(note?: string) => {
             if (!selectedItem) return;
             addItem({ menuItemId: selectedItem.id, name: selectedItem.name, priceAtAdd: selectedItem.price, imageUrl: selectedItem.imageUrl, note });

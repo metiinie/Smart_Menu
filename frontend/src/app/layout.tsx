@@ -1,6 +1,11 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
-import { Providers } from '@/components/providers/Providers';
+import dynamic from 'next/dynamic';
+
+const Providers = dynamic(
+  () => import('@/components/providers/Providers').then((mod) => mod.Providers),
+  { ssr: true }
+);
 
 export const metadata: Metadata = {
   title: 'ArifSmart Menu',
