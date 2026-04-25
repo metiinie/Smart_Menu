@@ -1,5 +1,7 @@
 'use client';
 import Image from 'next/image';
+import { Heart } from 'lucide-react';
+import { useState } from 'react';
 import type { MenuItem } from '@arifsmart/shared';
 
 interface Props {
@@ -11,6 +13,7 @@ interface Props {
 
 export function FoodCarouselItem({ item, quantity, onTap, variant = 'center' }: Props) {
   const isCenter = variant === 'center';
+  const [isFavorite, setIsFavorite] = useState(false);
 
   return (
     <button
@@ -60,6 +63,20 @@ export function FoodCarouselItem({ item, quantity, onTap, variant = 'center' }: 
             {quantity}
           </div>
         )}
+
+        {/* Favorite Icon */}
+        <button
+          className="absolute top-4 left-4 z-20 w-[34px] h-[34px] rounded-full bg-black/20 backdrop-blur-md flex items-center justify-center border border-white/10 transition-all active:scale-90"
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsFavorite(!isFavorite);
+          }}
+        >
+          <Heart 
+            size={16} 
+            className={`transition-colors ${isFavorite ? 'fill-[#E53935] text-[#E53935]' : 'text-white/80'}`} 
+          />
+        </button>
       </div>
     </button>
   );

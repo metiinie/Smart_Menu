@@ -147,20 +147,11 @@ export function FavoritesView({ groupedMenu, onSelectItem }: Props) {
               </div>
             )}
 
-            {/* Popular / Chef Recommendations */}
+            {/* Popular / Trending section */}
             <div className="fav-view__section">
               <h3 className="fav-view__section-title">
-                {hasFavorites ? (
-                  <><TrendingUp size={16} /> Trending Now</>
-                ) : (
-                  <><Sparkles size={16} /> Chef&apos;s Recommendations</>
-                )}
+                <TrendingUp size={16} /> Trending Now
               </h3>
-              {!hasFavorites && (
-                <p className="fav-view__section-subtitle">
-                  Start adding favorites by tapping the ❤️ icon on any dish!
-                </p>
-              )}
               <div className="fav-view__grid">
                 {popularItems.map((item) => (
                   <FavItemCard

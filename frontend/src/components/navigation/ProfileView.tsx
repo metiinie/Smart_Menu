@@ -47,10 +47,8 @@ export function ProfileView() {
         <div className="profile-view__avatar">
           <User size={32} />
         </div>
-        <div>
-          <h3 className="profile-view__name">Guest User</h3>
-          <p className="profile-view__desc">Customize your experience</p>
-        </div>
+        <h3 className="profile-view__name">Guest User</h3>
+        <p className="profile-view__desc">Customize your experience</p>
       </div>
 
       {/* Settings Cards */}

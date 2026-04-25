@@ -462,7 +462,7 @@ export default function MenuPage({ params }: PageProps) {
 
               {/* Dark Action Button (Deep Teal) */}
               <motion.div
-                className="px-8 sm:px-14 pb-8 sm:pb-12 mt-auto text-center"
+                className="px-8 sm:px-14 pb-24 sm:pb-28 mt-auto text-center"
                 initial={{ y: 28, opacity: 0 }}
                 animate={introReady ? { y: 0, opacity: 1 } : { y: 28, opacity: 0 }}
                 transition={{ delay: 0.42, duration: 0.45 }}
