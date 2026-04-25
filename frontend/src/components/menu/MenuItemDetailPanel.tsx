@@ -36,6 +36,8 @@ const palette = {
   patternStroke: '#E9DFD1',
 };
 
+import { Tooltip } from '@/components/ui/Tooltip';
+
 function hasTextHeadline(headline: string): boolean {
   const t = headline.trim();
   return t.length > 0 && t !== '—';
@@ -149,34 +151,52 @@ export function MenuItemDetailPanel({ item, quantity, onClose, onAdd, onRemove, 
                 </div>
 
                 <header className="relative z-10 flex items-center justify-between gap-3 px-4 pb-1 pt-4 sm:px-5 sm:pt-5">
-                  <button
-                    type="button"
-                    onClick={onClose}
-                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#1E1E1E]/[0.06] text-[#1E1E1E] transition-transform active:scale-95"
-                    aria-label="Back to menu"
-                  >
-                    <ArrowLeft size={22} strokeWidth={2} />
-                  </button>
-                  <p className="text-[11px] font-serif uppercase tracking-[0.2em] text-[#1E1E1E]/45">Dish</p>
-                  {onOpenCart ? (
+                  <Tooltip label="Back">
                     <button
                       type="button"
-                      onClick={() => {
-                        onClose();
-                        onOpenCart();
-                      }}
+                      onClick={onClose}
                       className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#1E1E1E]/[0.06] text-[#1E1E1E] transition-transform active:scale-95"
-                      aria-label="Open cart"
+                      aria-label="Back to menu"
                     >
-                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                        <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" />
-                        <line x1="3" y1="6" x2="21" y2="6" />
-                        <path d="M16 10a4 4 0 01-8 0" />
-                      </svg>
+                      <ArrowLeft size={22} strokeWidth={2} />
                     </button>
-                  ) : (
-                    <div className="h-11 w-11 shrink-0" aria-hidden />
-                  )}
+                  </Tooltip>
+                  <p className="text-[11px] font-serif uppercase tracking-[0.2em] text-[#1E1E1E]/45">Dish</p>
+                  <div className="flex items-center gap-2">
+                    <Tooltip label={is3DMode ? "View Gallery" : "View in 3D"}>
+                      <motion.button
+                        whileTap={{ scale: 0.9 }}
+                        onClick={() => setIs3DMode(!is3DMode)}
+                        className={`flex h-11 w-11 items-center justify-center rounded-2xl transition-colors ${
+                          is3DMode 
+                            ? 'bg-[#1E1E1E] text-[#44CFA0]' 
+                            : 'bg-[#1E1E1E]/[0.06] text-[#1E1E1E] hover:bg-[#1E1E1E]/10'
+                        }`}
+                        aria-label="Toggle AR Stage View"
+                      >
+                        {is3DMode ? <Sparkles size={20} /> : <Box size={20} />}
+                      </motion.button>
+                    </Tooltip>
+                    {onOpenCart ? (
+                      <Tooltip label="Cart">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onClose();
+                            onOpenCart();
+                          }}
+                          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#1E1E1E]/[0.06] text-[#1E1E1E] transition-transform active:scale-95"
+                          aria-label="Open cart"
+                        >
+                          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                            <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" />
+                            <line x1="3" y1="6" x2="21" y2="6" />
+                            <path d="M16 10a4 4 0 01-8 0" />
+                          </svg>
+                        </button>
+                      </Tooltip>
+                    ) : null}
+                  </div>
                 </header>
 
                 <div className="relative z-10 flex min-h-0 flex-col items-center px-4 pb-5 pt-1 w-full">
@@ -191,7 +211,7 @@ export function MenuItemDetailPanel({ item, quantity, onClose, onAdd, onRemove, 
                         <div className="absolute inset-0 flex items-center justify-center w-full h-full rounded-full z-10 bg-[#06a06e]/20 ring-4 ring-white/20 shadow-2xl overflow-hidden backdrop-blur-sm">
                           {/* True 3D Model Viewer */}
                           <model-viewer
-                            src="https://modelviewer.dev/shared-assets/models/Astronaut.glb"
+                            src="https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Avocado/glTF-Binary/Avocado.glb"
                             alt="3D representation of the dish"
                             auto-rotate
                             camera-controls
@@ -201,9 +221,6 @@ export function MenuItemDetailPanel({ item, quantity, onClose, onAdd, onRemove, 
                             interaction-prompt="auto"
                             style={{ width: '100%', height: '100%', backgroundColor: 'transparent' }}
                           />
-                          <div className="absolute top-2 left-1/2 -translate-x-1/2 bg-black/40 text-white/90 text-[9px] px-3 py-1 rounded-full uppercase tracking-widest font-bold backdrop-blur-md pointer-events-none">
-                            Drag to rotate
-                          </div>
                         </div>
                       ) : (
                         <>
@@ -237,22 +254,6 @@ export function MenuItemDetailPanel({ item, quantity, onClose, onAdd, onRemove, 
                         </span>
                       )}
                     </motion.div>
-
-                    {/* AR Toggle Button */}
-                    <div className="absolute right-4 top-0 z-20">
-                      <motion.button
-                        whileTap={{ scale: 0.9 }}
-                        onClick={() => setIs3DMode(!is3DMode)}
-                        className={`flex h-10 w-10 items-center justify-center rounded-full shadow-lg backdrop-blur-md border transition-colors ${
-                          is3DMode 
-                            ? 'bg-[#1E1E1E] border-slate-700 text-[#44CFA0]' 
-                            : 'bg-white/80 border-white/40 text-slate-700 hover:bg-white'
-                        }`}
-                        aria-label="Toggle AR Stage View"
-                      >
-                        {is3DMode ? <Sparkles size={18} /> : <Box size={18} />}
-                      </motion.button>
-                    </div>
                   </div>
 
                   {/* Carousel Indicators */}
@@ -349,34 +350,40 @@ export function MenuItemDetailPanel({ item, quantity, onClose, onAdd, onRemove, 
                 />
                 <div className="flex items-center gap-3">
                   <div className="flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50/90 p-1.5">
-                    <motion.button
-                      type="button"
-                      whileTap={{ scale: 0.88 }}
-                      onClick={onRemove}
-                      disabled={quantity === 0}
-                      className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-slate-500 shadow-sm ring-1 ring-slate-100 disabled:opacity-30"
-                    >
-                      <Minus size={18} />
-                    </motion.button>
+                    <Tooltip label="Decrease">
+                      <motion.button
+                        type="button"
+                        whileTap={{ scale: 0.88 }}
+                        onClick={onRemove}
+                        disabled={quantity === 0}
+                        className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-slate-500 shadow-sm ring-1 ring-slate-100 disabled:opacity-30"
+                      >
+                        <Minus size={18} />
+                      </motion.button>
+                    </Tooltip>
                     <span className="w-7 text-center font-black text-lg tabular-nums text-slate-800">{quantity}</span>
+                    <Tooltip label="Increase">
+                      <motion.button
+                        type="button"
+                        whileTap={{ scale: 0.88 }}
+                        onClick={handleAdd}
+                        className="flex h-10 w-10 items-center justify-center rounded-full bg-[#08AE75] text-white shadow-md"
+                      >
+                        <Plus size={18} />
+                      </motion.button>
+                    </Tooltip>
+                  </div>
+                  <Tooltip label={quantity > 0 ? "Update Cart" : "Add to Cart"}>
                     <motion.button
                       type="button"
-                      whileTap={{ scale: 0.88 }}
+                      whileTap={{ scale: 0.96 }}
                       onClick={handleAdd}
-                      className="flex h-10 w-10 items-center justify-center rounded-full bg-[#08AE75] text-white shadow-md"
+                      className="flex h-[3.25rem] flex-1 items-center justify-center gap-2 rounded-2xl border border-slate-800/10 bg-[#2A5D55] font-black text-[15px] uppercase tracking-[0.12em] text-white shadow-lg transition-colors active:bg-[#234d48]"
                     >
-                      <Plus size={18} />
+                      <ShoppingCart size={18} />
+                      {quantity > 0 ? 'Update' : 'Add'}
                     </motion.button>
-                  </div>
-                  <motion.button
-                    type="button"
-                    whileTap={{ scale: 0.96 }}
-                    onClick={handleAdd}
-                    className="flex h-[3.25rem] flex-1 items-center justify-center gap-2 rounded-2xl border border-slate-800/10 bg-[#2A5D55] font-black text-[15px] uppercase tracking-[0.12em] text-white shadow-lg transition-colors active:bg-[#234d48]"
-                  >
-                    <ShoppingCart size={18} />
-                    {quantity > 0 ? 'Update' : 'Add'}
-                  </motion.button>
+                  </Tooltip>
                 </div>
             </div>
           </motion.div>

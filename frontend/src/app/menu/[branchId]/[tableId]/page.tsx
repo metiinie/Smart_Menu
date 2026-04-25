@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, use, useMemo, useRef } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
 import { Clock, ChevronRight } from 'lucide-react';
 import { menuApi, contextApi, ordersApi } from '@/lib/api';
@@ -17,6 +17,12 @@ import { CartDrawer } from '@/components/cart/CartDrawer';
 import { SkeletonCategoryTab } from '@/components/ui/SkeletonCard';
 import { getSocket } from '@/lib/socket';
 import { WelcomeSplash } from '@/components/ui/WelcomeSplash';
+import { Tooltip } from '@/components/ui/Tooltip';
+import { BottomTabBar, type TabId } from '@/components/navigation/BottomTabBar';
+import { WebSidebarDrawer } from '@/components/navigation/WebSidebarDrawer';
+import { FavoritesView } from '@/components/navigation/FavoritesView';
+import { CartView } from '@/components/navigation/CartView';
+import { ProfileView } from '@/components/navigation/ProfileView';
 import type { MenuItem, Category, MenuCategoryDto, Order } from '@arifsmart/shared';
 
 interface PageProps {
@@ -41,6 +47,10 @@ export default function MenuPage({ params }: PageProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [introReady, setIntroReady] = useState(false);
   const carouselRef = useRef<HTMLDivElement>(null);
+
+  // Navigation state
+  const [activeTab, setActiveTab] = useState<TabId>('home');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Welcome splash - only show once per session
   const [showSplash, setShowSplash] = useState(() => {
@@ -235,24 +245,26 @@ export default function MenuPage({ params }: PageProps) {
           <div className="relative z-10 h-full max-w-md mx-auto w-full flex flex-col">
             {/* Elegant Header Navigation */}
             <header className="px-4 sm:px-5 pt-4 sm:pt-6 pb-0 flex justify-between items-start gap-3">
-              <div className="flex flex-col gap-[7px] cursor-pointer group">
+              <div className="flex flex-col gap-[7px] cursor-pointer group" onClick={() => setSidebarOpen(true)}>
                 <div className="w-8 h-[2.5px] bg-[#1E1E1E] rounded-full group-hover:w-6 transition-all duration-300"></div>
                 <div className="w-8 h-[2.5px] bg-[#1E1E1E] rounded-full group-hover:w-8 transition-all duration-300"></div>
                 <div className="w-8 h-[2.5px] bg-[#1E1E1E] rounded-full group-hover:w-5 transition-all duration-300"></div>
               </div>
-              <div className="relative cursor-pointer active:scale-90 transition-transform p-1 bg-black/5 rounded-2xl" onClick={() => setCartOpen(true)}>
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#1E1E1E" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/>
-                  <line x1="3" y1="6" x2="21" y2="6"/>
-                  <path d="M16 10a4 4 0 01-8 0"/>
-                </svg>
-                <motion.span
-                  initial={{ scale: 0 }} animate={{ scale: 1 }}
-                  className="absolute -top-1.5 -right-1.5 bg-[#E53935] text-white text-[11px] w-6 h-6 flex items-center justify-center rounded-full font-black shadow-md border-2 border-[#FDFBF7]"
-                >
-                  {totalItemsCount}
-                </motion.span>
-              </div>
+              <Tooltip label="View Cart">
+                <div className="relative cursor-pointer active:scale-90 transition-transform p-1 bg-black/5 rounded-2xl" onClick={() => setCartOpen(true)}>
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#1E1E1E" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/>
+                    <line x1="3" y1="6" x2="21" y2="6"/>
+                    <path d="M16 10a4 4 0 01-8 0"/>
+                  </svg>
+                  <motion.span
+                    initial={{ scale: 0 }} animate={{ scale: 1 }}
+                    className="absolute -top-1.5 -right-1.5 bg-[#E53935] text-white text-[11px] w-6 h-6 flex items-center justify-center rounded-full font-black shadow-md border-2 border-[#FDFBF7]"
+                  >
+                    {totalItemsCount}
+                  </motion.span>
+                </div>
+              </Tooltip>
             </header>
 
             {/* Premium Branding Section */}
@@ -450,33 +462,59 @@ export default function MenuPage({ params }: PageProps) {
 
               {/* Dark Action Button (Deep Teal) */}
               <motion.div
-                className="px-8 sm:px-14 pb-8 sm:pb-12 mt-auto"
+                className="px-8 sm:px-14 pb-8 sm:pb-12 mt-auto text-center"
                 initial={{ y: 28, opacity: 0 }}
                 animate={introReady ? { y: 0, opacity: 1 } : { y: 28, opacity: 0 }}
                 transition={{ delay: 0.42, duration: 0.45 }}
               >
-                <motion.button
-                  whileTap={{ scale: 0.94 }}
-                  onClick={() => {
-                    const item = filteredItems[currentIndex];
-                    if (item) addItem({ menuItemId: item.id, name: item.name, priceAtAdd: item.price, imageUrl: item.imageUrl });
-                  }}
-                  className="w-full text-white font-black text-[18px] sm:text-[22px] tracking-[0.26em] sm:tracking-[0.4em] uppercase py-4 sm:py-6 rounded-[2.1rem] sm:rounded-[2.5rem] shadow-2xl border border-white/5 transition-all"
-                  style={{ backgroundColor: palette.darkButton }}
-                >
-                  ORDER
-                </motion.button>
+                <Tooltip label="Quick Add">
+                  <motion.button
+                    whileTap={{ scale: 0.94 }}
+                    onClick={() => {
+                      const item = filteredItems[currentIndex];
+                      if (item) addItem({ menuItemId: item.id, name: item.name, priceAtAdd: item.price, imageUrl: item.imageUrl });
+                    }}
+                    className="w-full text-white font-black text-[18px] sm:text-[22px] tracking-[0.26em] sm:tracking-[0.4em] uppercase py-4 sm:py-6 rounded-[2.1rem] sm:rounded-[2.5rem] shadow-2xl border border-white/5 transition-all"
+                    style={{ backgroundColor: palette.darkButton }}
+                  >
+                    ORDER
+                  </motion.button>
+                </Tooltip>
               </motion.div>
             </div>
           </motion.div>
         )}
+
+        {/* ── TAB CONTENT OVERLAYS (Favorites, Cart, Profile) ── */}
+        <AnimatePresence mode="wait">
+          {activeTab !== 'home' && (
+            <motion.div
+              key={activeTab}
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 30 }}
+              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+              className="tab-content-area"
+              style={{ backgroundColor: palette.appGreen }}
+            >
+              {activeTab === 'favorite' && (
+                <FavoritesView
+                  groupedMenu={groupedMenu}
+                  onSelectItem={(item) => { setSelectedItem(item); setActiveTab('home'); }}
+                />
+              )}
+              {activeTab === 'cart' && <CartView />}
+              {activeTab === 'profile' && <ProfileView />}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <CartDrawer open={cartOpen} onClose={() => setCartOpen(false)} />
         <MenuItemDetailPanel
           item={selectedItem}
           quantity={selectedItem ? getQuantity(selectedItem.id) : 0}
           onClose={() => setSelectedItem(null)}
-          onOpenCart={() => setCartOpen(true)}
+          onOpenCart={() => { setCartOpen(true); }}
           onAdd={(note?: string) => {
             if (!selectedItem) return;
             addItem({ menuItemId: selectedItem.id, name: selectedItem.name, priceAtAdd: selectedItem.price, imageUrl: selectedItem.imageUrl, note });
@@ -487,6 +525,15 @@ export default function MenuPage({ params }: PageProps) {
           }}
         />
         <ActiveOrderBar orders={activeOrders} />
+
+        {/* ── NAVIGATION COMPONENTS ── */}
+        <WebSidebarDrawer
+          open={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+        />
+        <BottomTabBar activeTab={activeTab} onTabChange={setActiveTab} />
       </div>
     </div>
   );

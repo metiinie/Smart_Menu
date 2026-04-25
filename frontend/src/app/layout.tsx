@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
+import './navigation.css';
 import dynamic from 'next/dynamic';
 
 const Providers = dynamic(
