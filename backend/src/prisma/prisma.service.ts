@@ -4,7 +4,7 @@ import { PrismaClient } from '@prisma/client';
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
   async onModuleInit() {
-    let retries = 5;
+    let retries = 10;
     while (retries > 0) {
       try {
         await this.$connect();
@@ -12,8 +12,10 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
         return;
       } catch (err) {
         retries--;
-        console.error(`❌ Database connection failed. Retrying... (${retries} attempts left)`);
-        await new Promise((res) => setTimeout(res, 3000));
+        console.error(`❌ Database connection failed:`, err);
+        if (retries > 0) {
+          await new Promise((res) => setTimeout(res, 3000));
+        }
       }
     }
     throw new Error('Could not connect to database after multiple attempts');

@@ -12,9 +12,9 @@ async function bootstrap() {
 
   // CORS — allow Next.js frontend
   app.enableCors({
-    origin: process.env.ALLOWED_ORIGINS 
-      ? process.env.ALLOWED_ORIGINS.split(',') 
-      : ['http://localhost:3000', 'http://127.0.0.1:3000'],
+    origin: process.env.ALLOWED_ORIGINS
+      ? process.env.ALLOWED_ORIGINS.split(',')
+      : ['http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost:3005'],
     credentials: true,
   });
 
@@ -35,17 +35,10 @@ async function bootstrap() {
   // API prefix
   app.setGlobalPrefix('api');
 
-  // Root Landing (Helpful for developers)
+  // Root Landing (Redirect to frontend)
   const adapter = app.getHttpAdapter();
   adapter.get('/', (req, res) => {
-    res.type('text/html').send(`
-      <div style="font-family: system-ui, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; text-align: center; background: #FCFAF7;">
-        <h1 style="color: #f97316;">🚀 ArifSmart API is Running</h1>
-        <p style="color: #64748b;">This is the API server. For the customer menu, please visit:</p>
-        <a href="https://smart-menu-frontend-9hrz.vercel.app" style="background: #f97316; color: white; padding: 12px 24px; border-radius: 12px; text-decoration: none; font-weight: bold; margin-top: 10px;">Go to Menu</a>
-        <p style="margin-top: 20px;"><a href="/api/docs" style="color: #94a3b8; font-size: 12px;">View API Documentation</a></p>
-      </div>
-    `);
+    res.redirect('http://localhost:3000');
   });
   adapter.get('/api', (req, res) => res.redirect('/api/docs'));
 

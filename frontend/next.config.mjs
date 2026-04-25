@@ -23,6 +23,7 @@ const nextConfig = {
   },
   experimental: {
     optimizePackageImports: ['lucide-react', 'framer-motion'],
+    outputFileTracingRoot: path.join(__dirname, "../../"),
   },
   transpilePackages: ["@arifsmart/shared"],
 };

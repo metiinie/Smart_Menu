@@ -2,8 +2,26 @@
 
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
-import { ArrowLeft, Plus, Minus, ShoppingCart, MessageSquare, Zap, Dumbbell, Droplets } from 'lucide-react';
+import { ArrowLeft, Plus, Minus, ShoppingCart, MessageSquare, Zap, Dumbbell, Droplets, Box, Sparkles } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
+import Script from 'next/script';
+
+declare global {
+  namespace JSX {
+    interface IntrinsicElements {
+      'model-viewer': React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement> & {
+        src?: string;
+        alt?: string;
+        'auto-rotate'?: boolean;
+        'camera-controls'?: boolean;
+        'shadow-intensity'?: string;
+        'environment-image'?: string;
+        'rotation-per-second'?: string;
+        'interaction-prompt'?: string;
+      }, HTMLElement>;
+    }
+  }
+}
 import type { MenuItem } from '@arifsmart/shared';
 import {
   getIngredientInsights,
@@ -45,11 +63,15 @@ interface Props {
 export function MenuItemDetailPanel({ item, quantity, onClose, onAdd, onRemove, onOpenCart }: Props) {
   const [note, setNote] = useState('');
   const [detailTab, setDetailTab] = useState<DetailTabId>('nutrition');
+  const [is3DMode, setIs3DMode] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   useEffect(() => {
     if (item) {
       setNote('');
       setDetailTab('nutrition');
+      setIs3DMode(false);
+      setCurrentImageIndex(0);
     }
   }, [item?.id]);
 
@@ -71,10 +93,21 @@ export function MenuItemDetailPanel({ item, quantity, onClose, onAdd, onRemove, 
 
   const insights = item ? getIngredientInsights(item) : null;
 
+  const mockImages = useMemo(() => {
+    if (!item?.imageUrl) return [];
+    // Mocking 3 angles of the same image to demonstrate the carousel functionality
+    return [
+      item.imageUrl,
+      item.imageUrl,
+      item.imageUrl,
+    ];
+  }, [item?.imageUrl]);
+
   return (
     <AnimatePresence>
       {item && insights && (
         <>
+          <Script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js" />
           <motion.button
             type="button"
             aria-label="Close details"
@@ -146,29 +179,98 @@ export function MenuItemDetailPanel({ item, quantity, onClose, onAdd, onRemove, 
                   )}
                 </header>
 
-                <div className="relative z-10 flex min-h-0 flex-col items-center px-4 pb-5 pt-1">
-                  <motion.div
-                    initial={false}
-                    animate={{ scale: 1 }}
-                    transition={{ type: 'spring', stiffness: 260, damping: 22 }}
-                    className="relative h-[min(52vw,200px)] w-[min(52vw,200px)] min-h-[140px] min-w-[140px] max-h-[200px] max-w-[200px]"
-                  >
-                    <div className="absolute bottom-[6%] left-1/2 h-[12%] w-[78%] -translate-x-1/2 rounded-full bg-[#08AE75]/20 blur-2xl" />
-                    <div className="absolute inset-0 scale-[0.88] rounded-full bg-[#44CFA0]/70 blur-xl" />
-                    <div className="absolute inset-[18%] rounded-full bg-[#39C798]" />
-                    <div className="absolute inset-[22%] z-10 overflow-hidden rounded-full shadow-lg ring-2 ring-white/50">
-                      {item.imageUrl ? (
-                        <Image src={item.imageUrl} alt={item.name} fill className="object-contain" sizes="200px" />
+                <div className="relative z-10 flex min-h-0 flex-col items-center px-4 pb-5 pt-1 w-full">
+                  <div className="relative flex w-full justify-center">
+                    <motion.div
+                      initial={false}
+                      animate={{ scale: 1 }}
+                      transition={{ type: 'spring', stiffness: 260, damping: 22 }}
+                      className="relative h-[min(52vw,200px)] w-[min(52vw,200px)] min-h-[140px] min-w-[140px] max-h-[200px] max-w-[200px]"
+                    >
+                      {is3DMode ? (
+                        <div className="absolute inset-0 flex items-center justify-center w-full h-full rounded-full z-10 bg-[#06a06e]/20 ring-4 ring-white/20 shadow-2xl overflow-hidden backdrop-blur-sm">
+                          {/* True 3D Model Viewer */}
+                          <model-viewer
+                            src="https://modelviewer.dev/shared-assets/models/Astronaut.glb"
+                            alt="3D representation of the dish"
+                            auto-rotate
+                            camera-controls
+                            shadow-intensity="1.5"
+                            environment-image="neutral"
+                            rotation-per-second="20deg"
+                            interaction-prompt="auto"
+                            style={{ width: '100%', height: '100%', backgroundColor: 'transparent' }}
+                          />
+                          <div className="absolute top-2 left-1/2 -translate-x-1/2 bg-black/40 text-white/90 text-[9px] px-3 py-1 rounded-full uppercase tracking-widest font-bold backdrop-blur-md pointer-events-none">
+                            Drag to rotate
+                          </div>
+                        </div>
                       ) : (
-                        <div className="flex h-full w-full items-center justify-center bg-white/10 text-5xl">🍽️</div>
+                        <>
+                          <div className="absolute bottom-[6%] left-1/2 h-[12%] w-[78%] -translate-x-1/2 rounded-full bg-[#08AE75]/20 blur-2xl" />
+                          <div className="absolute inset-0 scale-[0.88] rounded-full bg-[#44CFA0]/70 blur-xl" />
+                          <div className="absolute inset-[18%] rounded-full bg-[#39C798]" />
+                          <div className="absolute inset-[22%] z-10 overflow-hidden rounded-full shadow-lg ring-2 ring-white/50 bg-white">
+                            {mockImages.length > 0 ? (
+                              <AnimatePresence mode="wait">
+                                <motion.div
+                                  key={currentImageIndex}
+                                  initial={{ opacity: 0, x: 20 }}
+                                  animate={{ opacity: 1, x: 0 }}
+                                  exit={{ opacity: 0, x: -20 }}
+                                  transition={{ duration: 0.2 }}
+                                  className="absolute inset-0"
+                                >
+                                  <Image src={mockImages[currentImageIndex]} alt={item.name} fill className="object-contain" sizes="200px" />
+                                </motion.div>
+                              </AnimatePresence>
+                            ) : (
+                              <div className="flex h-full w-full items-center justify-center bg-white/10 text-5xl">🍽️</div>
+                            )}
+                          </div>
+                        </>
                       )}
+
+                      {item.isFasting && !is3DMode && (
+                        <span className="absolute -top-0.5 left-1/2 z-20 -translate-x-1/2 whitespace-nowrap rounded-full border border-white/40 bg-[#08AE75] px-2.5 py-1 text-[9px] font-bold uppercase tracking-widest text-white shadow-lg">
+                          Fasting
+                        </span>
+                      )}
+                    </motion.div>
+
+                    {/* AR Toggle Button */}
+                    <div className="absolute right-4 top-0 z-20">
+                      <motion.button
+                        whileTap={{ scale: 0.9 }}
+                        onClick={() => setIs3DMode(!is3DMode)}
+                        className={`flex h-10 w-10 items-center justify-center rounded-full shadow-lg backdrop-blur-md border transition-colors ${
+                          is3DMode 
+                            ? 'bg-[#1E1E1E] border-slate-700 text-[#44CFA0]' 
+                            : 'bg-white/80 border-white/40 text-slate-700 hover:bg-white'
+                        }`}
+                        aria-label="Toggle AR Stage View"
+                      >
+                        {is3DMode ? <Sparkles size={18} /> : <Box size={18} />}
+                      </motion.button>
                     </div>
-                    {item.isFasting && (
-                      <span className="absolute -top-0.5 left-1/2 z-20 -translate-x-1/2 whitespace-nowrap rounded-full border border-white/40 bg-[#08AE75] px-2.5 py-1 text-[9px] font-bold uppercase tracking-widest text-white shadow-lg">
-                        Fasting
-                      </span>
-                    )}
-                  </motion.div>
+                  </div>
+
+                  {/* Carousel Indicators */}
+                  {!is3DMode && mockImages.length > 1 && (
+                    <div className="mt-4 flex gap-1.5 z-10">
+                      {mockImages.map((_, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => setCurrentImageIndex(idx)}
+                          className={`h-1.5 rounded-full transition-all duration-300 ${
+                            currentImageIndex === idx ? 'w-5 bg-[#1E1E1E]' : 'w-1.5 bg-[#1E1E1E]/30'
+                          }`}
+                          aria-label={`Go to image ${idx + 1}`}
+                        />
+                      ))}
+                    </div>
+                  )}
+
                   <h1
                     id="item-detail-title"
                     className="mt-3 max-w-[20rem] text-center font-serif text-lg font-semibold leading-tight tracking-tight text-[#1E1E1E] line-clamp-2 sm:text-xl"
