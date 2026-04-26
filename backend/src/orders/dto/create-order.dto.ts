@@ -6,9 +6,21 @@ import {
   IsInt,
   Min,
   IsOptional,
+  IsNumber,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
+
+export class OrderItemOptionDto {
+  @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
+  optionName!: string;
+
+  @ApiProperty()
+  @IsNumber()
+  optionPrice!: number;
+}
 
 export class OrderItemDto {
   @ApiProperty()
@@ -25,6 +37,13 @@ export class OrderItemDto {
   @IsOptional()
   @IsString()
   note?: string;
+
+  @ApiProperty({ required: false, type: [OrderItemOptionDto] })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => OrderItemOptionDto)
+  options?: OrderItemOptionDto[];
 }
 
 export class CreateOrderDto {

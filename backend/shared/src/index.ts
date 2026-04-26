@@ -29,16 +29,69 @@ export enum LocalOrderStatus {
 export const RoleSchema = z.nativeEnum(Role);
 export const OrderStatusSchema = z.nativeEnum(OrderStatus);
 
+export const IngredientSchema = z.object({
+  id: z.string().uuid().optional(),
+  name: z.string().min(1),
+  detail: z.string().optional().nullable(),
+});
+
+export const AllergenSchema = z.object({
+  id: z.string().uuid().optional(),
+  label: z.string().min(1),
+  present: z.boolean(),
+});
+
+export const DietaryTagSchema = z.object({
+  id: z.string().uuid().optional(),
+  label: z.string().min(1),
+});
+
+export const NutritionRowSchema = z.object({
+  id: z.string().uuid().optional(),
+  nutrient: z.string().min(1),
+  amount: z.string().min(1),
+  dailyValue: z.string().optional().nullable(),
+  sub: z.boolean().default(false),
+});
+
+export const NutritionSectionSchema = z.object({
+  id: z.string().uuid().optional(),
+  title: z.string().min(1),
+  rows: z.array(NutritionRowSchema).default([]),
+});
+
+export const ModifierOptionSchema = z.object({
+  id: z.string().uuid().optional(),
+  name: z.string().min(1),
+  price: z.number().min(0).default(0),
+});
+
+export const ModifierGroupSchema = z.object({
+  id: z.string().uuid().optional(),
+  name: z.string().min(1),
+  isRequired: z.boolean().default(false),
+  minSelections: z.number().int().default(0),
+  maxSelections: z.number().int().optional().nullable(),
+  options: z.array(ModifierOptionSchema).default([]),
+});
+
 export const MenuItemSchema = z.object({
   id: z.string().uuid(),
   name: z.string().min(1),
-  description: z.string().optional(),
+  description: z.string().optional().nullable(),
   price: z.number().min(0),
   isAvailable: z.boolean(),
   isFasting: z.boolean(),
-  imageUrl: z.string().optional(),
+  imageUrl: z.string().optional().nullable(),
+  model3dUrl: z.string().optional().nullable(),
   categoryId: z.string().uuid(),
   categoryName: z.string().optional(),
+  
+  ingredients: z.array(IngredientSchema).optional(),
+  allergens: z.array(AllergenSchema).optional(),
+  dietaryTags: z.array(DietaryTagSchema).optional(),
+  nutritionSections: z.array(NutritionSectionSchema).optional(),
+  modifierGroups: z.array(ModifierGroupSchema).optional(),
 });
 
 export const CategorySchema = z.object({
@@ -163,12 +216,14 @@ export interface StaffUser {
 
 // Cart (frontend-only)
 export interface CartItem {
+  cartItemId?: string;
   menuItemId: string;
   name: string;
-  priceAtAdd: number;
+  priceAtAdd: number; // Base price + options price sum
   quantity: number;
-  imageUrl?: string;
+  imageUrl?: string | null;
   note?: string;
+  options?: { optionName: string; optionPrice: number }[];
 }
 
 export interface LocalOrder {

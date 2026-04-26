@@ -16,14 +16,21 @@ export function FoodCarouselItem({ item, quantity, onTap, variant = 'center' }: 
   const [isFavorite, setIsFavorite] = useState(false);
 
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       className={`${
         isCenter
           ? 'w-[min(64vw,278px)] min-w-[200px] max-w-[278px]'
           : 'w-[118px] sm:w-[128px] min-w-0 max-w-[132px]'
-      } flex-shrink-0 flex flex-col items-center bg-transparent`}
+      } flex-shrink-0 flex flex-col items-center bg-transparent cursor-pointer outline-none`}
       onClick={onTap}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onTap();
+        }
+      }}
     >
       <div
         className={`${
@@ -78,6 +85,6 @@ export function FoodCarouselItem({ item, quantity, onTap, variant = 'center' }: 
           />
         </button>
       </div>
-    </button>
+    </div>
   );
 }

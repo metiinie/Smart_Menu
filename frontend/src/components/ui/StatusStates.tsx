@@ -1,6 +1,5 @@
 'use client';
 
-import { motion } from 'framer-motion';
 import { AlertCircle, FileSearch, Inbox, RefreshCw, MessageCircle, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 

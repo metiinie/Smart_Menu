@@ -1,10 +1,10 @@
 'use client';
 
-import { Suspense, useEffect } from 'react';
+import { Suspense} from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { PinLogin } from '@/components/ui/PinLogin';
 import { useAuthStore } from '@/stores/authStore';
-import { MeshBackground, FoodPatternOverlay } from '@/components/ui/Backgrounds';
+import { MeshBackground} from '@/components/ui/Backgrounds';
 import { PageTransition } from '@/components/ui/PageTransition';
 
 function LoginContent() {
@@ -16,7 +16,15 @@ function LoginContent() {
 
   const handleSuccess = (token: string, user: any) => {
     login(user, token);
-    router.replace(returnUrl);
+    
+    // Role-based redirection logic
+    if (searchParams.get('returnUrl')) {
+      router.replace(returnUrl);
+    } else if (user.role === 'KITCHEN') {
+      router.replace('/kitchen');
+    } else {
+      router.replace('/admin/dashboard');
+    }
   };
 
   return (

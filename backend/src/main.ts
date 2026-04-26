@@ -37,10 +37,10 @@ async function bootstrap() {
 
   // Root Landing (Redirect to frontend)
   const adapter = app.getHttpAdapter();
-  adapter.get('/', (req, res) => {
-    res.redirect('http://localhost:3000');
+  adapter.get('/', (_req, res) => {
+    res.redirect(process.env.FRONTEND_URL || 'http://localhost:3000');
   });
-  adapter.get('/api', (req, res) => res.redirect('/api/docs'));
+  adapter.get('/api', (_req, res) => res.redirect('/api/docs'));
 
   // Swagger docs
   const config = new DocumentBuilder()

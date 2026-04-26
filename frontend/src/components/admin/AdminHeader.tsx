@@ -17,7 +17,7 @@ export function AdminHeader({ title, onLogout, titleBadge, children }: AdminHead
           <div className="w-8 h-8 rounded-xl bg-brand-500 flex items-center justify-center">
             <ShieldCheck size={16} className="text-white" />
           </div>
-          <h1 className="font-display font-bold text-white text-sm">{title}</h1>
+          <h1 className="font-display font-bold text-slate-900 text-sm">{title}</h1>
           {titleBadge}
         </div>
         <div className="flex items-center gap-2">
@@ -25,9 +25,9 @@ export function AdminHeader({ title, onLogout, titleBadge, children }: AdminHead
           <motion.button
             whileTap={{ scale: 0.9 }}
             onClick={onLogout}
-            className="w-8 h-8 rounded-full bg-surface-100 flex items-center justify-center"
+            className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center border border-slate-200"
           >
-            <LogOut size={14} className="text-white/60" />
+            <LogOut size={14} className="text-slate-500" />
           </motion.button>
         </div>
       </div>

@@ -60,22 +60,26 @@ function ProfileIcon({ active }: { active: boolean }) {
   );
 }
 
-const TABS: { id: TabId; label: string; Icon: typeof HomeIcon }[] = [
-  { id: 'home', label: 'Home', Icon: HomeIcon },
-  { id: 'favorite', label: 'Favorites', Icon: HeartIcon },
-  { id: 'cart', label: 'Cart', Icon: CartIcon },
-  { id: 'profile', label: 'Profile', Icon: ProfileIcon },
-];
+
+import { UI_STRINGS } from '@/lib/i18n';
 
 export function BottomTabBar({ activeTab, onTabChange }: Props) {
   const cartItems = useCartStore((s) => s.items);
-  const favorites = useFavoritesStore((s) => s.favorites);
+  const { favorites, language } = useFavoritesStore();
+  const t = UI_STRINGS[language];
 
   const cartCount = useMemo(
     () => cartItems.reduce((sum, i) => sum + i.quantity, 0),
     [cartItems]
   );
   const favCount = favorites.length;
+
+  const getTabs = () => [
+    { id: 'home' as TabId, label: 'Home', Icon: HomeIcon },
+    { id: 'favorite' as TabId, label: t.favorites || 'Favorites', Icon: HeartIcon },
+    { id: 'cart' as TabId, label: t.cart || 'Cart', Icon: CartIcon },
+    { id: 'profile' as TabId, label: t.profile || 'Profile', Icon: ProfileIcon },
+  ];
 
   return (
     <nav
@@ -86,7 +90,7 @@ export function BottomTabBar({ activeTab, onTabChange }: Props) {
       <div className="btm-tab-bar__bg" />
 
       <div className="btm-tab-bar__inner">
-        {TABS.map(({ id, label, Icon }) => {
+        {getTabs().map(({ id, label, Icon }) => {
           const isActive = activeTab === id;
           const badge =
             id === 'cart' ? cartCount : id === 'favorite' ? favCount : 0;

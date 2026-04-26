@@ -57,7 +57,12 @@ export const ordersApi = {
     tableId: string;
     sessionId: string;
     customerRef: string;
-    items: { menuItemId: string; quantity: number }[];
+    items: {
+      menuItemId: string;
+      quantity: number;
+      note?: string;
+      options?: { optionName: string; optionPrice: number }[];
+    }[];
     notes?: string;
   }) => api.post('/orders', payload).then((r) => r.data),
 
@@ -71,6 +76,12 @@ export const ordersApi = {
 
   getActiveOrders: (branchId: string, sessionId: string, customerRef: string) =>
     api.get('/orders/my-orders/active', { params: { branchId, sessionId, customerRef } }).then((r) => r.data),
+
+  submitRating: (orderId: string, data: { rating: number; comment?: string; customerRef: string; menuItemId?: string }) =>
+    api.post(`/orders/${orderId}/rate`, data).then((r) => r.data),
+
+  getOrderHistory: (customerRef: string) =>
+    api.get('/orders/history/customer', { params: { customerRef } }).then((r) => r.data),
 };
 
 export const kitchenApi = {
@@ -79,6 +90,7 @@ export const kitchenApi = {
 };
 
 export const adminApi = {
+  // Menu Items
   getMenuItems: (branchId: string) =>
     api.get('/admin/menu-items', { params: { branchId } }).then((r) => r.data),
 
@@ -96,11 +108,59 @@ export const adminApi = {
   deleteMenuItem: (id: string) =>
     api.delete(`/admin/menu-items/${id}`).then((r) => r.data),
 
+  // Orders
   getOrders: (branchId: string) =>
     api.get('/admin/orders', { params: { branchId } }).then((r) => r.data),
 
+  // Categories
   getCategories: (branchId: string) =>
     api.get('/admin/categories', { params: { branchId } }).then((r) => r.data),
+
+  createCategory: (data: { name: string; branchId: string; sortOrder?: number; imageUrl?: string }) =>
+    api.post('/admin/categories', data).then((r) => r.data),
+
+  updateCategory: (id: string, data: { name?: string; sortOrder?: number; imageUrl?: string }) =>
+    api.patch(`/admin/categories/${id}`, data).then((r) => r.data),
+
+  deleteCategory: (id: string) =>
+    api.delete(`/admin/categories/${id}`).then((r) => r.data),
+
+  // Tables
+  getTables: (branchId: string) =>
+    api.get('/admin/tables', { params: { branchId } }).then((r) => r.data),
+
+  createTable: (data: { branchId: string; tableNumber: number }) =>
+    api.post('/admin/tables', data).then((r) => r.data),
+
+  toggleTableStatus: (id: string, isActive: boolean) =>
+    api.patch(`/admin/tables/${id}/status`, { isActive }).then((r) => r.data),
+
+  deleteTable: (id: string) =>
+    api.delete(`/admin/tables/${id}`).then((r) => r.data),
+
+  // Dashboard Analytics
+  getDashboard: (branchId: string) =>
+    api.get('/admin/dashboard', { params: { branchId } }).then((r) => r.data),
+
+  // Staff
+  getStaff: (branchId: string) =>
+    api.get('/admin/staff', { params: { branchId } }).then((r) => r.data),
+
+  // Branch Settings
+  getBranch: (branchId: string) =>
+    api.get('/admin/branch', { params: { branchId } }).then((r) => r.data),
+
+  updateBranch: (id: string, data: { name?: string; vatRate?: number; serviceChargeRate?: number }) =>
+    api.patch(`/admin/branch/${id}`, data).then((r) => r.data),
+
+  // Uploads
+  uploadAsset: (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post('/admin/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }).then((r) => r.data);
+  },
 
   closeTableSession: (sessionId: string) =>
     api.patch(`/table-sessions/${sessionId}/close`).then((r) => r.data),
@@ -112,4 +172,9 @@ export const authApi = {
 
   listStaff: (branchId: string) =>
     api.get('/auth/staff', { params: { branchId } }).then((r) => r.data),
+};
+
+export const notificationsApi = {
+  subscribe: (customerRef: string, subscription: any) =>
+    api.post('/notifications/subscribe', subscription, { params: { customerRef } }).then((r) => r.data),
 };

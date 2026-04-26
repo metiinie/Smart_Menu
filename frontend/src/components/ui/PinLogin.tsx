@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Lock, ChefHat, ShieldCheck, ChevronLeft, Fingerprint, Delete } from 'lucide-react';
+import {  ChefHat, ShieldCheck, ChevronLeft, Fingerprint} from 'lucide-react';
 import { authApi } from '@/lib/api';
 import { BrandLogo } from './BrandLogo';
 
@@ -23,10 +23,24 @@ export function PinLogin({ branchId, onSuccess }: Props) {
   const [pin, setPin] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [connectionError, setConnectionError] = useState(false);
+
+  const loadStaff = useCallback(async () => {
+    setLoading(true);
+    setConnectionError(false);
+    try {
+      const data = await authApi.listStaff(branchId);
+      setStaff(data);
+    } catch (err) {
+      setConnectionError(true);
+    } finally {
+      setLoading(false);
+    }
+  }, [branchId]);
 
   useEffect(() => {
-    authApi.listStaff(branchId).then(setStaff).catch(() => {});
-  }, [branchId]);
+    loadStaff();
+  }, [loadStaff]);
 
   const handleDigit = useCallback((d: string) => {
     setPin(prev => {
@@ -86,36 +100,68 @@ export function PinLogin({ branchId, onSuccess }: Props) {
             <BrandLogo className="mb-10" />
             
             <div className="space-y-3">
-              <p className="text-white/40 text-xs font-bold uppercase tracking-widest text-center mb-6">
+              <p className="text-slate-400 text-xs font-bold uppercase tracking-widest text-center mb-6">
                 Choose your profile to sign in
               </p>
+              
+              {loading && !staff.length && (
+                <div className="flex flex-col items-center justify-center py-10 gap-4">
+                  <div className="w-10 h-10 border-2 border-gold-500/20 border-t-gold-500 rounded-full animate-spin" />
+                  <p className="text-gold-500/60 text-[10px] font-bold uppercase tracking-widest animate-pulse">Connecting to server...</p>
+                </div>
+              )}
+
+              {connectionError && (
+                <motion.div 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="glass-gold p-6 rounded-3xl border-red-500/30 text-center space-y-4"
+                >
+                  <div className="w-12 h-12 bg-red-500/10 rounded-2xl flex items-center justify-center mx-auto border border-red-500/20">
+                    <ShieldCheck size={24} className="text-red-400" />
+                  </div>
+                  <div>
+                    <p className="text-white font-bold text-sm">Connection Error</p>
+                    <p className="text-white/40 text-[11px] mt-1 leading-relaxed">
+                      Unable to reach the server. Please ensure the backend is running and the database is awake.
+                    </p>
+                  </div>
+                  <button 
+                    onClick={loadStaff}
+                    className="w-full py-3 bg-white/5 hover:bg-white/10 rounded-xl text-white text-xs font-bold uppercase tracking-widest transition-colors border border-white/10"
+                  >
+                    Try Reconnecting
+                  </button>
+                </motion.div>
+              )}
+
               <div className="space-y-3">
-                {(staff || []).map((s, i) => (
+                {staff.map((s, i) => (
                   <motion.button
                     key={s.id}
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: i * 0.1 + 0.3 }}
-                    whileHover={{ x: 8, backgroundColor: 'rgba(255, 255, 255, 0.05)' }}
+                    whileHover={{ x: 8, backgroundColor: 'rgba(0, 0, 0, 0.03)' }}
                     whileTap={{ scale: 0.98 }}
                     onClick={() => setSelected(s)}
-                    className="w-full glass-gold flex items-center justify-between p-4 rounded-2xl group transition-all"
+                    className="w-full bg-white/40 backdrop-blur-md border border-white/60 flex items-center justify-between p-4 rounded-2xl group transition-all shadow-sm"
                   >
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 rounded-xl bg-gold-500/10 flex items-center justify-center border border-gold-500/20 group-hover:border-gold-500/40 transition-colors">
                         {s.role === 'ADMIN' ? (
-                          <ShieldCheck size={24} className="text-gold-500" />
+                          <ShieldCheck size={24} className="text-gold-600" />
                         ) : (
-                          <ChefHat size={24} className="text-gold-500" />
+                          <ChefHat size={24} className="text-gold-600" />
                         )}
                       </div>
                       <div className="text-left">
-                        <p className="font-display font-bold text-white text-base">{s.name}</p>
-                        <p className="text-white/40 text-xs font-medium">{s.role === 'ADMIN' ? 'System Administrator' : 'Kitchen Management'}</p>
+                        <p className="font-display font-bold text-slate-900 text-base">{s.name}</p>
+                        <p className="text-slate-500 text-xs font-medium">{s.role === 'ADMIN' ? 'System Administrator' : 'Kitchen Management'}</p>
                       </div>
                     </div>
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <ChevronLeft size={18} className="text-white/40 rotate-180" />
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <ChevronLeft size={18} className="text-slate-400 rotate-180" />
                     </div>
                   </motion.button>
                 ))}
@@ -134,13 +180,13 @@ export function PinLogin({ branchId, onSuccess }: Props) {
             <div className="flex items-center justify-between mb-8">
               <button 
                 onClick={() => { setSelected(null); setPin(''); }}
-                className="w-10 h-10 rounded-full glass-gold flex items-center justify-center text-white/60 hover:text-white transition-colors"
+                className="w-10 h-10 rounded-full bg-white/60 backdrop-blur-md border border-black/5 flex items-center justify-center text-slate-400 hover:text-slate-900 transition-colors"
               >
                 <ChevronLeft size={20} />
               </button>
               <div className="text-right">
-                <p className="text-white/40 text-xs font-bold uppercase tracking-widest">{selected.role}</p>
-                <p className="font-display font-black text-white text-xl uppercase tracking-tight">{selected.name}</p>
+                <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">{selected.role}</p>
+                <p className="font-display font-black text-slate-900 text-xl uppercase tracking-tight">{selected.name}</p>
               </div>
             </div>
 
@@ -157,8 +203,8 @@ export function PinLogin({ branchId, onSuccess }: Props) {
                     animate={i < pin.length ? { scale: [1, 1.2, 1], rotate: [0, 10, 0] } : {}}
                     className={`w-4 h-4 rounded-full border-2 transition-all duration-300
                       ${i < pin.length 
-                        ? 'bg-gold-500 border-gold-400 shadow-[0_0_15px_rgba(250,189,47,0.5)]' 
-                        : 'bg-white/5 border-white/10'}`}
+                        ? 'bg-gold-500 border-gold-400 shadow-[0_0_15px_rgba(250,189,47,0.3)]' 
+                        : 'bg-black/5 border-black/10'}`}
                   />
                 ))}
               </motion.div>
@@ -166,12 +212,12 @@ export function PinLogin({ branchId, onSuccess }: Props) {
               {error ? (
                 <motion.p 
                   initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                  className="text-red-400 text-xs font-bold uppercase tracking-widest bg-red-400/10 px-4 py-2 rounded-full border border-red-400/20"
+                  className="text-red-500 text-xs font-bold uppercase tracking-widest bg-red-500/10 px-4 py-2 rounded-full border border-red-500/20"
                 >
                   {error}
                 </motion.p>
               ) : (
-                <p className="text-white/20 text-[10px] font-bold uppercase tracking-[0.3em]">
+                <p className="text-slate-300 text-[10px] font-bold uppercase tracking-[0.3em]">
                   Security Verification Required
                 </p>
               )}
@@ -190,9 +236,9 @@ export function PinLogin({ branchId, onSuccess }: Props) {
                   disabled={!d}
                   className={`h-16 rounded-2xl font-display font-black text-2xl transition-all duration-200
                     ${d === '⌫' 
-                      ? 'glass-gold text-white/40'
+                      ? 'bg-black/5 text-slate-400'
                       : d 
-                        ? 'glass-gold text-white hover:bg-white/5 hover:border-gold-500/40 active:text-gold-500' 
+                        ? 'bg-white/60 backdrop-blur-sm border border-black/5 text-slate-900 hover:bg-white hover:border-gold-500/40 active:text-gold-500 shadow-sm' 
                         : 'opacity-0 pointer-events-none'}`}
                 >
                   {d}

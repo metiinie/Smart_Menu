@@ -21,9 +21,9 @@ const nextConfig = {
     ],
     formats: ['image/avif', 'image/webp'],
   },
+  outputFileTracingRoot: path.join(__dirname, "../../"),
   experimental: {
     optimizePackageImports: ['lucide-react', 'framer-motion'],
-    outputFileTracingRoot: path.join(__dirname, "../../"),
   },
   transpilePackages: ["@arifsmart/shared"],
 };

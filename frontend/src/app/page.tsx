@@ -2,22 +2,36 @@
 
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
-import { Globe, QrCode } from 'lucide-react';
+import { Globe} from 'lucide-react';
 import { PageTransition } from '@/components/ui/PageTransition';
+import { useFavoritesStore } from '@/stores/favoritesStore';
+
+const LANGUAGES = [
+  { code: 'en' as const, label: 'English' },
+  { code: 'am' as const, label: 'አማርኛ' },
+  { code: 'or' as const, label: 'Afaan Oromoo' },
+];
 
 export default function HomePage() {
   const router = useRouter();
-  const branchId = process.env.NEXT_PUBLIC_BRANCH_ID || 'default';
-  const tableId = 'table-01';
+  const { language, setLanguage } = useFavoritesStore();
 
-  const languages = [
-    { code: 'en', label: 'English', active: true },
-    { code: 'am', label: 'አማርኛ', active: false },
-    { code: 'or', label: 'Afaan Oromoo', active: false },
-  ];
+  /**
+   * In production, customers scan a QR code that encodes:
+   *   /menu/{branchId}/{tableId}
+   * This landing page is a fallback for direct visits.
+   * We read branchId from env and let users scan or use a demo table.
+   */
+  const branchId = process.env.NEXT_PUBLIC_BRANCH_ID || '';
 
   const handleScanSimulation = () => {
-    router.push(`/menu/${branchId}/${tableId}`);
+    if (!branchId) {
+      // No branch configured — can't proceed
+      return;
+    }
+    // Navigate to the menu; the table-context endpoint will
+    // resolve "table-01" → tableNumber 1 via its fallback parser
+    router.push(`/menu/${branchId}/table-01`);
   };
 
   return (
@@ -101,12 +115,13 @@ export default function HomePage() {
           </div>
           
           <div className="flex flex-wrap justify-center gap-4">
-            {languages.map((lang, idx) => (
+            {LANGUAGES.map((lang) => (
               <motion.button
                 key={lang.code}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className={`px-8 py-4 rounded-3xl text-sm font-black transition-all duration-300 border ${lang.active
+                onClick={() => setLanguage(lang.code)}
+                className={`px-8 py-4 rounded-3xl text-sm font-black transition-all duration-300 border ${language === lang.code
                   ? 'bg-brand-500 text-white border-transparent shadow-2xl shadow-brand-500/30'
                   : 'bg-white text-slate-500 border-slate-100 hover:border-brand-200'
                   }`}

@@ -35,12 +35,16 @@ export class AuthService {
         id: staff.id,
         name: staff.name,
         role: staff.role,
+        // Include branchId at BOTH levels so every consumer can resolve it consistently:
+        //   user.branchId        — direct field
+        //   user.branch.id       — nested (for UI that already used this pattern)
+        branchId: staff.branchId,
         branch: staff.branch,
       },
     };
   }
 
-  /** Returns all staff for login screen (no pins exposed) */
+  /** Returns all active staff for the login screen (no PINs or sensitive data exposed). */
   async listStaff(branchId: string) {
     return this.prisma.staffUser.findMany({
       where: { branchId, isActive: true },

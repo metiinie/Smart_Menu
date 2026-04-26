@@ -24,7 +24,12 @@ export const syncManager = {
       tableId: localOrder.tableId,
       sessionId: localOrder.sessionId,
       customerRef: localOrder.customerRef,
-      items: localOrder.items.map((i) => ({ menuItemId: i.menuItemId, quantity: i.quantity })),
+      items: localOrder.items.map((i) => ({ 
+        menuItemId: i.menuItemId, 
+        quantity: i.quantity,
+        note: i.note,
+        options: i.options
+      })),
     };
 
     try {
@@ -69,6 +74,21 @@ export const syncManager = {
     for (const item of queue) {
       try {
         useLocalOrderStore.getState().updateOrderStatus(item.id, LocalOrderStatus.SYNCING);
+        
+        // RE-ATTACH: If the payload has a stale sessionId, try to refresh it from current context
+        const contextStr = localStorage.getItem('_table_ctx');
+        if (contextStr) {
+          try {
+            const ctx = JSON.parse(contextStr);
+            if (ctx.activeSession?.id && item.payload.sessionId !== ctx.activeSession.id) {
+              console.log(`[SyncManager] Re-attaching order ${item.id} to new session ${ctx.activeSession.id}`);
+              item.payload.sessionId = ctx.activeSession.id;
+            }
+          } catch (e) {
+            console.error('[SyncManager] Failed to parse table context during sync', e);
+          }
+        }
+
         const res = await ordersApi.create(item.payload);
         useLocalOrderStore.getState().updateOrderStatus(item.id, LocalOrderStatus.SYNCED, res.id);
       } catch (err: any) {
@@ -110,7 +130,12 @@ export const syncManager = {
       tableId: order.tableId,
       sessionId: order.sessionId,
       customerRef: order.customerRef,
-      items: order.items.map((i) => ({ menuItemId: i.menuItemId, quantity: i.quantity })),
+      items: order.items.map((i) => ({ 
+        menuItemId: i.menuItemId, 
+        quantity: i.quantity,
+        note: i.note,
+        options: i.options 
+      })),
     };
 
     useLocalOrderStore.getState().updateOrderStatus(localId, LocalOrderStatus.SYNCING);
@@ -156,5 +181,17 @@ export const syncManager = {
     import('@/stores/localOrderStore').then(({ useLocalOrderStore }) => {
       useLocalOrderStore.getState().updateOrderStatus(id, LocalOrderStatus.PENDING);
     });
+
+    // Attempt Service Worker Background Sync (for Android/Chrome)
+    if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+      navigator.serviceWorker.ready.then((registration) => {
+        if ('sync' in registration) {
+          // @ts-ignore - TS doesn't know about SyncManager natively yet in all configs
+          registration.sync.register('sync-offline-orders')
+            .then(() => console.log('[SyncManager] SW Background Sync registered'))
+            .catch((err: any) => console.log('[SyncManager] SW Sync registration failed:', err));
+        }
+      });
+    }
   },
 };

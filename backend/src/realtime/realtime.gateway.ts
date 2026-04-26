@@ -38,8 +38,8 @@ export class RealtimeGateway
     }
   }
 
-  handleDisconnect(client: Socket) {
-    this.logger.log(`Client disconnected: ${client.id}`);
+  handleDisconnect(_client: Socket) {
+    this.logger.log(`Client disconnected: ${_client.id}`);
   }
 
   @SubscribeMessage('join-room')
@@ -54,14 +54,38 @@ export class RealtimeGateway
     this.logger.log(`Client ${client.id} left room: ${room}`);
   }
 
+  @SubscribeMessage('call-waiter')
+  handleCallWaiter(_client: Socket, data: { tableNumber: number; tableId: string; requestType: string }) {
+    this.logger.log(`🔔 Call Waiter: Table ${data.tableNumber} — ${data.requestType}`);
+    // Broadcast to all connected clients (admin + kitchen)
+    this.server.emit('waiter-call', {
+      tableNumber: data.tableNumber,
+      tableId: data.tableId,
+      requestType: data.requestType,
+      timestamp: new Date().toISOString(),
+    });
+  }
+
   /** Emit to kitchen room when new order arrives */
-  emitNewOrder(order: unknown) {
-    this.server.emit('new-order', order);
+  emitNewOrder(order: any, branchId?: string) {
+    if (branchId) {
+      this.logger.log(`📢 Emitting new-order to rooms: kitchen:${branchId}, admin:${branchId}`);
+      this.server.to(`kitchen:${branchId}`).emit('new-order', order);
+      this.server.to(`admin:${branchId}`).emit('new-order', order);
+    } else {
+      this.logger.warn('⚠️ emitNewOrder called without branchId, falling back to global broadcast');
+      this.server.emit('new-order', order);
+    }
   }
 
   /** Emit to order-specific room when status changes */
-  emitOrderUpdated(order: { id: string; [key: string]: unknown }) {
-    this.server.emit('order-updated', order);
+  emitOrderUpdated(order: { id: string; table?: { branchId: string }; [key: string]: unknown }) {
+    if (order.table?.branchId) {
+      this.server.to(`kitchen:${order.table.branchId}`).emit('order-updated', order);
+      this.server.to(`admin:${order.table.branchId}`).emit('order-updated', order);
+    } else {
+      this.server.emit('order-updated', order);
+    }
     this.server.to(`order:${order.id}`).emit('order-updated', order);
   }
 }

@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Home, Heart, ShoppingBag, User, Bell, Globe, CreditCard, Info } from 'lucide-react';
 import { useCartStore } from '@/stores/cartStore';
 import { useFavoritesStore } from '@/stores/favoritesStore';
+import { UI_STRINGS } from '@/lib/i18n';
 import { useMemo } from 'react';
 import type { TabId } from './BottomTabBar';
 
@@ -14,16 +15,11 @@ interface Props {
   onTabChange: (tab: TabId) => void;
 }
 
-const NAV_ITEMS: { id: TabId; label: string; icon: React.ReactNode; description: string }[] = [
-  { id: 'home', label: 'Main Menu', icon: <Home size={20} />, description: 'Browse categories & dishes' },
-  { id: 'favorite', label: 'Search & Favorites', icon: <Heart size={20} />, description: 'Find dishes, view saved items' },
-  { id: 'cart', label: 'My Cart', icon: <ShoppingBag size={20} />, description: 'Review order & checkout' },
-  { id: 'profile', label: 'Profile & Settings', icon: <User size={20} />, description: 'Language, currency, service' },
-];
 
 export function WebSidebarDrawer({ open, onClose, activeTab, onTabChange }: Props) {
   const cartItems = useCartStore((s) => s.items);
-  const favorites = useFavoritesStore((s) => s.favorites);
+  const { favorites, language } = useFavoritesStore();
+  const t = UI_STRINGS[language];
 
   const cartCount = useMemo(
     () => cartItems.reduce((sum, i) => sum + i.quantity, 0),
@@ -34,6 +30,13 @@ export function WebSidebarDrawer({ open, onClose, activeTab, onTabChange }: Prop
     onTabChange(tab);
     onClose();
   };
+
+  const getNavItems = () => [
+    { id: 'home' as TabId, label: 'Main Menu', icon: <Home size={20} />, description: 'Browse categories & dishes' },
+    { id: 'favorite' as TabId, label: t.favorites || 'Favorites', icon: <Heart size={20} />, description: 'Find dishes, view saved items' },
+    { id: 'cart' as TabId, label: t.cart || 'My Cart', icon: <ShoppingBag size={20} />, description: 'Review order & checkout' },
+    { id: 'profile' as TabId, label: t.profile || 'Profile', icon: <User size={20} />, description: 'Language, currency, service' },
+  ];
 
   return (
     <AnimatePresence>
@@ -78,7 +81,7 @@ export function WebSidebarDrawer({ open, onClose, activeTab, onTabChange }: Prop
 
             {/* Navigation */}
             <nav className="web-sidebar__nav">
-              {NAV_ITEMS.map(({ id, label, icon, description }) => {
+              {getNavItems().map(({ id, label, icon, description }) => {
                 const isActive = activeTab === id;
                 const badge =
                   id === 'cart' ? cartCount : id === 'favorite' ? favorites.length : 0;
@@ -111,15 +114,15 @@ export function WebSidebarDrawer({ open, onClose, activeTab, onTabChange }: Prop
             {/* Quick actions */}
             <div className="web-sidebar__quick-actions">
               <p className="web-sidebar__section-title">Quick Actions</p>
-              <button className="web-sidebar__action-btn" id="sidebar-call-waiter">
+              <button className="web-sidebar__action-btn" id="sidebar-call-waiter" onClick={() => handleNav('profile')}>
                 <Bell size={16} />
                 <span>Call Waiter</span>
               </button>
-              <button className="web-sidebar__action-btn" id="sidebar-language">
+              <button className="web-sidebar__action-btn" id="sidebar-language" onClick={() => handleNav('profile')}>
                 <Globe size={16} />
                 <span>Language</span>
               </button>
-              <button className="web-sidebar__action-btn" id="sidebar-currency">
+              <button className="web-sidebar__action-btn" id="sidebar-currency" onClick={() => handleNav('profile')}>
                 <CreditCard size={16} />
                 <span>Currency</span>
               </button>

@@ -11,18 +11,30 @@ export interface FavoriteItem {
   addedAt: number;
 }
 
+export interface CustomerProfile {
+  name?: string;
+  phone?: string;
+  customerRef?: string;
+}
+
 interface FavoritesStore {
   favorites: FavoriteItem[];
+  customerProfile: CustomerProfile;
+  language: 'en' | 'am' | 'or';
   addFavorite: (item: Omit<FavoriteItem, 'addedAt'>) => void;
   removeFavorite: (menuItemId: string) => void;
   isFavorite: (menuItemId: string) => boolean;
   toggleFavorite: (item: Omit<FavoriteItem, 'addedAt'>) => void;
+  updateProfile: (profile: Partial<CustomerProfile>) => void;
+  setLanguage: (lang: 'en' | 'am' | 'or') => void;
 }
 
 export const useFavoritesStore = create<FavoritesStore>()(
   persist(
     (set, get) => ({
       favorites: [],
+      customerProfile: {},
+      language: 'en',
 
       addFavorite: (item) =>
         set((state) => {
@@ -56,6 +68,13 @@ export const useFavoritesStore = create<FavoritesStore>()(
           });
         }
       },
+
+      updateProfile: (profile) =>
+        set((state) => ({
+          customerProfile: { ...state.customerProfile, ...profile },
+        })),
+
+      setLanguage: (language) => set({ language }),
     }),
     {
       name: 'arifsmart-favorites',

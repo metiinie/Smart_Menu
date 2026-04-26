@@ -11,8 +11,8 @@ interface CartStore {
 
   setContext: (branchId: string, tableId: string, sessionId: string, customerRef: string) => void;
   addItem: (item: Omit<CartItem, 'quantity'>) => void;
-  removeItem: (menuItemId: string) => void;
-  updateQuantity: (menuItemId: string, quantity: number, note?: string) => void;
+  removeItem: (cartItemId: string) => void;
+  updateQuantity: (cartItemId: string, quantity: number) => void;
   clearCart: () => void;
   totalPrice: () => number;
   totalItems: () => number;
@@ -32,8 +32,12 @@ export const useCartStore = create<CartStore>()(
 
       addItem: (item) =>
         set((state) => {
+          // Serialize options for comparison
+          const serializeOpts = (opts: any) => JSON.stringify([...(opts || [])].sort((a,b) => a.optionName.localeCompare(b.optionName)));
+          const itemOpts = serializeOpts(item.options);
+
           const existingIndex = state.items.findIndex(
-            (i) => i.menuItemId === item.menuItemId && (i.note || '') === (item.note || '')
+            (i) => i.menuItemId === item.menuItemId && (i.note || '') === (item.note || '') && serializeOpts(i.options) === itemOpts
           );
           
           if (existingIndex > -1) {
@@ -45,20 +49,20 @@ export const useCartStore = create<CartStore>()(
             return { items: newItems };
           }
           
-          return { items: [...state.items, { ...item, quantity: 1 }] };
+          return { items: [...state.items, { ...item, quantity: 1, cartItemId: crypto.randomUUID() }] };
         }),
 
-      removeItem: (menuItemId) =>
+      removeItem: (cartItemId) =>
         set((state) => ({
-          items: state.items.filter((i) => i.menuItemId !== menuItemId),
+          items: state.items.filter((i) => i.cartItemId !== cartItemId && i.menuItemId !== cartItemId), // Fallback if cartItemId is not set
         })),
 
-      updateQuantity: (menuItemId, quantity, note) =>
+      updateQuantity: (cartItemId, quantity) =>
         set((state) => {
           const isRemoving = quantity <= 0;
           const targetItems = state.items.filter((i) => {
-            if (i.menuItemId !== menuItemId) return true;
-            if (note !== undefined && (i.note || '') !== (note || '')) return true;
+            const isMatch = i.cartItemId === cartItemId || (!i.cartItemId && i.menuItemId === cartItemId);
+            if (!isMatch) return true;
             return !isRemoving;
           });
 
@@ -66,7 +70,7 @@ export const useCartStore = create<CartStore>()(
 
           return {
             items: state.items.map((i) => {
-              const isMatch = i.menuItemId === menuItemId && (note === undefined || (i.note || '') === (note || ''));
+              const isMatch = i.cartItemId === cartItemId || (!i.cartItemId && i.menuItemId === cartItemId);
               return isMatch ? { ...i, quantity } : i;
             }),
           };
@@ -83,13 +87,13 @@ export const useCartStore = create<CartStore>()(
     {
       name: 'cart',
       storage: createJSONStorage(() => ({
-        getItem: (name) => {
+        getItem: () => {
           if (typeof window === 'undefined') return null;
           const state = JSON.parse(localStorage.getItem('_cart_ctx') ?? '{}');
           const key = `cart:${state.branchId ?? ''}:${state.tableId ?? ''}:${state.sessionId ?? ''}:${state.customerRef ?? ''}`;
           return localStorage.getItem(key) ?? null;
         },
-        setItem: (name, value) => {
+        setItem: ( value) => {
           if (typeof window === 'undefined') return;
           const parsed = JSON.parse(value);
           const { branchId, tableId, sessionId, customerRef } = parsed.state ?? {};
@@ -98,7 +102,7 @@ export const useCartStore = create<CartStore>()(
             localStorage.setItem(`cart:${branchId}:${tableId}:${sessionId}:${customerRef}`, value);
           }
         },
-        removeItem: (name) => {
+        removeItem: () => {
           if (typeof window === 'undefined') return;
           const state = JSON.parse(localStorage.getItem('_cart_ctx') ?? '{}');
           const key = `cart:${state.branchId ?? ''}:${state.tableId ?? ''}:${state.sessionId ?? ''}:${state.customerRef ?? ''}`;

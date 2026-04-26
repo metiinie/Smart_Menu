@@ -5,16 +5,17 @@ import Image from 'next/image';
 import { Plus, Minus, Trash2, ChevronRight, ShoppingBag } from 'lucide-react';
 import { useCartStore } from '@/stores/cartStore';
 import { useRouter } from 'next/navigation';
-import { ordersApi } from '@/lib/api';
 import { useState, useMemo } from 'react';
-import { useLocalOrderStore } from '@/stores/localOrderStore';
 import { LocalOrder, LocalOrderStatus } from '@arifsmart/shared';
 import { syncManager } from '@/lib/syncManager';
+import { useFavoritesStore } from '@/stores/favoritesStore';
+import { getLocalized } from '@/lib/i18n';
 
 export function CartView() {
   const router = useRouter();
   const { items, updateQuantity, removeItem, clearCart, totalPrice, branchId, tableId, sessionId } =
     useCartStore();
+  const { language } = useFavoritesStore();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -123,7 +124,9 @@ export function CartView() {
                 )}
               </div>
               <div className="cart-view__item-info">
-                <h4 className="cart-view__item-name">{item.name}</h4>
+                <h4 className="cart-view__item-name">
+                  {getLocalized((item as any).nameTranslations, item.name, language)}
+                </h4>
                 {item.note && (
                   <p className="cart-view__item-note">&ldquo;{item.note}&rdquo;</p>
                 )}
@@ -134,7 +137,7 @@ export function CartView() {
               <div className="cart-view__item-actions">
                 <motion.button
                   whileTap={{ scale: 0.85 }}
-                  onClick={() => updateQuantity(item.menuItemId, item.quantity - 1, item.note)}
+                  onClick={() => updateQuantity(item.menuItemId, item.quantity - 1)}
                   className="cart-view__qty-btn cart-view__qty-btn--minus"
                 >
                   <Minus size={14} />
@@ -142,7 +145,7 @@ export function CartView() {
                 <span className="cart-view__qty">{item.quantity}</span>
                 <motion.button
                   whileTap={{ scale: 0.85 }}
-                  onClick={() => updateQuantity(item.menuItemId, item.quantity + 1, item.note)}
+                  onClick={() => updateQuantity(item.menuItemId, item.quantity + 1)}
                   className="cart-view__qty-btn cart-view__qty-btn--plus"
                 >
                   <Plus size={14} />

@@ -5,11 +5,31 @@ import Image from 'next/image';
 import { X, Plus, Minus, Trash2, ChevronRight } from 'lucide-react';
 import { useCartStore } from '@/stores/cartStore';
 import { useRouter } from 'next/navigation';
-import { ordersApi } from '@/lib/api';
-import { useState } from 'react';
-import { useLocalOrderStore } from '@/stores/localOrderStore';
+import { useState, useMemo } from 'react';
 import { LocalOrder, LocalOrderStatus } from '@arifsmart/shared';
 import { syncManager } from '@/lib/syncManager';
+import { useFavoritesStore } from '@/stores/favoritesStore';
+import { getLocalized } from '@/lib/i18n';
+
+// ── Tax rate defaults (used when branch settings are unavailable) ─────────
+const DEFAULT_SERVICE_CHARGE_RATE = 10; // percent
+const DEFAULT_VAT_RATE = 15;            // percent
+
+/** Read branch tax rates from the persisted table context */
+function getBranchTaxRates(): { serviceChargeRate: number; vatRate: number } {
+  if (typeof window === 'undefined') {
+    return { serviceChargeRate: DEFAULT_SERVICE_CHARGE_RATE, vatRate: DEFAULT_VAT_RATE };
+  }
+  try {
+    const ctx = JSON.parse(localStorage.getItem('_table_ctx') ?? '{}');
+    return {
+      serviceChargeRate: ctx.branch?.serviceChargeRate ?? DEFAULT_SERVICE_CHARGE_RATE,
+      vatRate: ctx.branch?.vatRate ?? DEFAULT_VAT_RATE,
+    };
+  } catch {
+    return { serviceChargeRate: DEFAULT_SERVICE_CHARGE_RATE, vatRate: DEFAULT_VAT_RATE };
+  }
+}
 
 interface Props {
   open: boolean;
@@ -20,8 +40,17 @@ export function CartDrawer({ open, onClose }: Props) {
   const router = useRouter();
   const { items, updateQuantity, removeItem, clearCart, totalPrice, branchId, tableId, sessionId } =
     useCartStore();
+  const { language } = useFavoritesStore();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Read tax rates from branch settings — recalculate when cart opens
+  const { serviceChargeRate, vatRate } = useMemo(() => getBranchTaxRates(), [open]);
+
+  const subTotal = totalPrice();
+  const serviceCharge = subTotal * (serviceChargeRate / 100);
+  const vat = (subTotal + serviceCharge) * (vatRate / 100);
+  const grandTotal = subTotal + serviceCharge + vat;
 
   const placeOrder = async () => {
     if (!tableId || !sessionId || !branchId) return;
@@ -42,7 +71,7 @@ export function CartDrawer({ open, onClose }: Props) {
       sessionId,
       customerRef,
       items: [...items],
-      totalPrice: totalPrice(),
+      totalPrice: grandTotal,
       status: LocalOrderStatus.PENDING,
       timestamp: Date.now(),
     };
@@ -106,54 +135,64 @@ export function CartDrawer({ open, onClose }: Props) {
               ) : (
                 items.map((item) => (
                   <motion.div
-                    key={item.menuItemId}
+                    key={item.cartItemId || item.menuItemId}
                     layout
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -20 }}
-                    className="flex items-center gap-3 bg-surface-100 rounded-2xl p-3"
+                    className="flex flex-col gap-2 bg-surface-100 rounded-2xl p-3"
                   >
-                    <div className="w-14 h-14 rounded-xl overflow-hidden bg-surface-200 flex-shrink-0">
-                      {item.imageUrl ? (
-                        <Image src={item.imageUrl} alt={item.name} width={56} height={56} className="object-cover w-full h-full" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-xl">🍽️</div>
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-white text-sm truncate">{item.name}</p>
-                      {item.note && (
-                        <p className="text-[10px] text-amber-400 font-medium italic mt-0.5 max-w-full truncate">
-                          "{item.note}"
+                    <div className="flex items-center gap-3">
+                      <div className="w-14 h-14 rounded-xl overflow-hidden bg-surface-200 flex-shrink-0">
+                        {item.imageUrl ? (
+                          <Image src={item.imageUrl} alt={item.name} width={56} height={56} className="object-cover w-full h-full" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-xl">🍽️</div>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-white text-sm truncate">
+                          {getLocalized((item as any).nameTranslations, item.name, language)}
                         </p>
-                      )}
-                      <p className="text-brand-400 text-sm font-bold mt-0.5">
-                        ETB {(item.priceAtAdd * item.quantity).toFixed(0)}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <motion.button whileTap={{ scale: 0.85 }}
-                        onClick={() => updateQuantity(item.menuItemId, item.quantity - 1, item.note)}
-                        className="w-7 h-7 rounded-lg bg-surface-200 flex items-center justify-center"
-                        id={`cart-decrease-${item.menuItemId}`}
-                      >
-                        <Minus size={12} className="text-white" />
-                      </motion.button>
-                      <span className="w-5 text-center text-sm font-bold text-white">{item.quantity}</span>
-                      <motion.button whileTap={{ scale: 0.85 }}
-                        onClick={() => updateQuantity(item.menuItemId, item.quantity + 1, item.note)}
-                        className="w-7 h-7 rounded-lg bg-brand-500 flex items-center justify-center"
-                        id={`cart-increase-${item.menuItemId}`}
-                      >
-                        <Plus size={12} className="text-white" />
-                      </motion.button>
-                      <motion.button whileTap={{ scale: 0.85 }}
-                        onClick={() => removeItem(item.menuItemId)}
-                        className="w-7 h-7 rounded-lg bg-red-500/20 flex items-center justify-center ml-1"
-                        id={`cart-remove-${item.menuItemId}`}
-                      >
-                        <Trash2 size={12} className="text-red-400" />
-                      </motion.button>
+                        {item.note && (
+                          <p className="text-[10px] text-amber-400 font-medium italic mt-0.5 max-w-full truncate">
+                            "{item.note}"
+                          </p>
+                        )}
+                        {item.options && item.options.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {item.options.map((opt, idx) => (
+                              <span key={idx} className="text-[9px] bg-surface-200 text-white/70 px-1.5 py-0.5 rounded-sm">
+                                {opt.optionName} {opt.optionPrice > 0 ? `(+${opt.optionPrice})` : ''}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        <p className="text-brand-400 text-sm font-bold mt-1">
+                          ETB {(item.priceAtAdd * item.quantity).toFixed(0)}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <motion.button whileTap={{ scale: 0.85 }}
+                          onClick={() => updateQuantity(item.cartItemId || item.menuItemId, item.quantity - 1)}
+                          className="w-7 h-7 rounded-lg bg-surface-200 flex items-center justify-center"
+                        >
+                          <Minus size={12} className="text-white" />
+                        </motion.button>
+                        <span className="w-5 text-center text-sm font-bold text-white">{item.quantity}</span>
+                        <motion.button whileTap={{ scale: 0.85 }}
+                          onClick={() => updateQuantity(item.cartItemId || item.menuItemId, item.quantity + 1)}
+                          className="w-7 h-7 rounded-lg bg-brand-500 flex items-center justify-center"
+                        >
+                          <Plus size={12} className="text-white" />
+                        </motion.button>
+                        <motion.button whileTap={{ scale: 0.85 }}
+                          onClick={() => removeItem(item.cartItemId || item.menuItemId)}
+                          className="w-7 h-7 rounded-lg bg-red-500/20 flex items-center justify-center ml-1"
+                        >
+                          <Trash2 size={12} className="text-red-400" />
+                        </motion.button>
+                      </div>
                     </div>
                   </motion.div>
                 ))
@@ -162,18 +201,33 @@ export function CartDrawer({ open, onClose }: Props) {
 
             {/* Footer */}
             {items.length > 0 && (
-              <div className="p-5 border-t border-surface-200 space-y-4 safe-bottom">
+              <div className="p-5 border-t border-surface-200 space-y-4 safe-bottom bg-surface-50">
                 {error && (
                   <p className="text-red-400 text-sm text-center">{error}</p>
                 )}
-                <div className="space-y-4">
+                
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-center justify-between text-white/60">
+                    <span>Subtotal</span>
+                    <span>ETB {subTotal.toFixed(2)}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-white/60">
+                    <span>Service Charge ({serviceChargeRate}%)</span>
+                    <span>ETB {serviceCharge.toFixed(2)}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-white/60">
+                    <span>VAT ({vatRate}%)</span>
+                    <span>ETB {vat.toFixed(2)}</span>
+                  </div>
+                  <div className="h-[1px] bg-surface-200 my-2" />
                   <div className="flex items-center justify-between">
-                    <span className="text-white/60 text-sm">Total</span>
-                    <span className="font-display font-bold text-xl text-white">
-                      ETB {totalPrice().toFixed(0)}
+                    <span className="text-white/80 font-medium">Grand Total</span>
+                    <span className="font-display font-bold text-xl text-brand-400">
+                      ETB {grandTotal.toFixed(2)}
                     </span>
                   </div>
                 </div>
+                
                 <motion.button
                   whileTap={{ scale: 0.97 }}
                   onClick={placeOrder}

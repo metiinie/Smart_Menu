@@ -18,6 +18,12 @@ export class MenuService {
             // Items implicitly belong to the branch because they belong to branch categories
           },
           orderBy: { name: 'asc' },
+          include: {
+            ingredients: true,
+            allergens: true,
+            dietaryTags: true,
+            nutritionSections: { include: { rows: true } },
+          },
         },
       },
     });

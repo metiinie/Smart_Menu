@@ -5,6 +5,8 @@ import Image from 'next/image';
 import { ArrowLeft, Plus, Minus, ShoppingCart, MessageSquare, Zap, Dumbbell, Droplets, Box, Sparkles } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 import Script from 'next/script';
+import { Tooltip } from '@/components/ui/Tooltip';
+import { getLocalized } from '@/lib/i18n';
 
 declare global {
   namespace JSX {
@@ -23,20 +25,37 @@ declare global {
   }
 }
 import type { MenuItem } from '@arifsmart/shared';
-import {
-  getIngredientInsights,
-  type IngredientInsights,
-  type NutritionRow,
-  type NutritionSection,
-} from '@/lib/menu/placeholderIngredientInsights';
+type AllergenLine = { label: string; present: boolean };
+type IngredientLine = { name: string; detail?: string };
+type NutritionRow = { nutrient: string; amount: string; dailyValue?: string; sub?: boolean; };
+type NutritionSection = { title: string; rows: NutritionRow[]; };
+
+type IngredientInsights = {
+  headline: string;
+  servingLine: string;
+  allergens: AllergenLine[];
+  ingredients: IngredientLine[];
+  dietaryTags: string[];
+  nutritionSections: NutritionSection[];
+};
+
+function buildInsights(item: any): IngredientInsights {
+  return {
+    headline: item.description || '—',
+    servingLine: 'Per serving',
+    allergens: item.allergens || [],
+    ingredients: item.ingredients || [],
+    dietaryTags: (item.dietaryTags || []).map((t: any) => t.label),
+    nutritionSections: item.nutritionSections || []
+  };
+}
 import { CurrencyPanel } from '@/components/menu/CurrencyPanel';
 import { DetailTabPanelShell } from '@/components/menu/DetailTabPanelShell';
 
 const palette = {
   patternStroke: '#E9DFD1',
 };
-
-import { Tooltip } from '@/components/ui/Tooltip';
+import { useFavoritesStore } from '@/stores/favoritesStore';
 
 function hasTextHeadline(headline: string): boolean {
   const t = headline.trim();
@@ -57,16 +76,19 @@ interface Props {
   item: MenuItem | null;
   quantity: number;
   onClose: () => void;
-  onAdd: (note?: string) => void;
+  onAdd: (note?: string, options?: any[]) => void;
   onRemove: () => void;
   onOpenCart?: () => void;
 }
 
 export function MenuItemDetailPanel({ item, quantity, onClose, onAdd, onRemove, onOpenCart }: Props) {
+  const { language } = useFavoritesStore();
   const [note, setNote] = useState('');
   const [detailTab, setDetailTab] = useState<DetailTabId>('nutrition');
   const [is3DMode, setIs3DMode] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [selectedModifiers, setSelectedModifiers] = useState<Record<string, any>>({});
+  const [showModifiers, setShowModifiers] = useState(false);
 
   useEffect(() => {
     if (item) {
@@ -74,6 +96,8 @@ export function MenuItemDetailPanel({ item, quantity, onClose, onAdd, onRemove, 
       setDetailTab('nutrition');
       setIs3DMode(false);
       setCurrentImageIndex(0);
+      setSelectedModifiers({});
+      setShowModifiers(false);
     }
   }, [item?.id]);
 
@@ -87,13 +111,67 @@ export function MenuItemDetailPanel({ item, quantity, onClose, onAdd, onRemove, 
   }, [item]);
 
   const handleAdd = () => {
-    onAdd(note);
+    // If it has modifiers and we haven't shown them yet
+    if (item?.modifierGroups && item.modifierGroups.length > 0 && !showModifiers) {
+      setShowModifiers(true);
+      return;
+    }
+
+    // Validate required modifiers
+    if (item?.modifierGroups) {
+      for (const group of item.modifierGroups) {
+        if (group.isRequired) {
+          const selectedForGroup = Object.values(selectedModifiers).filter((m: any) => m.groupId === group.id);
+          if (selectedForGroup.length < group.minSelections) {
+            alert(`Please select at least ${group.minSelections} option(s) for ${group.name}`);
+            return;
+          }
+        }
+      }
+    }
+
+    const options = Object.values(selectedModifiers).map((m: any) => ({
+      optionName: m.name,
+      optionPrice: m.price
+    }));
+
+    onAdd(note, options); // Modified to pass options
     if (quantity === 0) {
       onClose();
     }
   };
 
-  const insights = item ? getIngredientInsights(item) : null;
+  const toggleModifier = (group: any, option: any) => {
+    setSelectedModifiers((prev) => {
+      const key = `${group.id}-${option.id}`;
+      if (prev[key]) {
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      }
+
+      // Check max selections
+      const selectedForGroup = Object.values(prev).filter((m: any) => m.groupId === group.id);
+      if (group.maxSelections && selectedForGroup.length >= group.maxSelections) {
+        return prev; // Or we could replace the oldest selection
+      }
+
+      return {
+        ...prev,
+        [key]: { groupId: group.id, ...option }
+      };
+    });
+  };
+
+  const totalItemPrice = useMemo(() => {
+    let p = item?.price || 0;
+    Object.values(selectedModifiers).forEach((m: any) => {
+      p += m.price;
+    });
+    return p;
+  }, [item?.price, selectedModifiers]);
+
+  const insights = item ? buildInsights(item) : null;
 
   const mockImages = useMemo(() => {
     if (!item?.imageUrl) return [];
@@ -161,7 +239,7 @@ export function MenuItemDetailPanel({ item, quantity, onClose, onAdd, onRemove, 
                       <ArrowLeft size={22} strokeWidth={2} />
                     </button>
                   </Tooltip>
-                  <p className="text-[11px] font-serif uppercase tracking-[0.2em] text-[#1E1E1E]/45">Dish</p>
+                  <p className="text-[11px] font-serif uppercase tracking-[0.2em] text-slate-500">Dish</p>
                   <div className="flex items-center gap-2">
                     <Tooltip label={is3DMode ? "View Gallery" : "View in 3D"}>
                       <motion.button
@@ -210,8 +288,9 @@ export function MenuItemDetailPanel({ item, quantity, onClose, onAdd, onRemove, 
                       {is3DMode ? (
                         <div className="absolute inset-0 flex items-center justify-center w-full h-full rounded-full z-10 bg-[#06a06e]/20 ring-4 ring-white/20 shadow-2xl overflow-hidden backdrop-blur-sm">
                           {/* True 3D Model Viewer */}
-                          <model-viewer
-                            src="https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Avocado/glTF-Binary/Avocado.glb"
+                          {/* @ts-ignore */}
+                <model-viewer
+                            src={item.model3dUrl || "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Avocado/glTF-Binary/Avocado.glb"}
                             alt="3D representation of the dish"
                             auto-rotate
                             camera-controls
@@ -276,11 +355,11 @@ export function MenuItemDetailPanel({ item, quantity, onClose, onAdd, onRemove, 
                     id="item-detail-title"
                     className="mt-3 max-w-[20rem] text-center font-serif text-lg font-semibold leading-tight tracking-tight text-[#1E1E1E] line-clamp-2 sm:text-xl"
                   >
-                    {item.name}
+                    {getLocalized((item as any).nameTranslations, item.name, language)}
                   </h1>
                   <p className="mt-1 text-2xl font-black tabular-nums text-[#b8895c] sm:text-[1.65rem]">
-                    {Math.round(item.price)}
-                    <span className="ml-1 text-sm font-bold text-[#1E1E1E]/40">ETB</span>
+                    {Math.round(totalItemPrice)}
+                    <span className="ml-1 text-sm font-bold text-slate-500">ETB</span>
                   </p>
                 </div>
               </div>
@@ -327,7 +406,7 @@ export function MenuItemDetailPanel({ item, quantity, onClose, onAdd, onRemove, 
                       transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
                       className="space-y-4 pb-2"
                     >
-                      {detailTab === 'nutrition' && <NutritionModern insights={insights} resetKey={item.id} />}
+                      {detailTab === 'nutrition' && <NutritionModern insights={insights} resetKey={item.id} item={item} language={language} />}
                       {detailTab === 'ingredients' && <IngredientsModern insights={insights} />}
                       {detailTab === 'currency' && <CurrencyPanel priceEtb={Math.round(item.price)} />}
                     </motion.div>
@@ -337,7 +416,7 @@ export function MenuItemDetailPanel({ item, quantity, onClose, onAdd, onRemove, 
             </div>
 
             <div className="shrink-0 border-t border-white/20 bg-white/95 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 shadow-[0_-12px_40px_rgba(0,0,0,0.1)] backdrop-blur-xl sm:px-5 space-y-3">
-                <label className="flex items-center gap-2 text-slate-500 text-[10px] font-bold uppercase tracking-[0.16em]">
+                <label className="flex items-center gap-2 text-slate-600 text-[10px] font-bold uppercase tracking-[0.16em]">
                   <MessageSquare size={12} className="text-[#08AE75]" />
                   Note to kitchen
                 </label>
@@ -387,6 +466,81 @@ export function MenuItemDetailPanel({ item, quantity, onClose, onAdd, onRemove, 
                 </div>
             </div>
           </motion.div>
+
+          {/* Modifier Modal / Bottom Sheet */}
+          <AnimatePresence>
+            {showModifiers && item?.modifierGroups && (
+              <>
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  onClick={() => setShowModifiers(false)}
+                  className="fixed inset-0 bg-black/60 z-[80]"
+                />
+                <motion.div
+                  initial={{ y: '100%' }}
+                  animate={{ y: 0 }}
+                  exit={{ y: '100%' }}
+                  transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+                  className="fixed bottom-0 left-0 right-0 max-h-[85vh] bg-white rounded-t-3xl z-[90] flex flex-col shadow-2xl"
+                >
+                  <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+                    <h3 className="font-bold text-lg text-slate-900">Customize</h3>
+                    <button onClick={() => setShowModifiers(false)} className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center">
+                      <ArrowLeft size={16} className="text-slate-500" />
+                    </button>
+                  </div>
+                  <div className="flex-1 overflow-y-auto p-4 space-y-6">
+                    {item.modifierGroups.map((group: any) => (
+                      <div key={group.id} className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <h4 className="font-semibold text-slate-800">{group.name}</h4>
+                          <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">
+                            {group.isRequired ? 'Required' : 'Optional'}
+                            {group.maxSelections ? ` (Max ${group.maxSelections})` : ''}
+                          </span>
+                        </div>
+                        <div className="space-y-2">
+                          {group.options.map((opt: any) => {
+                            const isSelected = !!selectedModifiers[`${group.id}-${opt.id}`];
+                            return (
+                              <button
+                                key={opt.id}
+                                onClick={() => toggleModifier(group, opt)}
+                                className={`w-full flex items-center justify-between p-3 rounded-xl border-2 transition-colors ${
+                                  isSelected ? 'border-[#08AE75] bg-[#08AE75]/5' : 'border-slate-100 bg-white'
+                                }`}
+                              >
+                                <span className={`font-medium ${isSelected ? 'text-[#08AE75]' : 'text-slate-700'}`}>
+                                  {opt.name}
+                                </span>
+                                <span className="text-sm font-semibold text-slate-500">
+                                  {opt.price > 0 ? `+ETB ${opt.price}` : 'Free'}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="p-4 border-t border-slate-100 safe-bottom bg-slate-50">
+                    <div className="flex items-center justify-between mb-4">
+                      <span className="text-sm font-semibold text-slate-500">Total Selection</span>
+                      <span className="text-xl font-black text-slate-900">ETB {Math.round(totalItemPrice)}</span>
+                    </div>
+                    <button
+                      onClick={handleAdd}
+                      className="w-full btn-primary flex items-center justify-center gap-2 py-4"
+                    >
+                      <ShoppingCart size={18} /> Add to Cart
+                    </button>
+                  </div>
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>
         </>
       )}
     </AnimatePresence>
@@ -489,7 +643,7 @@ function NutritionSectionTable({
   );
 }
 
-function NutritionModern({ insights, resetKey }: { insights: IngredientInsights; resetKey: string }) {
+function NutritionModern({ insights, resetKey, item, language }: { insights: IngredientInsights; resetKey: string; item: any; language: string; }) {
   const [nutritionFilter, setNutritionFilter] = useState<NutritionFilterId>('all');
   const { tabs, macroSec, vitSec, minSec, fatRows } = useNutritionFilterTabs(insights);
 
@@ -602,9 +756,9 @@ function NutritionModern({ insights, resetKey }: { insights: IngredientInsights;
         className="relative mt-5 overflow-hidden rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4 sm:p-5"
       >
         <p className="relative font-mono text-[11px] leading-relaxed text-slate-500">{insights.servingLine}</p>
-        {hasTextHeadline(insights.headline) ? (
+        {hasTextHeadline(getLocalized((item as any)?.descriptionTranslations, item?.description || '', language as any)) ? (
           <p className="relative mt-3 text-base font-semibold leading-snug text-slate-800 sm:text-lg">
-            {insights.headline}
+            {getLocalized((item as any)?.descriptionTranslations, item?.description || '', language as any)}
           </p>
         ) : null}
       </motion.div>

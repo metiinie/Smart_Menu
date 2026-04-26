@@ -3,10 +3,11 @@
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
-import { Search, Heart, X, Plus, Sparkles, TrendingUp } from 'lucide-react';
+import { Search, Heart, X, Plus,  TrendingUp } from 'lucide-react';
 import { useFavoritesStore } from '@/stores/favoritesStore';
 import { useCartStore } from '@/stores/cartStore';
 import type { MenuItem, MenuCategoryDto } from '@arifsmart/shared';
+import { getLocalized, UI_STRINGS } from '@/lib/i18n';
 
 interface Props {
   groupedMenu: MenuCategoryDto[];
@@ -15,7 +16,8 @@ interface Props {
 
 export function FavoritesView({ groupedMenu, onSelectItem }: Props) {
   const [searchQuery, setSearchQuery] = useState('');
-  const { favorites, removeFavorite } = useFavoritesStore();
+  const { favorites, removeFavorite, language } = useFavoritesStore();
+  const t = UI_STRINGS[language];
   const addItem = useCartStore((s) => s.addItem);
 
   // Flatten all items for search
@@ -28,11 +30,15 @@ export function FavoritesView({ groupedMenu, onSelectItem }: Props) {
   const searchResults = useMemo(() => {
     if (!searchQuery.trim()) return [];
     const q = searchQuery.toLowerCase();
-    return allItems.filter(
-      (item) =>
-        item.name.toLowerCase().includes(q) ||
-        item.description?.toLowerCase().includes(q)
-    );
+    return allItems.filter((item) => {
+      const nameMatch = item.name.toLowerCase().includes(q) ||
+        Object.values((item as any).nameTranslations || {}).some((v: any) => v.toLowerCase().includes(q));
+      
+      const descMatch = item.description?.toLowerCase().includes(q) ||
+        Object.values((item as any).descriptionTranslations || {}).some((v: any) => v.toLowerCase().includes(q));
+      
+      return nameMatch || descMatch;
+    });
   }, [searchQuery, allItems]);
 
   // Popular items (top 6 by price, simulating popularity)
@@ -52,7 +58,7 @@ export function FavoritesView({ groupedMenu, onSelectItem }: Props) {
           <Search size={18} className="fav-view__search-icon" />
           <input
             type="text"
-            placeholder="Search dishes, ingredients..."
+            placeholder={t.search}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="fav-view__search-input"
@@ -121,13 +127,14 @@ export function FavoritesView({ groupedMenu, onSelectItem }: Props) {
               <div className="fav-view__section">
                 <h3 className="fav-view__section-title">
                   <Heart size={16} className="text-red-400" />
-                  Your Favorites
+                  {t.favorites}
                 </h3>
                 <div className="fav-view__grid">
                   {favorites.map((fav) => (
                     <FavSavedCard
                       key={fav.menuItemId}
                       fav={fav}
+                      allItems={allItems}
                       onRemove={() => removeFavorite(fav.menuItemId)}
                       onTap={() => {
                         const real = allItems.find((i) => i.id === fav.menuItemId);
@@ -179,7 +186,7 @@ export function FavoritesView({ groupedMenu, onSelectItem }: Props) {
 
 /* ─── Sub-components ─── */
 
-function FavItemCard({
+export function FavItemCard({
   item,
   onTap,
   onAddToCart,
@@ -188,8 +195,8 @@ function FavItemCard({
   onTap: () => void;
   onAddToCart: () => void;
 }) {
-  const isFav = useFavoritesStore((s) => s.isFavorite(item.id));
-  const toggleFav = useFavoritesStore((s) => s.toggleFavorite);
+  const { isFavorite, toggleFavorite, language } = useFavoritesStore();
+  const isFav = isFavorite(item.id);
 
   return (
     <motion.div
@@ -213,12 +220,12 @@ function FavItemCard({
           className={`fav-card__heart ${isFav ? 'fav-card__heart--active' : ''}`}
           onClick={(e) => {
             e.stopPropagation();
-            toggleFav({
+            toggleFavorite({
               menuItemId: item.id,
               name: item.name,
               price: item.price,
-              imageUrl: item.imageUrl,
-              description: item.description,
+              imageUrl: item.imageUrl ?? undefined,
+              description: item.description ?? undefined,
             });
           }}
         >
@@ -226,7 +233,7 @@ function FavItemCard({
         </button>
       </div>
       <div className="fav-card__info" onClick={onTap}>
-        <h4 className="fav-card__name">{item.name}</h4>
+        <h4 className="fav-card__name">{getLocalized((item as any).nameTranslations, item.name, language)}</h4>
         <p className="fav-card__price">ETB {Math.round(item.price)}</p>
       </div>
       <button className="fav-card__add" onClick={onAddToCart}>
@@ -238,15 +245,23 @@ function FavItemCard({
 
 function FavSavedCard({
   fav,
+  allItems,
   onRemove,
   onTap,
   onAddToCart,
 }: {
   fav: { menuItemId: string; name: string; price: number; imageUrl?: string };
+  allItems: MenuItem[];
   onRemove: () => void;
   onTap: () => void;
   onAddToCart: () => void;
 }) {
+  const { language } = useFavoritesStore();
+  const realItem = allItems.find((i) => i.id === fav.menuItemId);
+  const displayName = realItem 
+    ? getLocalized((realItem as any).nameTranslations, realItem.name, language)
+    : fav.name;
+
   return (
     <motion.div
       layout
@@ -258,7 +273,7 @@ function FavSavedCard({
         {fav.imageUrl ? (
           <Image
             src={fav.imageUrl}
-            alt={fav.name}
+            alt={displayName}
             fill
             sizes="140px"
             className="object-cover"
@@ -277,7 +292,7 @@ function FavSavedCard({
         </button>
       </div>
       <div className="fav-card__info" onClick={onTap}>
-        <h4 className="fav-card__name">{fav.name}</h4>
+        <h4 className="fav-card__name">{displayName}</h4>
         <p className="fav-card__price">ETB {Math.round(fav.price)}</p>
       </div>
       <button className="fav-card__add" onClick={onAddToCart}>

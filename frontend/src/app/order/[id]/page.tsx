@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useState, use } from 'react';
-import { motion } from 'framer-motion';
+import { motion} from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
-import { CheckCircle, Clock, Utensils, ArrowLeft } from 'lucide-react';
+import { CheckCircle, Clock, Utensils, ArrowLeft, Star } from 'lucide-react';
 import { ordersApi } from '@/lib/api';
 import { getSocket, joinRoom, leaveRoom } from '@/lib/socket';
 import { OrderTimeline } from '@/components/order/OrderTimeline';
@@ -12,6 +12,7 @@ import { SkeletonCard } from '@/components/ui/SkeletonCard';
 import { PageTransition } from '@/components/ui/PageTransition';
 import Link from 'next/link';
 import type { Order } from '@arifsmart/shared';
+import { RatingModal } from '@/components/feedback/RatingModal';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -28,6 +29,7 @@ const STATUS_MESSAGES: Record<string, { title: string; subtitle: string; emoji: 
 export default function OrderStatusPage({ params }: PageProps) {
   const resolvedParams = use(params);
   const [orderId, setOrderId] = useState('');
+  const [showRating, setShowRating] = useState(false);
 
   useEffect(() => {
     setOrderId(resolvedParams.id);
@@ -60,6 +62,7 @@ export default function OrderStatusPage({ params }: PageProps) {
 
   const msg = order ? STATUS_MESSAGES[order.status] ?? STATUS_MESSAGES.CREATED : null;
   const isDelivered = order?.status === 'DELIVERED';
+  const hasRated = (order as any)?.ratings?.some((r: any) => !r.menuItemId);
 
   if (isError) {
     return (
@@ -176,14 +179,41 @@ export default function OrderStatusPage({ params }: PageProps) {
         </div>
 
         {isDelivered && (
-          <div
-            className="mt-6 text-center"
-          >
-            <CheckCircle size={32} className="text-emerald-400 mx-auto mb-2" />
-            <p className="text-emerald-400 font-semibold">Order complete! Enjoy your meal 🎊</p>
+          <div className="mt-6 text-center animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <CheckCircle size={40} className="text-emerald-400 mx-auto mb-3" />
+            <p className="text-emerald-600 font-bold text-lg mb-1">Delivered! Enjoy your meal 🎊</p>
+            <p className="text-slate-400 text-xs mb-6 px-10">We hope you liked everything. Your feedback means the world to us!</p>
+            
+            {!hasRated && !showRating && (
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setShowRating(true)}
+                className="inline-flex items-center gap-2 bg-brand-500 text-white px-8 py-4 rounded-2xl font-bold shadow-xl shadow-brand-500/20"
+              >
+                <Star size={18} className="fill-white" />
+                Rate Experience
+              </motion.button>
+            )}
+
+            {hasRated && (
+              <div className="bg-emerald-50 text-emerald-700 p-4 rounded-2xl border border-emerald-100 flex items-center justify-center gap-2">
+                <CheckCircle size={16} />
+                <span className="text-sm font-bold">Thank you for your rating!</span>
+              </div>
+            )}
           </div>
         )}
       </main>
+
+      {order && (
+        <RatingModal 
+          isOpen={showRating}
+          onClose={() => setShowRating(false)}
+          orderId={order.id}
+          customerRef={(order as any).customerRef}
+          onSuccess={() => refetch()}
+        />
+      )}
       </div>
     </PageTransition>
   );

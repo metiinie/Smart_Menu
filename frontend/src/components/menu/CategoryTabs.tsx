@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Coffee, Utensils, Cake, Flame, Grid } from 'lucide-react';
 import type { Category } from '@arifsmart/shared';
+import { getLocalized } from '@/lib/i18n';
+import { useFavoritesStore } from '@/stores/favoritesStore';
 
 interface Props {
   categories: Category[];
@@ -11,6 +13,7 @@ interface Props {
 }
 
 export function CategoryTabs({ categories, activeId, onChange }: Props) {
+  const { language } = useFavoritesStore();
   const scrollRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const [curveMap, setCurveMap] = useState<Record<string, number>>({});
@@ -74,7 +77,7 @@ export function CategoryTabs({ categories, activeId, onChange }: Props) {
     <div className="relative overflow-visible">
       <div ref={scrollRef} className="overflow-x-auto no-scrollbar snap-x px-4 pb-2">
         <div className="inline-flex min-w-max items-start gap-3 pt-1">
-      {categories.map((cat, index) => {
+      {categories.map((cat, ) => {
         const isActive = activeId === cat.id;
         const meta = getIcon(cat.name);
         const curveY = curveMap[cat.id] ?? 0;
@@ -108,7 +111,7 @@ export function CategoryTabs({ categories, activeId, onChange }: Props) {
               className={`text-[11px] sm:text-[14px] leading-none transition-colors duration-300 font-medium font-serif text-center
                 ${isActive ? 'text-white' : 'text-white/95'}`}
             >
-              {cat.name}
+              {getLocalized((cat as any).nameTranslations, cat.name, language)}
             </span>
           </button>
         );

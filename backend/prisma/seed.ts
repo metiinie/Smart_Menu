@@ -6,6 +6,21 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('🌱 Starting seed...');
 
+  // ─── Connection Retry Logic ──────────────────────────────────────
+  let retries = 10;
+  while (retries > 0) {
+    try {
+      await prisma.$connect();
+      console.log('📡 Database connection established.');
+      break;
+    } catch (err) {
+      retries--;
+      console.warn(`⏳ Database not reachable, retrying... (${retries} attempts left)`);
+      if (retries === 0) throw err;
+      await new Promise((res) => setTimeout(res, 3000));
+    }
+  }
+
   // Clean existing data
   await prisma.orderItem.deleteMany();
   await prisma.order.deleteMany();

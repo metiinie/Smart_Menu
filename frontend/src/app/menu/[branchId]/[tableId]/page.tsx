@@ -23,6 +23,8 @@ import { WebSidebarDrawer } from '@/components/navigation/WebSidebarDrawer';
 import { FavoritesView } from '@/components/navigation/FavoritesView';
 import { CartView } from '@/components/navigation/CartView';
 import { ProfileView } from '@/components/navigation/ProfileView';
+import { useFavoritesStore } from '@/stores/favoritesStore';
+import { getLocalized, UI_STRINGS } from '@/lib/i18n';
 import type { MenuItem, Category, MenuCategoryDto, Order } from '@arifsmart/shared';
 
 interface PageProps {
@@ -37,13 +39,14 @@ export default function MenuPage({ params }: PageProps) {
     darkButton: '#2A5D55',
   };
   const resolvedParams = use(params);
+  const { language } = useFavoritesStore();
   const [branchId, setBranchId] = useState('');
   const [tableId, setTableId] = useState('');
-  const [fastingOnly, setFastingOnly] = useState(false);
+  const [fastingOnly, ] = useState(false);
   const [activeCategory, setActiveCategory] = useState('');
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
   const [cartOpen, setCartOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, ] = useState('');
   const [currentIndex, setCurrentIndex] = useState(0);
   const [introReady, setIntroReady] = useState(false);
   const carouselRef = useRef<HTMLDivElement>(null);
@@ -53,12 +56,13 @@ export default function MenuPage({ params }: PageProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Welcome splash - only show once per session
-  const [showSplash, setShowSplash] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return !sessionStorage.getItem('arifsmart_splash_shown');
+  const [showSplash, setShowSplash] = useState(true);
+
+  useEffect(() => {
+    if (sessionStorage.getItem('arifsmart_splash_shown')) {
+      setShowSplash(false);
     }
-    return true;
-  });
+  }, []);
 
   const handleSplashComplete = () => {
     setShowSplash(false);
@@ -89,6 +93,25 @@ export default function MenuPage({ params }: PageProps) {
     queryFn: () => contextApi.getTableContext(branchId, tableId),
     enabled: !!branchId && !!tableId,
   });
+
+  useEffect(() => {
+    if (contextData) {
+      localStorage.setItem('_table_ctx', JSON.stringify(contextData));
+      
+      let customerRef = localStorage.getItem('arifsmart_customerRef');
+      if (!customerRef) {
+        customerRef = crypto.randomUUID();
+        localStorage.setItem('arifsmart_customerRef', customerRef);
+      }
+
+      setContext(
+        contextData.branch.id,
+        contextData.table.id,
+        contextData.activeSession.id,
+        customerRef
+      );
+    }
+  }, [contextData, setContext]);
 
   const { data: menuData, isLoading, isError } = useQuery({
     queryKey: ['menu', branchId, fastingOnly],
@@ -191,7 +214,6 @@ export default function MenuPage({ params }: PageProps) {
     );
   });
 
-  const activeCategoryName = categories.find(c => c.id === activeCategory)?.name || 'FOOD';
   
   // Keep current index valid whenever result set changes.
   useEffect(() => {
@@ -431,7 +453,7 @@ export default function MenuPage({ params }: PageProps) {
                   transition={{ delay: 0.32, duration: 0.4 }}
                 >
                   <h3 className="text-white text-[13px] sm:text-[14px] leading-[1.25] font-medium font-serif px-6 sm:px-8 line-clamp-2">
-                    {currentItem.name}
+                    {getLocalized((currentItem as any).nameTranslations, currentItem.name, language)}
                   </h3>
                   <p className="text-black text-[29px] sm:text-[33px] leading-none font-black mt-1.5 sm:mt-2">
                     {Math.round(currentItem.price)}
@@ -472,7 +494,13 @@ export default function MenuPage({ params }: PageProps) {
                     whileTap={{ scale: 0.94 }}
                     onClick={() => {
                       const item = filteredItems[currentIndex];
-                      if (item) addItem({ menuItemId: item.id, name: item.name, priceAtAdd: item.price, imageUrl: item.imageUrl });
+                      if (item) addItem({ 
+                        menuItemId: item.id, 
+                        name: item.name, 
+                        nameTranslations: (item as any).nameTranslations,
+                        priceAtAdd: item.price, 
+                        imageUrl: item.imageUrl 
+                      } as any);
                     }}
                     className="w-full text-white font-black text-[18px] sm:text-[22px] tracking-[0.26em] sm:tracking-[0.4em] uppercase py-4 sm:py-6 rounded-[2.1rem] sm:rounded-[2.5rem] shadow-2xl border border-white/5 transition-all"
                     style={{ backgroundColor: palette.darkButton }}
@@ -515,15 +543,25 @@ export default function MenuPage({ params }: PageProps) {
           quantity={selectedItem ? getQuantity(selectedItem.id) : 0}
           onClose={() => setSelectedItem(null)}
           onOpenCart={() => { setCartOpen(true); }}
-          onAdd={(note?: string) => {
+          onAdd={(note?: string, options?: any[]) => {
             if (!selectedItem) return;
-            addItem({ menuItemId: selectedItem.id, name: selectedItem.name, priceAtAdd: selectedItem.price, imageUrl: selectedItem.imageUrl, note });
+            const optionsTotal = options ? options.reduce((sum, opt) => sum + opt.optionPrice, 0) : 0;
+            addItem({ 
+              menuItemId: selectedItem.id, 
+              name: selectedItem.name, 
+              nameTranslations: (selectedItem as any).nameTranslations,
+              priceAtAdd: selectedItem.price + optionsTotal, 
+              imageUrl: selectedItem.imageUrl, 
+              note, 
+              options 
+            } as any);
           }}
           onRemove={() => {
             if (!selectedItem) return;
             updateQuantity(selectedItem.id, getQuantity(selectedItem.id) - 1);
           }}
         />
+        <PendingOrders branchId={branchId} tableId={tableId} />
         <ActiveOrderBar orders={activeOrders} />
 
         {/* ── NAVIGATION COMPONENTS ── */}
@@ -540,6 +578,8 @@ export default function MenuPage({ params }: PageProps) {
 }
 
 function ActiveOrderBar({ orders }: { orders: Order[] }) {
+  const { language } = useFavoritesStore();
+  const t = UI_STRINGS[language];
   const activeOnes = orders.filter(o => o.status !== 'DELIVERED');
   if (activeOnes.length === 0) return null;
 
@@ -566,10 +606,10 @@ function ActiveOrderBar({ orders }: { orders: Order[] }) {
               <Clock size={18} className="animate-pulse" />
             </div>
             <div>
-              <h4 className="text-slate-800 text-xs font-bold uppercase tracking-wider mb-0.5">Order in Progress</h4>
+              <h4 className="text-slate-800 text-xs font-bold uppercase tracking-wider mb-0.5">{t.orderStatus}</h4>
               <p className="text-slate-500 text-[11px] flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-brand-400 animate-ping" />
-                Status: {latest.status} · Order #{latest.displayNumber}
+                {t.orderStatus}: {(t as any)[latest.status.toLowerCase()] || latest.status} · Order #{latest.displayNumber}
               </p>
             </div>
           </div>

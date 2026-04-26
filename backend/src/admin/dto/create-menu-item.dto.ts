@@ -16,8 +16,16 @@ export class CreateMenuItemDto {
 
   @ApiProperty({ required: false })
   @IsOptional()
+  nameTranslations?: any;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
   @IsString()
   description?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  descriptionTranslations?: any;
 
   @ApiProperty()
   @IsNumber()
@@ -43,6 +51,23 @@ export class CreateMenuItemDto {
   @IsString()
   @IsNotEmpty()
   categoryId!: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  model3dUrl?: string;
+
+  @IsOptional()
+  ingredients?: any[];
+
+  @IsOptional()
+  allergens?: any[];
+
+  @IsOptional()
+  dietaryTags?: any[];
+
+  @IsOptional()
+  nutritionSections?: any[];
 }
 
 export class ToggleAvailabilityDto {

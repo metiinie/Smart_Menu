@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useState, use } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Clock, Utensils, ArrowLeft, WifiOff, AlertCircle, RefreshCw, CheckCircle2 } from 'lucide-react';
+import { motion} from 'framer-motion';
+import {  Utensils, ArrowLeft, WifiOff, AlertCircle, RefreshCw, CheckCircle2 } from 'lucide-react';
 import { useLocalOrderStore } from '@/stores/localOrderStore';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -85,13 +85,17 @@ export default function LocalOrderPage({ params }: PageProps) {
           </div>
 
           <h2 className="font-display font-bold text-2xl text-white">
-            {isFailed ? 'Sync Failed' : isSyncing ? 'Syncing Order...' : 'Order Saved Locally'}
+            {isFailed ? 'Sync Failed' : isSyncing ? 'Syncing Order...' : 'Order Queued'}
           </h2>
-          <p className="text-white/50 text-sm mt-1 max-w-[240px] mx-auto">
-            {isFailed
-              ? (order.error || 'Server rejected the order. Please try again or ask staff.')
-              : 'Your order is safe and will be sent to the kitchen as soon as you are back online.'}
-          </p>
+          <div className="mt-3 mb-1">
+            <p className={`text-sm max-w-[260px] mx-auto font-bold px-3 py-2 rounded-xl border ${
+              isFailed ? 'text-red-300 bg-red-500/10 border-red-500/20' : 'text-amber-300 bg-amber-500/10 border-amber-500/20'
+            }`}>
+              {isFailed
+                ? (order.error || 'Server rejected the order. Please try again or ask staff.')
+                : 'Connection Issue: Your order is queued. Please DO NOT close your browser until connection is restored.'}
+            </p>
+          </div>
 
           <div className="flex items-center justify-center gap-4 mt-6 pt-6 border-t border-surface-200">
             <div className="text-center">
@@ -126,12 +130,14 @@ export default function LocalOrderPage({ params }: PageProps) {
         )}
 
         {/* Navigation Button */}
-        <Link
-          href={`/menu/${order.branchId}/${order.tableId}`}
-          className="w-full bg-surface-100 text-white/80 font-semibold py-4 rounded-2xl mb-6 flex items-center justify-center gap-2 border border-surface-200"
-        >
-          <Utensils size={18} /> Continue Browsing Menu
-        </Link>
+        {isFailed && (
+          <Link
+            href={`/menu/${order.branchId}/${order.tableId}`}
+            className="w-full bg-surface-100 text-white/80 font-semibold py-4 rounded-2xl mb-6 flex items-center justify-center gap-2 border border-surface-200"
+          >
+            <Utensils size={18} /> Continue Browsing Menu
+          </Link>
+        )}
 
         {/* Items List */}
         <div className="card p-4">
