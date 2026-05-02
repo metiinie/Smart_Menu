@@ -27,7 +27,7 @@ async function main() {
   await prisma.tableSession.deleteMany();
   await prisma.menuItem.deleteMany();
   await prisma.category.deleteMany();
-  await prisma.staffUser.deleteMany();
+  await prisma.user.deleteMany();
   await prisma.diningTable.deleteMany();
   await prisma.branch.deleteMany();
 
@@ -118,9 +118,9 @@ async function main() {
   const adminPin = await bcrypt.hash('1234', 12);
   const kitchenPin = await bcrypt.hash('5678', 12);
 
-  await prisma.staffUser.createMany({
+  await prisma.user.createMany({
     data: [
-      { name: 'Arif Manager', role: Role.ADMIN, pinHash: adminPin, branchId: branch.id },
+      { name: 'Arif Manager', role: Role.RESTAURANT_ADMIN, pinHash: adminPin, branchId: branch.id },
       { name: 'Kitchen Staff', role: Role.KITCHEN, pinHash: kitchenPin, branchId: branch.id },
     ],
   });

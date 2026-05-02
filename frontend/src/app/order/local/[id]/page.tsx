@@ -6,7 +6,7 @@ import {  Utensils, ArrowLeft, WifiOff, AlertCircle, RefreshCw, CheckCircle2 } f
 import { useLocalOrderStore } from '@/stores/localOrderStore';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { LocalOrderStatus } from '@arifsmart/shared';
+import { LocalOrderStatus } from '@/shared/types';
 import { syncManager } from '@/lib/syncManager';
 
 interface PageProps {
@@ -38,12 +38,27 @@ export default function LocalOrderPage({ params }: PageProps) {
     }
   }, [order?.status, order?.serverOrderId, router]);
 
+  useEffect(() => {
+    if (!order) return;
+    if (![LocalOrderStatus.PENDING, LocalOrderStatus.SYNCING].includes(order.status)) return;
+
+    syncManager.startSync();
+    const handleOnline = () => syncManager.startSync();
+    const interval = window.setInterval(() => syncManager.startSync(), 5000);
+    window.addEventListener('online', handleOnline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.clearInterval(interval);
+    };
+  }, [order]);
+
   if (!order) {
     return (
       <div className="min-h-dvh flex flex-col items-center justify-center bg-surface p-6 text-center">
         <AlertCircle size={48} className="text-red-400 mb-4" />
         <h1 className="text-white font-bold text-xl mb-2">Order Not Found</h1>
-        <p className="text-white/50 text-sm mb-6">We couldn't find the details for this local order.</p>
+        <p className="text-white/50 text-sm mb-6">We couldn&apos;t find the details for this local order.</p>
         <Link href="/" className="btn-primary px-8">Back to Menu</Link>
       </div>
     );

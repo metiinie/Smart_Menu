@@ -11,7 +11,7 @@ import { ErrorState, NotFoundState } from '@/components/ui/StatusStates';
 import { SkeletonCard } from '@/components/ui/SkeletonCard';
 import { PageTransition } from '@/components/ui/PageTransition';
 import Link from 'next/link';
-import type { Order } from '@arifsmart/shared';
+import type { Order } from '@/shared/types';
 import { RatingModal } from '@/components/feedback/RatingModal';
 
 interface PageProps {

@@ -1,11 +1,16 @@
 const { PrismaClient } = require('@prisma/client');
 
 async function test() {
+  const url = process.env.DATABASE_URL;
+  if (!url) {
+    throw new Error('DATABASE_URL is required');
+  }
+
   const prisma = new PrismaClient({
     datasources: {
       db: {
-        url: "postgresql://neondb_owner:npg_0yVGPe7MxtYs@ep-small-grass-ana26xxn.c-6.us-east-1.aws.neon.tech/neondb?sslmode=require&connect_timeout=30"
-      }
+        url,
+      },
     },
     log: ['query', 'info', 'warn', 'error'],
   });

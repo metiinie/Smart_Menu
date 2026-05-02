@@ -21,11 +21,10 @@ const nextConfig = {
     ],
     formats: ['image/avif', 'image/webp'],
   },
-  outputFileTracingRoot: path.join(__dirname, "../../"),
+  outputFileTracingRoot: __dirname,
   experimental: {
     optimizePackageImports: ['lucide-react', 'framer-motion'],
   },
-  transpilePackages: ["@arifsmart/shared"],
 };
 
 export default withPWA(nextConfig);

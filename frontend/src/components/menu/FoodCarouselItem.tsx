@@ -2,7 +2,7 @@
 import Image from 'next/image';
 import { Heart } from 'lucide-react';
 import { useState } from 'react';
-import type { MenuItem } from '@arifsmart/shared';
+import type { MenuItem } from '@/shared/types';
 
 interface Props {
   item: MenuItem;

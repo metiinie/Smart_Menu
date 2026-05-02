@@ -11,6 +11,8 @@ import {
   RefreshCw,
   CalendarDays,
   Zap,
+  Bug,
+  Star
 } from 'lucide-react';
 import { adminApi } from '@/lib/api';
 import { AdminHeader } from '@/components/admin/AdminHeader';
@@ -30,13 +32,35 @@ export default function AdminDashboardPage() {
     enabled: !!user && !!branchId,
     refetchInterval: 30_000,
   });
+  const { data: orderAudit = [] } = useQuery({
+    queryKey: ['admin-order-audit', branchId],
+    queryFn: () => adminApi.getOrderAudit(branchId, 12),
+    enabled: !!user && !!branchId,
+    refetchInterval: 10_000,
+  });
 
   const fmt = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(1)}k` : n.toFixed(0));
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
+  // Calculate average rating
+  const avgRating = analytics?.recentRatings?.length
+    ? analytics.recentRatings.reduce((sum: number, r: any) => sum + r.rating, 0) / analytics.recentRatings.length
+    : 0;
+
   return (
     <>
-      <AdminHeader title="Dashboard" onLogout={logout}>
+      <AdminHeader 
+        title="Dashboard" 
+        onLogout={logout}
+        titleBadge={
+          avgRating > 0 ? (
+            <div className="flex items-center gap-1 bg-amber-500/10 text-amber-500 px-2 py-0.5 rounded-full text-xs font-bold border border-amber-500/20">
+              <Star size={12} className="fill-amber-500" />
+              {avgRating.toFixed(1)} Avg
+            </div>
+          ) : undefined
+        }
+      >
         <motion.button
           whileTap={{ scale: 0.9 }}
           onClick={() => refetch()}
@@ -202,6 +226,101 @@ export default function AdminDashboardPage() {
                 </div>
               </motion.div>
             )}
+
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.34 }}
+              className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100"
+            >
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-8 h-8 rounded-lg bg-rose-500/10 flex items-center justify-center">
+                  <Bug size={16} className="text-rose-500" />
+                </div>
+                <h3 className="font-bold text-slate-800 text-sm">Recent Order Audit</h3>
+              </div>
+              {orderAudit.length === 0 ? (
+                <p className="text-xs text-slate-400">No recent order audit events.</p>
+              ) : (
+                <div className="space-y-2.5">
+                  {orderAudit.map((entry: any) => (
+                    <div key={entry.id} className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
+                      <div className="flex items-center justify-between gap-3">
+                        <span className={`text-[10px] font-black uppercase tracking-wider ${auditColor(entry.status)}`}>
+                          {entry.status}
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-mono">
+                          {new Date(entry.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-700 mt-1">
+                        {entry.displayNumber ? `Order #${entry.displayNumber}` : 'Order attempt'}
+                        {entry.reason ? ` · ${entry.reason}` : ''}
+                      </p>
+                      <p className="text-[10px] text-slate-400 mt-1 font-mono">
+                        table:{entry.tableId?.slice?.(-6) ?? '-'} session:{entry.sessionId?.slice?.(-6) ?? '-'} customer:{entry.customerRef?.slice?.(0, 6) ?? '-'}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </motion.div>
+
+            {/* ── Recent Ratings ────────────────────────────────────── */}
+            {analytics.recentRatings?.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.38 }}
+                className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 md:col-span-2"
+              >
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                    <Star size={16} className="text-amber-500 fill-amber-500" />
+                  </div>
+                  <h3 className="font-bold text-slate-800 text-sm">Recent Reviews</h3>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {analytics.recentRatings.map((rating: any, i: number) => (
+                    <div key={rating.id} className="bg-slate-50 rounded-xl p-4 border border-slate-100 flex flex-col gap-2">
+                      <div className="flex justify-between items-start">
+                        <div className="flex gap-0.5">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <Star
+                              key={star}
+                              size={12}
+                              className={star <= rating.rating ? "text-amber-400 fill-amber-400" : "text-slate-200"}
+                            />
+                          ))}
+                        </div>
+                        <span className="text-[10px] text-slate-400 font-medium">
+                          {new Date(rating.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                      
+                      {rating.comment ? (
+                        <p className="text-xs text-slate-700 italic">&quot;{rating.comment}&quot;</p>
+                      ) : (
+                        <p className="text-xs text-slate-400 italic">No comment provided.</p>
+                      )}
+                      
+                      <div className="mt-auto pt-2 border-t border-slate-200/50 flex items-center justify-between text-[10px] text-slate-500">
+                        {rating.menuItem ? (
+                          <span className="font-semibold text-slate-700">{rating.menuItem.name}</span>
+                        ) : (
+                          <span>Overall Experience</span>
+                        )}
+                        {rating.order && (
+                          <span className="font-mono bg-white px-1.5 py-0.5 rounded border border-slate-200">
+                            Order #{rating.order.displayNumber}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+            )}
           </>
         )}
       </main>
@@ -228,6 +347,22 @@ function rankBadgeColor(index: number): string {
     case 1:  return 'bg-slate-300 text-white';
     case 2:  return 'bg-amber-700 text-white';
     default: return 'bg-slate-100 text-slate-500';
+  }
+}
+
+function auditColor(status: string): string {
+  switch (status) {
+    case 'CREATED':
+    case 'STATUS_UPDATED':
+      return 'text-emerald-600';
+    case 'ATTEMPT':
+      return 'text-blue-600';
+    case 'SESSION_EXPIRED':
+    case 'ITEM_UNAVAILABLE':
+    case 'REJECTED':
+      return 'text-rose-600';
+    default:
+      return 'text-slate-500';
   }
 }
 

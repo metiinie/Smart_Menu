@@ -9,13 +9,11 @@ import { adminApi } from '@/lib/api';
 import { MenuItemForm } from '@/components/admin/MenuItemForm';
 import { AdminHeader } from '@/components/admin/AdminHeader';
 import { useAuthStore, selectBranchId } from '@/stores/authStore';
-import type { MenuItem,  Category } from '@arifsmart/shared';
-
-const BRANCH_ID = process.env.NEXT_PUBLIC_BRANCH_ID ?? '';
+import type { MenuItem,  Category } from '@/shared/types';
 
 export default function AdminMenuPage() {
   const { user, logout } = useAuthStore();
-  const branchId = selectBranchId(user) ?? BRANCH_ID;
+  const branchId = selectBranchId(user);
   const [formOpen, setFormOpen] = useState(false);
   const [editItem, setEditItem] = useState<MenuItem | null>(null);
   const qc = useQueryClient();

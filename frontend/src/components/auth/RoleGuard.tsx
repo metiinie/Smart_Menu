@@ -3,7 +3,7 @@
 import { useAuthStore } from '@/stores/authStore';
 import { useRouter, usePathname } from 'next/navigation';
 import { ReactNode, useEffect } from 'react';
-import { Role } from '@arifsmart/shared';
+import { Role } from '@/shared/types';
 
 interface Props {
   children: ReactNode;

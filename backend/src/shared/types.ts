@@ -12,8 +12,11 @@ export enum OrderStatus {
 }
 
 export enum Role {
-  ADMIN = 'ADMIN',
+  SUPER_ADMIN = 'SUPER_ADMIN',
+  RESTAURANT_ADMIN = 'RESTAURANT_ADMIN',
+  MANAGER = 'MANAGER',
   KITCHEN = 'KITCHEN',
+  STAFF = 'STAFF',
 }
 
 export enum LocalOrderStatus {
@@ -158,6 +161,7 @@ export type AuthResponseDto = z.infer<typeof AuthResponseSchema>;
 // -----------------------------------------------------------------------------
 export interface Branch {
   id: string;
+  restaurantId?: string;
   name: string;
   address: string;
   createdAt: Date;
@@ -165,6 +169,7 @@ export interface Branch {
 
 export interface DiningTable {
   id: string;
+  restaurantId?: string;
   branchId: string;
   tableNumber: number;
   qrCode: string;
@@ -183,6 +188,7 @@ export type MenuItem = z.infer<typeof MenuItemSchema>;
 
 export interface Order {
   id: string;
+  restaurantId?: string;
   tableId: string;
   sessionId: string;
   status: OrderStatus | string;
@@ -191,7 +197,7 @@ export interface Order {
   createdAt: string | Date | any;
   updatedAt: string | Date | any;
   items?: OrderItemDetail[];
-  table?: { tableNumber: number };
+  table?: { tableNumber: number; branchId: string; restaurantId?: string };
 }
 
 export interface OrderItem {
@@ -209,6 +215,7 @@ export interface OrderItemDetail extends OrderItem {
 
 export interface StaffUser {
   id: string;
+  restaurantId?: string;
   name: string;
   role: Role;
   branchId: string;
@@ -228,6 +235,7 @@ export interface CartItem {
 
 export interface LocalOrder {
   id: string; // local uuid
+  restaurantId: string;
   branchId: string;
   tableId: string;
   sessionId: string;

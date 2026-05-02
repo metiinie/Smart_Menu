@@ -6,10 +6,12 @@ import {  ChefHat, ShieldCheck, ChevronLeft, Fingerprint} from 'lucide-react';
 import { authApi } from '@/lib/api';
 import { BrandLogo } from './BrandLogo';
 
+import { Role } from '@/shared/types';
+
 interface StaffUser {
   id: string;
   name: string;
-  role: 'ADMIN' | 'KITCHEN';
+  role: Role;
 }
 
 interface Props {
@@ -30,7 +32,13 @@ export function PinLogin({ branchId, onSuccess }: Props) {
     setConnectionError(false);
     try {
       const data = await authApi.listStaff(branchId);
-      setStaff(data);
+      if (Array.isArray(data) && data.length > 0) {
+        setStaff(data);
+      } else {
+        // Fallback for stale branch IDs in env/config
+        const fallbackData = await authApi.listStaff('');
+        setStaff(Array.isArray(fallbackData) ? fallbackData : []);
+      }
     } catch (err) {
       setConnectionError(true);
     } finally {
@@ -149,7 +157,7 @@ export function PinLogin({ branchId, onSuccess }: Props) {
                   >
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 rounded-xl bg-gold-500/10 flex items-center justify-center border border-gold-500/20 group-hover:border-gold-500/40 transition-colors">
-                        {s.role === 'ADMIN' ? (
+                        {s.role !== Role.KITCHEN ? (
                           <ShieldCheck size={24} className="text-gold-600" />
                         ) : (
                           <ChefHat size={24} className="text-gold-600" />
@@ -157,7 +165,13 @@ export function PinLogin({ branchId, onSuccess }: Props) {
                       </div>
                       <div className="text-left">
                         <p className="font-display font-bold text-slate-900 text-base">{s.name}</p>
-                        <p className="text-slate-500 text-xs font-medium">{s.role === 'ADMIN' ? 'System Administrator' : 'Kitchen Management'}</p>
+                        <p className="text-slate-500 text-xs font-medium">
+                          {s.role === Role.RESTAURANT_ADMIN ? 'Restaurant Admin' 
+                           : s.role === Role.MANAGER ? 'Manager'
+                           : s.role === Role.KITCHEN ? 'Kitchen Staff'
+                           : s.role === Role.SUPER_ADMIN ? 'Super Admin'
+                           : 'Staff'}
+                        </p>
                       </div>
                     </div>
                     <div className="w-8 h-8 rounded-full flex items-center justify-center bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -179,6 +193,7 @@ export function PinLogin({ branchId, onSuccess }: Props) {
             {/* Header with back button */}
             <div className="flex items-center justify-between mb-8">
               <button 
+                aria-label="Back to profile selection"
                 onClick={() => { setSelected(null); setPin(''); }}
                 className="w-10 h-10 rounded-full bg-white/60 backdrop-blur-md border border-black/5 flex items-center justify-center text-slate-400 hover:text-slate-900 transition-colors"
               >

@@ -49,6 +49,7 @@ export const UI_STRINGS = {
     preparing: 'Preparing',
     confirmed: 'Confirmed',
     created: 'Created',
+    currency: 'Currency',
   },
   am: {
     welcome: 'እንኳን ደህና መጡ',
@@ -70,6 +71,7 @@ export const UI_STRINGS = {
     preparing: 'በመዘጋጀት ላይ',
     confirmed: 'ተረጋግጧል',
     created: 'ተፈጥሯል',
+    currency: 'ምንዛሬ',
   },
   or: {
     welcome: 'Baga nagaan dhuftan',
@@ -91,5 +93,6 @@ export const UI_STRINGS = {
     preparing: 'Qophaa’aa jira',
     confirmed: 'Mirkanaa’eera',
     created: 'Uumameera',
+    currency: 'Ji’a',
   },
 };

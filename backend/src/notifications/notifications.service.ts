@@ -20,24 +20,28 @@ export class NotificationsService {
   }
 
   async subscribe(customerRef: string, subscription: any) {
-    return this.prisma.pushSubscription.upsert({
-      where: { customerRef },
-      create: {
-        customerRef,
-        endpoint: subscription.endpoint,
-        p256dh: subscription.keys.p256dh,
-        auth: subscription.keys.auth,
-      },
-      update: {
-        endpoint: subscription.endpoint,
-        p256dh: subscription.keys.p256dh,
-        auth: subscription.keys.auth,
-      },
-    });
+    return this.prisma.withRetry(() =>
+      this.prisma.pushSubscription.upsert({
+        where: { customerRef },
+        create: {
+          customerRef,
+          endpoint: subscription.endpoint,
+          p256dh: subscription.keys.p256dh,
+          auth: subscription.keys.auth,
+        },
+        update: {
+          endpoint: subscription.endpoint,
+          p256dh: subscription.keys.p256dh,
+          auth: subscription.keys.auth,
+        },
+      }),
+    );
   }
 
   async sendNotification(customerRef: string, title: string, body: string, data?: any) {
-    const sub = await this.prisma.pushSubscription.findUnique({ where: { customerRef } });
+    const sub = await this.prisma.withRetry(() =>
+      this.prisma.pushSubscription.findUnique({ where: { customerRef } }),
+    );
     if (!sub) return;
 
     const pushSubscription = {
@@ -65,7 +69,9 @@ export class NotificationsService {
       this.logger.error(`Failed to send push notification to ${customerRef}`, error);
       if (error?.statusCode === 410 || error?.statusCode === 404) {
         // Subscription expired or gone
-        await this.prisma.pushSubscription.delete({ where: { customerRef } });
+        await this.prisma.withRetry(() =>
+          this.prisma.pushSubscription.delete({ where: { customerRef } }),
+        );
       }
     }
   }

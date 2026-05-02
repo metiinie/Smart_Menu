@@ -23,6 +23,18 @@
   --surface-200: #f1f5f9;
 }
 
+.dark {
+  --foreground-rgb: 248, 250, 252;
+  --background-start-rgb: 15, 23, 42;
+  --background-end-rgb: 15, 23, 42;
+  
+  --surface-50: #0f172a;
+  --surface-100: #1e293b;
+  --surface-200: #334155;
+  
+  background-color: #0f172a !important;
+}
+
 @layer base {
   body {
     color: rgb(var(--foreground-rgb));
@@ -64,17 +76,16 @@
 /* ─── Print Styles (80mm thermal receipt) ─── */
 @media print {
   body * {
-    visibility: hidden !important;
+    visibility: hidden;
   }
   .printable-ticket,
   .printable-ticket * {
-    visibility: visible !important;
-    display: block !important;
+    visibility: visible;
   }
   .printable-ticket {
     position: absolute;
-    top: 0;
     left: 0;
+    top: 0;
     width: 80mm !important;
     margin: 0;
     padding: 3mm;
@@ -84,10 +95,6 @@
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
-  .printable-ticket div {
-    display: flex !important;
-  }
-
   @page {
     size: 80mm auto;
     margin: 0;

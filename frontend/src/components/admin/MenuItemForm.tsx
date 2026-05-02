@@ -2,9 +2,11 @@
 
 import { useState } from 'react';
 import { motion} from 'framer-motion';
+import { toast } from 'sonner';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { X, Save, UploadCloud, Plus, Trash2, Box } from 'lucide-react';
-import type { MenuItem, Category } from '@arifsmart/shared';
+import Image from 'next/image';
+import type { MenuItem, Category } from '@/shared/types';
 import { adminApi } from '@/lib/api';
 
 interface FormData {
@@ -77,7 +79,7 @@ export function MenuItemForm({ item, categories, onSubmit, onClose }: Props) {
       setValue(field, res.url);
     } catch (error) {
       console.error('Upload failed', error);
-      alert('Upload failed. Check console.');
+      toast.error('Upload failed. Check console.');
     } finally {
       if (field === 'imageUrl') setUploadingImage(false);
       else setUploadingModel(false);
@@ -151,7 +153,7 @@ export function MenuItemForm({ item, categories, onSubmit, onClose }: Props) {
               <div className="border border-slate-200 rounded-xl p-3 bg-slate-50 flex flex-col items-center justify-center relative overflow-hidden">
                 {imageUrl ? (
                   <>
-                    <img src={imageUrl} alt="preview" className="absolute inset-0 w-full h-full object-cover opacity-30" />
+                    <Image src={imageUrl} alt="preview" fill sizes="260px" className="object-cover opacity-30" />
                     <span className="relative z-10 text-xs font-bold text-slate-700 bg-white/80 px-2 py-1 rounded">Image Uploaded</span>
                     <button type="button" onClick={() => setValue('imageUrl', '')} className="relative z-10 text-[10px] mt-2 text-red-500 underline">Remove</button>
                   </>

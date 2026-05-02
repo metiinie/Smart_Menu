@@ -11,7 +11,7 @@ import { useAuthStore, selectBranchId } from '@/stores/authStore';
 import { ErrorState } from '@/components/ui/StatusStates';
 import { StaffNotificationCenter } from '@/components/admin/StaffNotificationCenter';
 import { AuthGuard } from '@/components/auth/AuthGuard';
-import { Role } from '@arifsmart/shared';
+import { Role } from '@/shared/types';
 
 export default function KitchenPage() {
   const { user, logout } = useAuthStore();
@@ -27,10 +27,12 @@ export default function KitchenPage() {
     queryKey: ['kitchen-orders', branchId],
     queryFn: () => kitchenApi.getOrders(branchId),
     enabled: !!user && !!branchId,
-    // Poll every 8 s as a safety-net; real-time socket is the primary delivery mechanism
-    refetchInterval: 8_000,
+    // Poll every 8 s as a safety-net; real-time socket is the primary delivery mechanism.
+    // Use callback form to stop polling when there is a fetch error (avoids TS circular ref).
+    refetchInterval: (query) => (query.state.status === 'error' ? false : 8_000),
     refetchIntervalInBackground: false,
   });
+
 
   // Keep the ref in sync when the toggle changes — no socket re-subscription needed
   useEffect(() => {
@@ -88,7 +90,8 @@ export default function KitchenPage() {
     // Sync initial connection state and join the branch-specific room
     setIsConnected(socket.connected);
     const room = `kitchen:${branchId}`;
-    console.log('[Kitchen] Joining room:', room);
+    console.log(`[Kitchen] 🟢 DEBUG: Current Branch ID is "${branchId}"`);
+    console.log(`[Kitchen] 🟢 DEBUG: Joining socket room "${room}"`);
     joinRoom(room);
 
     return () => {
@@ -107,10 +110,11 @@ export default function KitchenPage() {
     CREATED:   orders.filter((o: any) => o?.status === 'CREATED'),
     CONFIRMED: orders.filter((o: any) => o?.status === 'CONFIRMED'),
     PREPARING: orders.filter((o: any) => o?.status === 'PREPARING'),
+    READY:     orders.filter((o: any) => o?.status === 'READY'),
   };
 
   return (
-    <AuthGuard allowedRoles={[Role.ADMIN, Role.KITCHEN]}>
+    <AuthGuard allowedRoles={[Role.RESTAURANT_ADMIN, Role.KITCHEN]}>
       <div className="min-h-dvh bg-slate-950 flex flex-col font-sans">
         {/* Waiter-call notifications (shared socket singleton is fine here) */}
         <StaffNotificationCenter />
@@ -125,7 +129,14 @@ export default function KitchenPage() {
               </div>
               <div>
                 <h1 className="font-display font-black text-white text-lg tracking-tight">KITCHEN DISPLAY</h1>
-                <p className="text-slate-400 text-xs font-semibold uppercase tracking-wider">{user?.name}</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-slate-400 text-xs font-semibold uppercase tracking-wider">{user?.name}</p>
+                  <span className="text-slate-700">•</span>
+                  <div className="flex items-center gap-1 bg-slate-800/50 px-2 py-0.5 rounded border border-slate-700">
+                    <span className="text-[10px] text-slate-500 font-mono">BRANCH:</span>
+                    <span className="text-[10px] text-brand-400 font-mono font-bold">{branchId || 'NOT SET'}</span>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -183,7 +194,7 @@ export default function KitchenPage() {
             <div className="bg-slate-900 p-6 mb-6 rounded-3xl border border-amber-500/30 shadow-xl max-w-md mx-auto">
               <p className="text-amber-400 text-sm font-bold mb-1">⚠️ Branch ID not detected</p>
               <p className="text-slate-500 text-xs">
-                Set <code className="text-slate-300">NEXT_PUBLIC_BRANCH_ID</code> in your <code className="text-slate-300">.env.local</code> or log in with a staff account that has a branch assigned.
+                Log in with a staff account that has a branch assigned, or check the backend configuration.
               </p>
             </div>
           )}
@@ -201,7 +212,7 @@ export default function KitchenPage() {
               <p className="text-slate-500 font-medium">Waiting for new orders…</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full items-start">
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-full items-start">
               <KitchenColumn
                 title="New Orders"
                 dotColor="bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]"
@@ -218,6 +229,12 @@ export default function KitchenPage() {
                 title="Preparing"
                 dotColor="bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"
                 orders={grouped.PREPARING}
+                onUpdated={stableRefetch}
+              />
+              <KitchenColumn
+                title="Ready"
+                dotColor="bg-fuchsia-500 shadow-[0_0_10px_rgba(217,70,239,0.5)]"
+                orders={grouped.READY}
                 onUpdated={stableRefetch}
               />
             </div>

@@ -92,7 +92,7 @@ To handle unstable restaurant networks:
 
 ### 6.1 Backend (Railway / Render / VPS)
 The backend uses a multi-stage Docker build for efficiency.
-1.  **Infrastructure**: Provision a PostgreSQL database (e.g., Supabase, Neon).
+1.  **Infrastructure**: Provision an always-on PostgreSQL database (e.g., Railway Postgres, Supabase).
 2.  **Deploy**: 
     - Connect your repo to **Railway**.
     - Set the **Root Directory** to `/backend`.

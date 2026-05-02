@@ -40,6 +40,7 @@ export function StaffNotificationCenter() {
 
   useEffect(() => {
     const socket = getSocket();
+    const timeouts = timeoutsRef.current;
 
     const handleWaiterCall = (data: WaiterCall) => {
       const id = crypto.randomUUID();
@@ -55,9 +56,9 @@ export function StaffNotificationCenter() {
       // Auto-dismiss — store the timeout ID so it can be cleared on unmount or manual dismiss
       const t = setTimeout(() => {
         setCalls((prev) => prev.filter((c) => c.id !== id));
-        timeoutsRef.current.delete(id);
+        timeouts.delete(id);
       }, AUTO_DISMISS_MS);
-      timeoutsRef.current.set(id, t);
+      timeouts.set(id, t);
     };
 
     socket.on('waiter-call', handleWaiterCall);
@@ -66,8 +67,8 @@ export function StaffNotificationCenter() {
       // Remove only our specific handler
       socket.off('waiter-call', handleWaiterCall);
       // Clear every pending auto-dismiss timeout so we don't fire on unmounted state
-      timeoutsRef.current.forEach((t) => clearTimeout(t));
-      timeoutsRef.current.clear();
+      timeouts.forEach((t) => clearTimeout(t));
+      timeouts.clear();
     };
   }, []); // Empty deps — the socket singleton is stable
 

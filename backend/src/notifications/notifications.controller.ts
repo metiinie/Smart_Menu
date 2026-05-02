@@ -24,10 +24,12 @@ export class NotificationsController {
       throw new BadRequestException('customerRef is required');
     }
 
-    const hasOrders = await this.prisma.order.findFirst({
-      where: { customerRef },
-      select: { id: true },
-    });
+    const hasOrders = await this.prisma.withRetry(() =>
+      this.prisma.order.findFirst({
+        where: { customerRef },
+        select: { id: true },
+      }),
+    );
 
     if (!hasOrders) {
       throw new BadRequestException('Invalid customerRef — no orders found for this identity');

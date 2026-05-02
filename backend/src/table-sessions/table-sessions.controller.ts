@@ -4,6 +4,7 @@ import { TableSessionsService } from './table-sessions.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { Role } from '../shared/types';
 
 @ApiTags('Table Sessions & Context')
 @Controller()
@@ -29,7 +30,7 @@ export class TableSessionsController {
    */
   @Patch('table-sessions/:id/close')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('ADMIN', 'KITCHEN')
+  @Roles(Role.SUPER_ADMIN, Role.RESTAURANT_ADMIN, Role.MANAGER, Role.KITCHEN, Role.STAFF)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Close an active table session (staff only)' })
   async closeSession(@Param('id') id: string) {

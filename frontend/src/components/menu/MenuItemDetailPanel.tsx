@@ -1,6 +1,7 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from 'sonner';
 import Image from 'next/image';
 import { ArrowLeft, Plus, Minus, ShoppingCart, MessageSquare, Zap, Dumbbell, Droplets, Box, Sparkles } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
@@ -24,7 +25,7 @@ declare global {
     }
   }
 }
-import type { MenuItem } from '@arifsmart/shared';
+import type { MenuItem } from '@/shared/types';
 type AllergenLine = { label: string; present: boolean };
 type IngredientLine = { name: string; detail?: string };
 type NutritionRow = { nutrient: string; amount: string; dailyValue?: string; sub?: boolean; };
@@ -99,7 +100,7 @@ export function MenuItemDetailPanel({ item, quantity, onClose, onAdd, onRemove, 
       setSelectedModifiers({});
       setShowModifiers(false);
     }
-  }, [item?.id]);
+  }, [item]);
 
   useEffect(() => {
     if (!item) return;
@@ -123,7 +124,7 @@ export function MenuItemDetailPanel({ item, quantity, onClose, onAdd, onRemove, 
         if (group.isRequired) {
           const selectedForGroup = Object.values(selectedModifiers).filter((m: any) => m.groupId === group.id);
           if (selectedForGroup.length < group.minSelections) {
-            alert(`Please select at least ${group.minSelections} option(s) for ${group.name}`);
+            toast.warning(`Please select at least ${group.minSelections} option(s) for ${group.name}`);
             return;
           }
         }

@@ -8,7 +8,6 @@ generator client {
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
 }
 
 // ─── Enums ────────────────────────────────────────────────────────────────────
@@ -22,39 +21,109 @@ enum OrderStatus {
 }
 
 enum Role {
-  ADMIN
+  SUPER_ADMIN
+  RESTAURANT_ADMIN
+  MANAGER
   KITCHEN
+  STAFF
 }
 
-// ─── Models ───────────────────────────────────────────────────────────────────
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  TRIALING
+}
+
+// ─── SaaS Core Models ─────────────────────────────────────────────────────────
+
+model SubscriptionPlan {
+  id             String       @id @default(uuid())
+  name           String       // "Starter", "Pro", "Enterprise"
+  maxBranches    Int          @default(1)
+  maxStaff       Int          @default(5)
+  priceMonthly   Float
+  features       Json?        // Feature gating flags
+  restaurants    Restaurant[]
+  createdAt      DateTime     @default(now())
+
+  @@map("subscription_plans")
+}
+
+model Restaurant {
+  id                 String             @id @default(uuid())
+  slug               String             @unique // For subdomains: tenant.arifsmart.com
+  name               String
+  isActive           Boolean            @default(true)
+  subscriptionStatus SubscriptionStatus @default(TRIALING)
+  planId             String
+  plan               SubscriptionPlan   @relation(fields: [planId], references: [id])
+  themeConfig        Json?              // e.g. { "primaryColor": "#ff5500", "logoUrl": "..." }
+  
+  users              User[]
+  branches           Branch[]
+  categories         Category[]
+  menuItems          MenuItem[]
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  @@map("restaurants")
+}
+
+// ─── Tenant-Scoped Models ─────────────────────────────────────────────────────
 
 model Branch {
-  id         String       @id @default(uuid())
-  name       String
-  address    String
-  phone      String?
-  createdAt  DateTime     @default(now())
-  updatedAt  DateTime     @updatedAt
-  vatRate    Float        @default(15.0)
-  serviceChargeRate Float @default(10.0)
-  tables     DiningTable[]
-  categories Category[]
-  staffUsers StaffUser[]
+  id           String       @id @default(uuid())
+  restaurantId String?      // [SaaS Phase 1: Nullable for now]
+  name         String
+  address      String
+  phone        String?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  vatRate      Float        @default(15.0)
+  serviceChargeRate Float   @default(10.0)
+  
+  restaurant   Restaurant?  @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  tables       DiningTable[]
+  categories   Category[]
+  users        User[]
+  orderCounters BranchOrderCounter[]
+  orderAudits  OrderAudit[]
 
+  @@index([restaurantId])
   @@map("branches")
+}
+
+model BranchOrderCounter {
+  id          String   @id @default(uuid())
+  branchId    String
+  counterDate String
+  lastNumber  Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  branch      Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@unique([branchId, counterDate])
+  @@map("branch_order_counters")
 }
 
 model DiningTable {
   id           String         @id @default(uuid())
+  restaurantId String?        // [SaaS Phase 1: Nullable]
   branchId     String
   tableNumber  Int
   qrCode       String         @unique
   isActive     Boolean        @default(true)
   createdAt    DateTime       @default(now())
+  
   branch       Branch         @relation(fields: [branchId], references: [id], onDelete: Cascade)
   sessions     TableSession[]
   orders       Order[]
+  orderAudits  OrderAudit[]
 
+  @@index([restaurantId])
+  @@index([branchId])
   @@unique([branchId, tableNumber])
   @@map("dining_tables")
 }
@@ -68,26 +137,32 @@ model TableSession {
   endedAt   DateTime?
   table     DiningTable @relation(fields: [tableId], references: [id], onDelete: Cascade)
   orders    Order[]
+  orderAudits OrderAudit[]
 
   @@map("table_sessions")
 }
 
 model Category {
   id               String     @id @default(uuid())
+  restaurantId     String?    // [SaaS Phase 1: Nullable]
   name             String
   nameTranslations Json?      // { "am": "...", "or": "..." }
   sortOrder        Int        @default(0)
   imageUrl         String?
   branchId         String
+  
+  restaurant       Restaurant? @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
   branch           Branch     @relation(fields: [branchId], references: [id], onDelete: Cascade)
   items            MenuItem[]
   createdAt        DateTime   @default(now())
 
+  @@index([restaurantId])
   @@map("categories")
 }
 
 model MenuItem {
   id                      String      @id @default(uuid())
+  restaurantId            String?     // [SaaS Phase 1: Nullable]
   name                    String
   nameTranslations        Json?       // { "am": "...", "or": "..." }
   description             String?
@@ -98,6 +173,8 @@ model MenuItem {
   imageUrl                String?
   model3dUrl              String?
   categoryId              String
+  
+  restaurant              Restaurant? @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
   category                Category    @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   orderItems              OrderItem[]
   ratings                 Rating[]
@@ -108,15 +185,18 @@ model MenuItem {
   dietaryTags DietaryTag[]
   nutritionSections NutritionSection[]
   modifierGroups    ModifierGroup[]
+  favorites         Favorite[]
 
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
+  @@index([restaurantId])
   @@map("menu_items")
 }
 
 model Order {
   id         String       @id @default(uuid())
+  restaurantId String?    // [SaaS Phase 1: Nullable]
   tableId    String
   sessionId  String
   status     OrderStatus  @default(CREATED)
@@ -134,7 +214,9 @@ model Order {
   session    TableSession @relation(fields: [sessionId], references: [id])
   items      OrderItem[]
   ratings    Rating[]
+  audits     OrderAudit[]
 
+  @@index([restaurantId])
   @@index([tableId])
   @@index([sessionId])
   @@map("orders")
@@ -154,17 +236,24 @@ model OrderItem {
   @@map("order_items")
 }
 
-model StaffUser {
-  id        String   @id @default(uuid())
-  name      String
-  role      Role
-  pinHash   String
-  branchId  String
-  isActive  Boolean  @default(true)
-  branch    Branch   @relation(fields: [branchId], references: [id])
-  createdAt DateTime @default(now())
+model User {
+  id           String      @id @default(uuid())
+  restaurantId String?     // Nullable ONLY for SUPER_ADMIN or Phase 1 migration
+  branchId     String?     // Nullable if user has access to all branches
+  name         String
+  email        String?     @unique // For dashboard login
+  passwordHash String?     // For email/password login
+  pinHash      String?     // Kept for terminal login (optional)
+  role         Role
+  isActive     Boolean     @default(true)
+  
+  restaurant   Restaurant? @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  branch       Branch?     @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  createdAt    DateTime    @default(now())
 
-  @@map("staff_users")
+  @@index([restaurantId])
+  @@index([email])
+  @@map("staff_users") // Mapped to old table name to prevent data loss
 }
 
 model Ingredient {
@@ -276,4 +365,45 @@ model PushSubscription {
   createdAt   DateTime @default(now())
 
   @@map("push_subscriptions")
+}
+
+model Favorite {
+  id          String   @id @default(uuid())
+  customerRef String
+  menuItemId  String
+  createdAt   DateTime @default(now())
+
+  menuItem    MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+
+  @@unique([customerRef, menuItemId])
+  @@index([customerRef])
+  @@map("favorites")
+}
+
+model OrderAudit {
+  id            String   @id @default(uuid())
+  restaurantId  String?  // [SaaS Phase 1: Nullable]
+  branchId      String?
+  tableId       String?
+  sessionId     String?
+  orderId       String?
+  customerRef   String?
+  displayNumber String?
+  status        String
+  source        String
+  reason        String?
+  itemCount     Int?
+  createdAt     DateTime @default(now())
+
+  branch        Branch?       @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  table         DiningTable?  @relation(fields: [tableId], references: [id], onDelete: SetNull)
+  session       TableSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  order         Order?        @relation(fields: [orderId], references: [id], onDelete: SetNull)
+
+  @@index([restaurantId])
+  @@index([branchId, createdAt])
+  @@index([tableId, createdAt])
+  @@index([sessionId, createdAt])
+  @@index([orderId, createdAt])
+  @@map("order_audits")
 }

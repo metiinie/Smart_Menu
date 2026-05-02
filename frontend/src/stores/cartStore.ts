@@ -1,15 +1,16 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import type { CartItem } from '@arifsmart/shared';
+import type { CartItem } from '@/shared/types';
 
 interface CartStore {
   items: CartItem[];
+  restaurantId: string | null;
   branchId: string | null;
   tableId: string | null;
   sessionId: string | null;
   customerRef: string | null;
 
-  setContext: (branchId: string, tableId: string, sessionId: string, customerRef: string) => void;
+  setContext: (restaurantId: string, branchId: string, tableId: string, sessionId: string, customerRef: string) => void;
   addItem: (item: Omit<CartItem, 'quantity'>) => void;
   removeItem: (cartItemId: string) => void;
   updateQuantity: (cartItemId: string, quantity: number) => void;
@@ -22,13 +23,14 @@ export const useCartStore = create<CartStore>()(
   persist(
     (set, get) => ({
       items: [],
+      restaurantId: null,
       branchId: null,
       tableId: null,
       sessionId: null,
       customerRef: null,
 
-      setContext: (branchId, tableId, sessionId, customerRef) =>
-        set({ branchId, tableId, sessionId, customerRef }),
+      setContext: (restaurantId, branchId, tableId, sessionId, customerRef) =>
+        set({ restaurantId, branchId, tableId, sessionId, customerRef }),
 
       addItem: (item) =>
         set((state) => {
@@ -87,26 +89,49 @@ export const useCartStore = create<CartStore>()(
     {
       name: 'cart',
       storage: createJSONStorage(() => ({
-        getItem: () => {
+        getItem: (name) => {
           if (typeof window === 'undefined') return null;
-          const state = JSON.parse(localStorage.getItem('_cart_ctx') ?? '{}');
-          const key = `cart:${state.branchId ?? ''}:${state.tableId ?? ''}:${state.sessionId ?? ''}:${state.customerRef ?? ''}`;
-          return localStorage.getItem(key) ?? null;
-        },
-        setItem: ( value) => {
-          if (typeof window === 'undefined') return;
-          const parsed = JSON.parse(value);
-          const { branchId, tableId, sessionId, customerRef } = parsed.state ?? {};
-          if (branchId && tableId && sessionId && customerRef) {
-            localStorage.setItem('_cart_ctx', JSON.stringify({ branchId, tableId, sessionId, customerRef }));
-            localStorage.setItem(`cart:${branchId}:${tableId}:${sessionId}:${customerRef}`, value);
+          try {
+            const ctxStr = localStorage.getItem('_cart_ctx');
+            if (!ctxStr) {
+              // Context not yet written (first visit / reload before API responds).
+              // Fall back to the plain unscoped key so we don't lose cart items.
+              return localStorage.getItem(name) ?? null;
+            }
+            const state = JSON.parse(ctxStr);
+            const key = `${name}:${state.restaurantId ?? ''}:${state.branchId ?? ''}:${state.tableId ?? ''}:${state.sessionId ?? ''}:${state.customerRef ?? ''}`;
+            return localStorage.getItem(key) ?? localStorage.getItem(name) ?? null;
+          } catch (e) {
+            console.error('Failed to get cart from storage:', e);
+            return null;
           }
         },
-        removeItem: () => {
+        setItem: (name, value) => {
           if (typeof window === 'undefined') return;
-          const state = JSON.parse(localStorage.getItem('_cart_ctx') ?? '{}');
-          const key = `cart:${state.branchId ?? ''}:${state.tableId ?? ''}:${state.sessionId ?? ''}:${state.customerRef ?? ''}`;
-          localStorage.removeItem(key);
+          try {
+            const parsed = JSON.parse(value);
+            const { restaurantId, branchId, tableId, sessionId, customerRef } = parsed.state ?? {};
+            // Always write the plain unscoped key as a fallback for getItem on reload
+            localStorage.setItem(name, value);
+            if (restaurantId && branchId && tableId && sessionId && customerRef) {
+              localStorage.setItem('_cart_ctx', JSON.stringify({ restaurantId, branchId, tableId, sessionId, customerRef }));
+              localStorage.setItem(`${name}:${restaurantId}:${branchId}:${tableId}:${sessionId}:${customerRef}`, value);
+            }
+          } catch (e) {
+            console.error('Failed to set cart in storage:', e);
+          }
+        },
+        removeItem: (name) => {
+          if (typeof window === 'undefined') return;
+          try {
+            const ctxStr = localStorage.getItem('_cart_ctx');
+            if (!ctxStr) return;
+            const state = JSON.parse(ctxStr);
+            const key = `${name}:${state.restaurantId ?? ''}:${state.branchId ?? ''}:${state.tableId ?? ''}:${state.sessionId ?? ''}:${state.customerRef ?? ''}`;
+            localStorage.removeItem(key);
+          } catch (e) {
+            console.error('Failed to remove cart from storage:', e);
+          }
         },
       })),
     },

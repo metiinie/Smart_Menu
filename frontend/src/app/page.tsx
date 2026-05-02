@@ -2,9 +2,11 @@
 
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { Globe} from 'lucide-react';
 import { PageTransition } from '@/components/ui/PageTransition';
 import { useFavoritesStore } from '@/stores/favoritesStore';
+import { authApi } from '@/lib/api';
 
 const LANGUAGES = [
   { code: 'en' as const, label: 'English' },
@@ -15,23 +17,34 @@ const LANGUAGES = [
 export default function HomePage() {
   const router = useRouter();
   const { language, setLanguage } = useFavoritesStore();
+  const [resolvedBranchId, setResolvedBranchId] = useState('');
 
   /**
    * In production, customers scan a QR code that encodes:
    *   /menu/{branchId}/{tableId}
    * This landing page is a fallback for direct visits.
-   * We read branchId from env and let users scan or use a demo table.
+   * We dynamically fetch the default branch from the backend.
    */
-  const branchId = process.env.NEXT_PUBLIC_BRANCH_ID || '';
+  useEffect(() => {
+    if (resolvedBranchId) return;
+    authApi
+      .getDefaultBranch()
+      .then((branch) => {
+        if (branch?.id) setResolvedBranchId(branch.id);
+      })
+      .catch(() => {
+        // keep empty if backend has no branch yet
+      });
+  }, [resolvedBranchId]);
 
   const handleScanSimulation = () => {
-    if (!branchId) {
+    if (!resolvedBranchId) {
       // No branch configured — can't proceed
       return;
     }
     // Navigate to the menu; the table-context endpoint will
     // resolve "table-01" → tableNumber 1 via its fallback parser
-    router.push(`/menu/${branchId}/table-01`);
+    router.push(`/menu/${resolvedBranchId}/table-01`);
   };
 
   return (

@@ -6,20 +6,37 @@ export class TableSessionsService {
   constructor(private prisma: PrismaService) {}
 
   async getTableContext(branchId: string, tableId: string) {
-    const branch = await this.prisma.branch.findUnique({
-      where: { id: branchId },
-    });
+    let effectiveBranchId = branchId;
+    let branch = await this.prisma.withRetry(() =>
+      this.prisma.branch.findUnique({
+        where: { id: branchId },
+      }),
+    );
     if (!branch) {
-      throw new NotFoundException('Branch not found');
+      // Recovery fallback for stale branch IDs: if exactly one branch exists, use it.
+      const candidates = await this.prisma.withRetry(() =>
+        this.prisma.branch.findMany({
+          orderBy: { createdAt: 'asc' },
+          take: 2,
+        }),
+      );
+      if (candidates.length === 1) {
+        branch = candidates[0];
+        effectiveBranchId = branch.id;
+      } else {
+        throw new NotFoundException('Branch not found');
+      }
     }
 
     let table = null;
 
     const isUuid = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(tableId);
     if (isUuid) {
-      table = await this.prisma.diningTable.findUnique({
-        where: { id: tableId },
-      });
+      table = await this.prisma.withRetry(() =>
+        this.prisma.diningTable.findUnique({
+          where: { id: tableId },
+        }),
+      );
     }
 
     // If not found by UUID, try looking up by tableNumber (fallback)
@@ -28,31 +45,37 @@ export class TableSessionsService {
       const match = tableId.match(/\d+/);
       if (match) {
         const tableNumber = parseInt(match[0], 10);
-        table = await this.prisma.diningTable.findUnique({
-          where: { 
-            branchId_tableNumber: { 
-              branchId, 
-              tableNumber 
-            } 
-          },
-        });
+        table = await this.prisma.withRetry(() =>
+          this.prisma.diningTable.findUnique({
+            where: { 
+              branchId_tableNumber: { 
+                branchId: effectiveBranchId,
+                tableNumber 
+              } 
+            },
+          }),
+        );
       }
     }
     
     // Ensure table exists and belongs to the specified branch
-    if (!table || table.branchId !== branchId) {
+    if (!table || table.branchId !== effectiveBranchId) {
       throw new NotFoundException('Table not found or mismatch with branch');
     }
 
     // Enforce "Only ONE active session per table" - get it or create it
-    let activeSession = await this.prisma.tableSession.findFirst({
-      where: { tableId: table.id, isActive: true },
-    });
+    let activeSession = await this.prisma.withRetry(() =>
+      this.prisma.tableSession.findFirst({
+        where: { tableId: table.id, isActive: true },
+      }),
+    );
 
     if (!activeSession) {
-      activeSession = await this.prisma.tableSession.create({
-        data: { tableId: table.id, isActive: true },
-      });
+      activeSession = await this.prisma.withRetry(() =>
+        this.prisma.tableSession.create({
+          data: { tableId: table.id, isActive: true },
+        }),
+      );
     }
 
     return {
@@ -63,19 +86,23 @@ export class TableSessionsService {
   }
 
   async closeSession(id: string) {
-    const session = await this.prisma.tableSession.findUnique({
-      where: { id },
-    });
+    const session = await this.prisma.withRetry(() =>
+      this.prisma.tableSession.findUnique({
+        where: { id },
+      }),
+    );
     if (!session) {
       throw new NotFoundException('Table session not found');
     }
 
-    return await this.prisma.tableSession.update({
-      where: { id },
-      data: {
-        isActive: false,
-        endedAt: new Date(),
-      },
-    });
+    return await this.prisma.withRetry(() =>
+      this.prisma.tableSession.update({
+        where: { id },
+        data: {
+          isActive: false,
+          endedAt: new Date(),
+        },
+      }),
+    );
   }
 }

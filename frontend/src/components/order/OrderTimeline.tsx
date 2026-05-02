@@ -2,7 +2,7 @@
 
 import { motion } from 'framer-motion';
 import { Check, Clock, ChefHat, Bell, Package } from 'lucide-react';
-import { OrderStatus } from '@arifsmart/shared';
+import { OrderStatus } from '@/shared/types';
 
 const STEPS = [
   { status: OrderStatus.CONFIRMED, label: 'Order Confirmed', icon: Check,    color: 'bg-blue-500' },

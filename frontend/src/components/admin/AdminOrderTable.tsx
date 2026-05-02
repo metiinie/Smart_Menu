@@ -124,7 +124,7 @@ export function AdminOrderTable({ orders, onOrdersChange }: Props) {
                     </span>
                   )}
                   {item.note && (
-                    <span className="text-amber-400/60 ml-1 italic">"{item.note}"</span>
+                    <span className="text-amber-400/60 ml-1 italic">&quot;{item.note}&quot;</span>
                   )}
                 </div>
               ))}

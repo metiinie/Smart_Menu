@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Coffee, Utensils, Cake, Flame, Grid } from 'lucide-react';
-import type { Category } from '@arifsmart/shared';
+import type { Category } from '@/shared/types';
 import { getLocalized } from '@/lib/i18n';
 import { useFavoritesStore } from '@/stores/favoritesStore';
 

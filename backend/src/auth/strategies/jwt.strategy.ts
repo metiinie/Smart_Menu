@@ -6,6 +6,15 @@ export interface JwtPayload {
   sub: string;
   role: string;
   branchId: string;
+  restaurantId?: string;
+}
+
+function getRequiredJwtSecret() {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error('JWT_SECRET is required');
+  }
+  return secret;
 }
 
 @Injectable()
@@ -14,11 +23,17 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: process.env.JWT_SECRET ?? 'fallback-secret',
+      secretOrKey: getRequiredJwtSecret(),
     });
   }
 
   validate(payload: JwtPayload) {
-    return { userId: payload.sub, role: payload.role, branchId: payload.branchId };
+    return { 
+      id: payload.sub, 
+      userId: payload.sub, 
+      role: payload.role, 
+      branchId: payload.branchId,
+      restaurantId: payload.restaurantId
+    };
   }
 }

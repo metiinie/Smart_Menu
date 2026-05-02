@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from 'sonner';
 import { Star, X, Send, MessageSquare } from 'lucide-react';
 import { ordersApi } from '@/lib/api';
 
@@ -53,7 +54,7 @@ export function RatingModal({
       }, 2000);
     } catch (err) {
       console.error('Failed to submit rating:', err);
-      alert('Failed to submit rating. Please try again.');
+      toast.error('Failed to submit rating. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -78,27 +79,27 @@ export function RatingModal({
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="fixed inset-x-0 bottom-0 bg-white rounded-t-[32px] z-[101] p-6 pb-10 shadow-2xl safe-bottom"
-          >
-            <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mb-6" />
+          className="fixed inset-x-0 bottom-0 bg-surface-50 rounded-t-[32px] z-[101] p-6 pb-10 shadow-2xl safe-bottom border-t border-surface-200"
+        >
+          <div className="w-12 h-1.5 bg-surface-200 rounded-full mx-auto mb-6" />
 
-            <div className="flex justify-between items-start mb-6">
-              <div>
-                <h3 className="text-xl font-bold text-slate-900">
-                  {isSubmitted ? 'Thank You!' : itemName ? `Rate ${itemName}` : 'Rate Your Experience'}
-                </h3>
-                <p className="text-slate-500 text-sm mt-1">
-                  {isSubmitted 
-                    ? 'Your feedback helps us improve!' 
-                    : 'How was your dish today?'}
-                </p>
-              </div>
-              {!isSubmitting && !isSubmitted && (
-                <button onClick={onClose} className="p-2 bg-slate-100 rounded-full text-slate-400">
-                  <X size={20} />
-                </button>
-              )}
+          <div className="flex justify-between items-start mb-6">
+            <div>
+              <h3 className="text-xl font-bold text-surface-900">
+                {isSubmitted ? 'Thank You!' : itemName ? `Rate ${itemName}` : 'Rate Your Experience'}
+              </h3>
+              <p className="text-surface-500 text-sm mt-1">
+                {isSubmitted 
+                  ? 'Your feedback helps us improve!' 
+                  : 'How was your dish today?'}
+              </p>
             </div>
+            {!isSubmitting && !isSubmitted && (
+              <button onClick={onClose} className="p-2 bg-surface-100 rounded-full text-surface-400">
+                <X size={20} />
+              </button>
+            )}
+          </div>
 
             {isSubmitted ? (
               <motion.div 
@@ -109,7 +110,7 @@ export function RatingModal({
                 <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mb-4">
                   <Star size={40} className="text-emerald-500 fill-emerald-500" />
                 </div>
-                <p className="font-semibold text-slate-800">Rating Submitted Successfully</p>
+                <p className="font-semibold text-surface-800">Rating Submitted Successfully</p>
               </motion.div>
             ) : (
               <div className="space-y-6">
@@ -129,7 +130,7 @@ export function RatingModal({
                         className={`transition-colors ${
                           star <= (hover || rating)
                             ? 'text-amber-400 fill-amber-400'
-                            : 'text-slate-200 fill-transparent'
+                            : 'text-surface-200 fill-transparent'
                         }`}
                       />
                     </motion.button>
@@ -138,7 +139,7 @@ export function RatingModal({
 
                 {/* Comment Area */}
                 <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-slate-400 text-xs font-bold uppercase tracking-wider">
+                  <div className="flex items-center gap-2 text-surface-400 text-xs font-bold uppercase tracking-wider">
                     <MessageSquare size={14} />
                     <span>Any comments? (Optional)</span>
                   </div>
@@ -146,7 +147,7 @@ export function RatingModal({
                     value={comment}
                     onChange={(e) => setComment(e.target.value)}
                     placeholder="Tell us what you liked or how we can improve..."
-                    className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 text-sm text-slate-800 outline-none focus:border-brand-500 transition-colors h-32 resize-none"
+                    className="w-full bg-surface-100 border border-surface-200 rounded-2xl p-4 text-sm text-surface-800 outline-none focus:border-brand-500 transition-colors h-32 resize-none"
                   />
                 </div>
 

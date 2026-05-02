@@ -1,7 +1,11 @@
-import { Controller, Post, Get, Patch, Body, Param, Query } from '@nestjs/common';
+import { Controller, Post, Get, Patch, Body, Param, Query, UseGuards, Req } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto, UpdateOrderStatusDto } from './dto/create-order.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { Role } from '../shared/types';
 
 /**
  * IMPORTANT — route registration order:
@@ -50,13 +54,17 @@ export class OrdersController {
 
   @Get()
   @ApiOperation({ summary: 'List orders by branch (staff only)' })
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.SUPER_ADMIN, Role.RESTAURANT_ADMIN, Role.MANAGER, Role.KITCHEN, Role.STAFF)
   getOrdersByBranch(
+    @Req() req: any,
     @Query('branchId')  branchId: string,
     @Query('status')    status?: string,
     @Query('tableId')   tableId?: string,
     @Query('sessionId') sessionId?: string,
   ) {
-    return this.ordersService.getOrdersByBranch(branchId, status, tableId, sessionId);
+    const resolvedBranchId = req.user?.branchId || branchId;
+    return this.ordersService.getOrdersByBranch(resolvedBranchId, status, tableId, sessionId);
   }
 
   // ── Parameterised routes AFTER all static routes ────────────────────────
@@ -69,8 +77,10 @@ export class OrdersController {
 
   @Patch(':id/status')
   @ApiOperation({ summary: 'Update order status (staff only)' })
-  updateStatus(@Param('id') id: string, @Body() dto: UpdateOrderStatusDto) {
-    return this.ordersService.updateStatus(id, dto);
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.SUPER_ADMIN, Role.RESTAURANT_ADMIN, Role.MANAGER, Role.KITCHEN, Role.STAFF)
+  updateStatus(@Req() req: any, @Param('id') id: string, @Body() dto: UpdateOrderStatusDto) {
+    return this.ordersService.updateStatus(id, dto, req.user?.branchId);
   }
 
   // ── Ratings ────────────────────────────────────────────────────────────

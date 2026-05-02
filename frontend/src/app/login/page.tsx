@@ -1,18 +1,19 @@
 'use client';
 
-import { Suspense} from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { PinLogin } from '@/components/ui/PinLogin';
+import { EmailLogin } from '@/components/ui/EmailLogin';
 import { useAuthStore } from '@/stores/authStore';
-import { MeshBackground} from '@/components/ui/Backgrounds';
+import { MeshBackground } from '@/components/ui/Backgrounds';
 import { PageTransition } from '@/components/ui/PageTransition';
+import { Role } from '@/shared/types';
 
 function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const login = useAuthStore((state) => state.login);
-  const branchId = process.env.NEXT_PUBLIC_BRANCH_ID ?? '';
-  const returnUrl = searchParams.get('returnUrl') || '/admin/menu';
+  
+  const returnUrl = searchParams.get('returnUrl') || '/admin/dashboard';
 
   const handleSuccess = (token: string, user: any) => {
     login(user, token);
@@ -22,6 +23,10 @@ function LoginContent() {
       router.replace(returnUrl);
     } else if (user.role === 'KITCHEN') {
       router.replace('/kitchen');
+    } else if (user.role === 'SUPER_ADMIN') {
+      router.replace('/super-admin/restaurants');
+    } else if (user.role === 'STAFF') {
+      router.replace('/admin/orders');
     } else {
       router.replace('/admin/dashboard');
     }
@@ -32,10 +37,7 @@ function LoginContent() {
       <div className="min-h-dvh relative flex flex-col items-center justify-center p-6 overflow-hidden bg-surface">
         <MeshBackground />
         <div className="relative z-10 w-full max-w-md mx-auto">
-          <PinLogin 
-            branchId={branchId} 
-            onSuccess={handleSuccess} 
-          />
+          <EmailLogin onSuccess={handleSuccess} />
         </div>
       </div>
     </PageTransition>

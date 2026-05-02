@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { Role } from '@arifsmart/shared';
+import { Role } from '@/shared/types';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -11,6 +11,7 @@ import { Role } from '@arifsmart/shared';
 interface StaffUser {
   id: string;
   name: string;
+  email?: string;
   role: Role;
   /** Direct branchId — populated after the auth.service.ts fix */
   branchId?: string;
@@ -70,7 +71,6 @@ export function selectBranchId(user: StaffUser | null): string {
   return (
     user?.branchId ??
     user?.branch?.id ??
-    process.env.NEXT_PUBLIC_BRANCH_ID ??
     ''
   );
 }

@@ -1,6 +1,11 @@
 const net = require('net');
 
-const host = 'ep-small-grass-ana26xxn.c-6.us-east-1.aws.neon.tech';
+const connectionString = process.env.DATABASE_URL;
+if (!connectionString) {
+  throw new Error('DATABASE_URL is required');
+}
+
+const host = new URL(connectionString).hostname;
 const port = 5432;
 
 console.log(`Connecting to ${host}:${port}...`);

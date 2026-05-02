@@ -3,13 +3,15 @@ import {
   BadRequestException,
   NotFoundException,
   ForbiddenException,
+  ConflictException,
   Logger,
 } from '@nestjs/common';
-import { OrderStatus } from '@prisma/client';
+import { OrderStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { CreateOrderDto, UpdateOrderStatusDto } from './dto/create-order.dto';
 import { NotificationsService } from '../notifications/notifications.service';
+import { OrderAuditService } from './order-audit.service';
 
 const STATUS_TRANSITIONS: Record<string, string[]> = {
   CREATED: ['CONFIRMED'],
@@ -26,53 +28,106 @@ export class OrdersService {
     private readonly prisma: PrismaService,
     private readonly realtime: RealtimeGateway,
     private readonly notifications: NotificationsService,
+    private readonly orderAudit: OrderAuditService,
   ) {}
 
   async createOrder(dto: CreateOrderDto) {
-    // 1. Validate session is active
+    await this.orderAudit.record({
+      status: 'ATTEMPT',
+      source: 'customer',
+      tableId: dto.tableId,
+      sessionId: dto.sessionId,
+      customerRef: dto.customerRef,
+      itemCount: dto.items.length,
+    });
+
+    // 1. Validate session is active and get associated table/branch info
     const session = await this.prisma.withRetry(() =>
       this.prisma.tableSession.findFirst({
         where: { id: dto.sessionId, isActive: true },
+        include: { 
+          table: { 
+            include: { 
+              branch: { 
+                select: { id: true, vatRate: true, serviceChargeRate: true } 
+              } 
+            } 
+          } 
+        },
       })
     );
-    if (!session) {
-      this.logger.error(`❌ Order creation failed: Session ${dto.sessionId} is not active or not found.`);
-      throw new BadRequestException('Table session is not active');
+
+    if (!session || !session.table) {
+      this.logger.warn(`⚠️ Session ${dto.sessionId} is not active or has no table. Client will be signaled to refresh.`);
+      await this.orderAudit.record({
+        status: 'SESSION_EXPIRED',
+        source: 'customer',
+        tableId: dto.tableId,
+        sessionId: dto.sessionId,
+        customerRef: dto.customerRef,
+        itemCount: dto.items.length,
+        reason: 'Session missing or inactive during order create',
+      });
+      throw new BadRequestException('SESSION_EXPIRED');
     }
+
+    const table = session.table;
 
     // 2. Fetch actual prices from DB — never trust frontend
     const menuItemIds = dto.items.map((i) => i.menuItemId);
     const menuItems = await this.prisma.withRetry(() =>
       this.prisma.menuItem.findMany({
         where: { id: { in: menuItemIds }, isAvailable: true },
+        include: {
+          modifierGroups: {
+            include: { options: true },
+          },
+        },
       })
     );
 
     if (menuItems.length !== menuItemIds.length) {
       this.logger.error(`❌ Order creation failed: One or more menu items not found or unavailable. IDs: ${menuItemIds}`);
+      await this.orderAudit.record({
+        status: 'ITEM_UNAVAILABLE',
+        source: 'customer',
+        branchId: table.branchId,
+        tableId: table.id,
+        sessionId: session.id,
+        customerRef: dto.customerRef,
+        itemCount: dto.items.length,
+        reason: 'One or more items were unavailable or invalid',
+      });
       throw new BadRequestException('One or more items are unavailable or do not exist');
     }
 
-    const priceMap = new Map(menuItems.map((m: any) => [m.id, Number(m.price)]));
+    // 3. Calculate subtotal server-side including verified modifiers
+    const validatedItems = dto.items.map(item => {
+      const realItem = menuItems.find(m => m.id === item.menuItemId)!;
+      const validatedOptions = item.options?.map(opt => {
+        const realOpt = realItem.modifierGroups.flatMap(g => g.options).find(o => o.name === opt.optionName);
+        return {
+          optionName: opt.optionName,
+          optionPrice: realOpt ? Number(realOpt.price) : 0,
+        };
+      }) || [];
+      
+      const optionsTotal = validatedOptions.reduce((sum, opt) => sum + opt.optionPrice, 0);
+      const unitPrice = Number(realItem.price) + optionsTotal;
+      
+      return {
+        ...item,
+        unitPrice,
+        validatedOptions,
+      };
+    });
 
-    // 3. Calculate subtotal server-side including modifiers
-    const subTotal = dto.items.reduce((sum, item) => {
-      const basePrice = priceMap.get(item.menuItemId) || 0;
-      const optionsTotal = item.options?.reduce((optSum, opt) => optSum + opt.optionPrice, 0) || 0;
-      return sum + (basePrice + optionsTotal) * item.quantity;
+    const subTotal = validatedItems.reduce((sum, item) => {
+      return sum + item.unitPrice * item.quantity;
     }, 0);
 
-    // 4. Get table with branchId and tax rates
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const table = await this.prisma.withRetry(() =>
-      this.prisma.diningTable.findUnique({
-        where: { id: dto.tableId },
-        include: { branch: { select: { id: true, vatRate: true, serviceChargeRate: true } } },
-      })
-    );
-    if (!table) throw new NotFoundException('Table not found');
+    // 4. (Table and branch info already retrieved from session above)
+    const counterDate = new Date().toISOString().slice(0, 10);
 
     const vatRate = (table.branch as any)?.vatRate || 15;
     const serviceChargeRate = (table.branch as any)?.serviceChargeRate || 10;
@@ -81,26 +136,31 @@ export class OrdersService {
     const vatAmount = (subTotal + serviceChargeAmount) * (vatRate / 100);
     const totalPrice = subTotal + serviceChargeAmount + vatAmount;
 
-    const lastOrderToday = await this.prisma.withRetry(() =>
-      this.prisma.order.findFirst({
-        where: {
-          table: { branchId: table.branchId },
-          createdAt: { gte: today },
-        },
-        orderBy: { displayNumber: 'desc' },
-        select: { displayNumber: true },
-      })
-    );
-
-    const nextNum = (parseInt(lastOrderToday?.displayNumber || '0', 10) || 0) + 1;
-    const displayNumber = nextNum.toString();
-
-    // 5. Create order + items in a single transaction (no withRetry — transactions are ephemeral)
+    // 5. Create order + items in a single transaction.
     const order = await this.prisma.$transaction(async (tx: any) => {
+      const counter = await tx.branchOrderCounter.upsert({
+        where: {
+          branchId_counterDate: {
+            branchId: table.branchId,
+            counterDate,
+          },
+        },
+        update: {
+          lastNumber: { increment: 1 },
+        },
+        create: {
+          branchId: table.branchId,
+          counterDate,
+          lastNumber: 1,
+        },
+        select: { lastNumber: true },
+      });
+      const displayNumber = counter.lastNumber.toString();
+
       const newOrder = await tx.order.create({
         data: {
-          tableId: dto.tableId,
-          sessionId: dto.sessionId,
+          tableId: table.id,
+          sessionId: session.id,
           customerRef: dto.customerRef,
           displayNumber,
           subTotal,
@@ -111,16 +171,16 @@ export class OrdersService {
           status: OrderStatus.CREATED,
           paymentStatus: 'UNPAID',
           items: {
-            create: dto.items.map((item) => ({
+            create: validatedItems.map((item) => ({
               menuItemId: item.menuItemId,
               quantity: item.quantity,
-              unitPrice: priceMap.get(item.menuItemId)! + (item.options?.reduce((s, o) => s + o.optionPrice, 0) || 0),
+              unitPrice: item.unitPrice,
               note: item.note,
               options: {
-                create: item.options?.map(o => ({
+                create: item.validatedOptions.map(o => ({
                   optionName: o.optionName,
                   optionPrice: o.optionPrice,
-                })) || [],
+                })),
               },
             })),
           },
@@ -131,10 +191,21 @@ export class OrdersService {
         },
       });
       return newOrder;
-    });
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
 
     // 6. Notify kitchen via socket (branch-isolated room)
     this.realtime.emitNewOrder(order, table.branchId);
+    await this.orderAudit.record({
+      status: 'CREATED',
+      source: 'customer',
+      branchId: table.branchId,
+      tableId: table.id,
+      sessionId: session.id,
+      customerRef: dto.customerRef,
+      orderId: order.id,
+      displayNumber: order.displayNumber,
+      itemCount: dto.items.length,
+    });
 
     return {
       ...order,
@@ -145,13 +216,15 @@ export class OrdersService {
 
 
   async getOrder(id: string) {
-    const order = await this.prisma.order.findUnique({
-      where: { id },
-      include: {
-        items: { include: { menuItem: { select: { name: true, imageUrl: true } }, options: true } },
-        table: { select: { tableNumber: true } },
-      },
-    });
+    const order = await this.prisma.withRetry(() =>
+      this.prisma.order.findUnique({
+        where: { id },
+        include: {
+          items: { include: { menuItem: { select: { name: true, imageUrl: true } }, options: true } },
+          table: { select: { tableNumber: true } },
+        },
+      }),
+    );
     if (!order) throw new NotFoundException('Order not found');
 
     return {
@@ -164,9 +237,19 @@ export class OrdersService {
     };
   }
 
-  async updateStatus(id: string, dto: UpdateOrderStatusDto) {
-    const order = await this.prisma.order.findUnique({ where: { id } });
+  async updateStatus(id: string, dto: UpdateOrderStatusDto, actingBranchId?: string) {
+    const order = await this.prisma.withRetry(() =>
+      this.prisma.order.findUnique({
+        where: { id },
+        select: { id: true, status: true, table: { select: { branchId: true } } },
+      }),
+    );
     if (!order) throw new NotFoundException('Order not found');
+    if (actingBranchId) {
+      if (order.table?.branchId && order.table.branchId !== actingBranchId) {
+        throw new ForbiddenException('Order does not belong to your branch');
+      }
+    }
 
     const allowed = STATUS_TRANSITIONS[order.status] ?? [];
     if (!allowed.includes(dto.status)) {
@@ -175,17 +258,41 @@ export class OrdersService {
       );
     }
 
-    const updated = await this.prisma.order.update({
-      where: { id },
-      data: { status: dto.status as OrderStatus },
-      include: {
-        items: { include: { menuItem: { select: { name: true } }, options: true } },
-        table: { select: { tableNumber: true, branchId: true } },
-      },
-    });
+    const transition = await this.prisma.withRetry(() =>
+      this.prisma.order.updateMany({
+        where: { id, status: order.status },
+        data: { status: dto.status as OrderStatus },
+      }),
+    );
+    if (transition.count === 0) {
+      throw new ConflictException('Order status changed by another request. Please retry.');
+    }
+
+    const updated = await this.prisma.withRetry(() =>
+      this.prisma.order.findUnique({
+        where: { id },
+        include: {
+          items: { include: { menuItem: { select: { name: true } }, options: true } },
+          table: { select: { tableNumber: true, branchId: true } },
+        },
+      }),
+    );
+    if (!updated) throw new NotFoundException('Order not found after update');
 
     // Emit realtime update
     this.realtime.emitOrderUpdated(updated);
+    await this.orderAudit.record({
+      status: 'STATUS_UPDATED',
+      source: 'staff',
+      branchId: updated.table?.branchId,
+      tableId: updated.tableId,
+      sessionId: updated.sessionId,
+      customerRef: updated.customerRef,
+      orderId: updated.id,
+      displayNumber: updated.displayNumber,
+      reason: `Order moved to ${updated.status}`,
+      itemCount: updated.items.length,
+    });
 
     // Push Notification
     if (updated.status === 'READY') {
@@ -220,20 +327,22 @@ export class OrdersService {
     sessionId?: string,
     customerRef?: string
   ) {
-    const orders = await this.prisma.order.findMany({
-      where: {
-        table: { branchId },
-        ...(status ? { status: status as OrderStatus } : {}),
-        ...(tableId ? { tableId } : {}),
-        ...(sessionId ? { sessionId } : {}),
-        ...(customerRef ? { customerRef } : {}),
-      },
-      orderBy: { createdAt: 'desc' },
-      include: {
-        items: { include: { menuItem: { select: { name: true } }, options: true } },
-        table: { select: { tableNumber: true } },
-      },
-    });
+    const orders = await this.prisma.withRetry(() =>
+      this.prisma.order.findMany({
+        where: {
+          table: { branchId },
+          ...(status ? { status: status as OrderStatus } : {}),
+          ...(tableId ? { tableId } : {}),
+          ...(sessionId ? { sessionId } : {}),
+          ...(customerRef ? { customerRef } : {}),
+        },
+        orderBy: { createdAt: 'desc' },
+        include: {
+          items: { include: { menuItem: { select: { name: true } }, options: true } },
+          table: { select: { tableNumber: true } },
+        },
+      }),
+    );
 
     return orders.map((o: any) => ({ 
       ...o, 
@@ -253,61 +362,71 @@ export class OrdersService {
     comment?: string;
     customerRef: string;
   }) {
-    const order = await this.prisma.order.findUnique({ where: { id: data.orderId } });
+    const order = await this.prisma.withRetry(() => this.prisma.order.findUnique({ where: { id: data.orderId } }));
     if (!order) throw new NotFoundException('Order not found');
 
     // Check if already rated this order (overall or per-item)
-    const existing = await this.prisma.rating.findFirst({
-      where: {
-        orderId: data.orderId,
-        customerRef: data.customerRef,
-        menuItemId: data.menuItemId ?? null,
-      },
-    });
+    const existing = await this.prisma.withRetry(() =>
+      this.prisma.rating.findFirst({
+        where: {
+          orderId: data.orderId,
+          customerRef: data.customerRef,
+          menuItemId: data.menuItemId ?? null,
+        },
+      }),
+    );
     if (existing) {
       // Update existing rating
-      return this.prisma.rating.update({
-        where: { id: existing.id },
-        data: { rating: data.rating, comment: data.comment },
-      });
+      return this.prisma.withRetry(() =>
+        this.prisma.rating.update({
+          where: { id: existing.id },
+          data: { rating: data.rating, comment: data.comment },
+        }),
+      );
     }
 
-    return this.prisma.rating.create({
-      data: {
-        orderId: data.orderId,
-        menuItemId: data.menuItemId || null,
-        rating: data.rating,
-        comment: data.comment,
-        customerRef: data.customerRef,
-      },
-    });
+    return this.prisma.withRetry(() =>
+      this.prisma.rating.create({
+        data: {
+          orderId: data.orderId,
+          menuItemId: data.menuItemId || null,
+          rating: data.rating,
+          comment: data.comment,
+          customerRef: data.customerRef,
+        },
+      }),
+    );
   }
 
   async getRatingsForBranch(branchId: string) {
-    return this.prisma.rating.findMany({
-      where: { order: { table: { branchId } } },
-      include: {
-        order: { select: { displayNumber: true, table: { select: { tableNumber: true } } } },
-        menuItem: { select: { name: true } },
-      },
-      orderBy: { createdAt: 'desc' },
-      take: 50,
-    });
+    return this.prisma.withRetry(() =>
+      this.prisma.rating.findMany({
+        where: { order: { table: { branchId } } },
+        include: {
+          order: { select: { displayNumber: true, table: { select: { tableNumber: true } } } },
+          menuItem: { select: { name: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 50,
+      }),
+    );
   }
 
   // ─── Customer Order History ───────────────────────────────────────
 
   async getOrderHistory(customerRef: string) {
-    const orders = await this.prisma.order.findMany({
-      where: { customerRef },
-      orderBy: { createdAt: 'desc' },
-      take: 20,
-      include: {
-        items: { include: { menuItem: { select: { name: true, imageUrl: true } }, options: true } },
-        table: { select: { tableNumber: true } },
-        ratings: { select: { id: true, rating: true, comment: true, menuItemId: true } },
-      },
-    });
+    const orders = await this.prisma.withRetry(() =>
+      this.prisma.order.findMany({
+        where: { customerRef },
+        orderBy: { createdAt: 'desc' },
+        take: 20,
+        include: {
+          items: { include: { menuItem: { select: { name: true, imageUrl: true } }, options: true } },
+          table: { select: { tableNumber: true } },
+          ratings: { select: { id: true, rating: true, comment: true, menuItemId: true } },
+        },
+      }),
+    );
 
     return orders.map((o: any) => ({
       ...o,

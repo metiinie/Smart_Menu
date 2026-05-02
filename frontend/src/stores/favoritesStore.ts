@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
+import { favoritesApi } from '@/lib/api';
 
 export interface FavoriteItem {
   menuItemId: string;
@@ -21,12 +22,18 @@ interface FavoritesStore {
   favorites: FavoriteItem[];
   customerProfile: CustomerProfile;
   language: 'en' | 'am' | 'or';
+  currency: 'ETB' | 'USD';
+  isDarkMode: boolean;
+  setFavorites: (favorites: FavoriteItem[]) => void;
+  fetchFavorites: (customerRef: string) => Promise<void>;
   addFavorite: (item: Omit<FavoriteItem, 'addedAt'>) => void;
   removeFavorite: (menuItemId: string) => void;
   isFavorite: (menuItemId: string) => boolean;
   toggleFavorite: (item: Omit<FavoriteItem, 'addedAt'>) => void;
   updateProfile: (profile: Partial<CustomerProfile>) => void;
   setLanguage: (lang: 'en' | 'am' | 'or') => void;
+  setCurrency: (currency: 'ETB' | 'USD') => void;
+  toggleDarkMode: () => void;
 }
 
 export const useFavoritesStore = create<FavoritesStore>()(
@@ -35,8 +42,21 @@ export const useFavoritesStore = create<FavoritesStore>()(
       favorites: [],
       customerProfile: {},
       language: 'en',
+      currency: 'ETB',
+      isDarkMode: false,
 
-      addFavorite: (item) =>
+      setFavorites: (favorites) => set({ favorites }),
+
+      fetchFavorites: async (customerRef) => {
+        try {
+          const fetched = await favoritesApi.getFavorites(customerRef);
+          set({ favorites: fetched });
+        } catch (error) {
+          console.error('Failed to fetch favorites', error);
+        }
+      },
+
+      addFavorite: (item) => {
         set((state) => {
           if (state.favorites.some((f) => f.menuItemId === item.menuItemId)) {
             return state;
@@ -44,28 +64,29 @@ export const useFavoritesStore = create<FavoritesStore>()(
           return {
             favorites: [{ ...item, addedAt: Date.now() }, ...state.favorites],
           };
-        }),
+        });
+        const ref = get().customerProfile.customerRef || (typeof window !== 'undefined' ? localStorage.getItem('arifsmart_customerRef') : null);
+        if (ref) favoritesApi.addFavorite(ref, item.menuItemId).catch(console.error);
+      },
 
-      removeFavorite: (menuItemId) =>
+      removeFavorite: (menuItemId) => {
         set((state) => ({
           favorites: state.favorites.filter((f) => f.menuItemId !== menuItemId),
-        })),
+        }));
+        const ref = get().customerProfile.customerRef || (typeof window !== 'undefined' ? localStorage.getItem('arifsmart_customerRef') : null);
+        if (ref) favoritesApi.removeFavorite(ref, menuItemId).catch(console.error);
+      },
 
       isFavorite: (menuItemId) =>
         get().favorites.some((f) => f.menuItemId === menuItemId),
 
       toggleFavorite: (item) => {
         const state = get();
-        if (state.favorites.some((f) => f.menuItemId === item.menuItemId)) {
-          set({
-            favorites: state.favorites.filter(
-              (f) => f.menuItemId !== item.menuItemId
-            ),
-          });
+        const isFav = state.favorites.some((f) => f.menuItemId === item.menuItemId);
+        if (isFav) {
+          get().removeFavorite(item.menuItemId);
         } else {
-          set({
-            favorites: [{ ...item, addedAt: Date.now() }, ...state.favorites],
-          });
+          get().addFavorite(item);
         }
       },
 
@@ -75,6 +96,10 @@ export const useFavoritesStore = create<FavoritesStore>()(
         })),
 
       setLanguage: (language) => set({ language }),
+
+      setCurrency: (currency) => set({ currency }),
+
+      toggleDarkMode: () => set((state) => ({ isDarkMode: !state.isDarkMode })),
     }),
     {
       name: 'arifsmart-favorites',

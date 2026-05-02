@@ -4,6 +4,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useState, useEffect } from 'react';
 import { syncManager } from '@/lib/syncManager';
 import dynamic from 'next/dynamic';
+import { Toaster } from 'sonner';
+import { useFavoritesStore } from '@/stores/favoritesStore';
+import { Toast, ToastContainer, ToastType } from '@/components/ui/Toast';
 
 /**
  * NOTE: SyncProvider.tsx contains identical logic and is NOT rendered anywhere.
@@ -16,6 +19,62 @@ const PwaInstallPrompt = dynamic(
   () => import('@/components/ui/PwaInstallPrompt').then((mod) => mod.PwaInstallPrompt),
   { ssr: false },
 );
+
+function ThemeWrapper({ children }: { children: React.ReactNode }) {
+  const isDarkMode = useFavoritesStore((state) => state.isDarkMode);
+
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [isDarkMode]);
+
+  return <>{children}</>;
+}
+
+function OrderAuditToaster() {
+  const [auditToast, setAuditToast] = useState<{
+    type: ToastType;
+    message: string;
+  } | null>(null);
+
+  useEffect(() => {
+    const onAudit = (event: Event) => {
+      const custom = event as CustomEvent<{
+        type: ToastType;
+        message: string;
+        meta?: Record<string, unknown>;
+      }>;
+      const detail = custom.detail;
+      if (!detail) return;
+      const compactMeta = detail.meta
+        ? ` | b:${String(detail.meta.branchId ?? '-')} s:${String(detail.meta.sessionId ?? '-')}`
+        : '';
+      setAuditToast({
+        type: detail.type,
+        message: `${detail.message}${compactMeta}`,
+      });
+      console.log('[OrderAudit]', detail);
+    };
+    window.addEventListener('arifsmart-order-audit', onAudit as EventListener);
+    return () => window.removeEventListener('arifsmart-order-audit', onAudit as EventListener);
+  }, []);
+
+  return (
+    <ToastContainer>
+      {auditToast && (
+        <Toast
+          message={auditToast.message}
+          type={auditToast.type}
+          duration={5000}
+          onClose={() => setAuditToast(null)}
+        />
+      )}
+    </ToastContainer>
+  );
+}
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
@@ -71,8 +130,12 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {children}
-      <PwaInstallPrompt />
+      <ThemeWrapper>
+        {children}
+        <PwaInstallPrompt />
+        <OrderAuditToaster />
+        <Toaster position="top-center" richColors theme="dark" />
+      </ThemeWrapper>
     </QueryClientProvider>
   );
 }

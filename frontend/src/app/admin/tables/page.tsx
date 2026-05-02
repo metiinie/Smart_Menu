@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import {
   Plus,
   Trash2,
@@ -17,34 +18,35 @@ import {
 } from 'lucide-react';
 import { adminApi } from '@/lib/api';
 import { AdminHeader } from '@/components/admin/AdminHeader';
-import { useAuthStore } from '@/stores/authStore';
+import { useAuthStore, selectBranchId } from '@/stores/authStore';
 import { QRCodeSVG } from 'qrcode.react';
 
-const BRANCH_ID = process.env.NEXT_PUBLIC_BRANCH_ID ?? '';
 const APP_URL = typeof window !== 'undefined' ? window.location.origin : '';
 
 export default function AdminTablesPage() {
-  const { logout } = useAuthStore();
+  const { user, logout } = useAuthStore();
+  const branchId = selectBranchId(user);
   const [showAdd, setShowAdd] = useState(false);
   const [newTableNum, setNewTableNum] = useState('');
   const [qrTable, setQrTable] = useState<any>(null);
   const qrRef = useRef<HTMLDivElement>(null);
 
   const { data: tables = [], isLoading, refetch, isFetching } = useQuery({
-    queryKey: ['admin-tables', BRANCH_ID],
-    queryFn: () => adminApi.getTables(BRANCH_ID),
-    enabled: !!BRANCH_ID,
+    queryKey: ['admin-tables', branchId],
+    queryFn: () => adminApi.getTables(branchId),
+    enabled: !!branchId,
   });
 
   const handleCreate = async () => {
     if (!newTableNum) return;
     try {
-      await adminApi.createTable({ branchId: BRANCH_ID, tableNumber: parseInt(newTableNum) });
+      await adminApi.createTable({ branchId: branchId, tableNumber: parseInt(newTableNum) });
       setNewTableNum('');
       setShowAdd(false);
       refetch();
+      toast.success('Table created successfully');
     } catch (err: any) {
-      alert(err.message || 'Failed to create table');
+      toast.error(err.message || 'Failed to create table');
     }
   };
 
@@ -54,7 +56,7 @@ export default function AdminTablesPage() {
       await adminApi.deleteTable(id);
       refetch();
     } catch (err: any) {
-      alert(err.message || 'Failed to delete');
+      toast.error(err.message || 'Failed to delete');
     }
   };
 
@@ -63,7 +65,7 @@ export default function AdminTablesPage() {
       await adminApi.toggleTableStatus(table.id, !table.isActive);
       refetch();
     } catch (err: any) {
-      alert(err.message || 'Failed to toggle');
+      toast.error(err.message || 'Failed to toggle');
     }
   };
 
@@ -88,7 +90,7 @@ export default function AdminTablesPage() {
   }, [qrTable]);
 
   const getMenuUrl = (table: any) =>
-    `${APP_URL}/menu/${BRANCH_ID}/${table.id}`;
+    `${APP_URL}/menu/${branchId}/${table.id}`;
 
   return (
     <>
