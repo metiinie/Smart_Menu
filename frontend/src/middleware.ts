@@ -8,18 +8,24 @@ export function middleware(request: NextRequest) {
   // Improved subdomain detection
   const isIpAddress = /^(\d{1,3}\.){3}\d{1,3}$/.test(hostname.split(':')[0]);
   const isLocalhost = hostname.startsWith('localhost');
+  const isVercel = hostname.endsWith('.vercel.app');
   
-  const isSubdomain = !isIpAddress && !isLocalhost && hostname.includes('.') && !hostname.startsWith('www');
-  const subdomain = isSubdomain ? hostname.split('.')[0] : null;
+  const parts = hostname.split('.');
+  // A subdomain exists if:
+  // - On Vercel: more than 3 parts (e.g., branch1.smart-menu.vercel.app)
+  // - On Custom Domain: more than 2 parts (e.g., branch1.example.com)
+  const isSubdomain = !isIpAddress && !isLocalhost && !hostname.startsWith('www') && (
+    isVercel ? parts.length > 3 : parts.length > 2
+  );
+  
+  const subdomain = isSubdomain ? parts[0] : null;
 
   // 1. Subdomain Routing (Staff/Admin)
   if (subdomain) {
-    // If they are trying to access the customer menu via subdomain, redirect to main domain
-    // Or if they are at the root of the subdomain, rewrite to /admin
+    // If at the root of a subdomain, rewrite to the admin dashboard
     if (url.pathname === '/') {
-      return NextResponse.rewrite(new URL(`/admin`, request.url));
+      return NextResponse.rewrite(new URL(`/admin/dashboard`, request.url));
     }
-    // All other subdomain requests stay on their path
     return NextResponse.next();
   }
 
