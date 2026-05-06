@@ -146,7 +146,7 @@ export const syncManager = {
         
         // RE-ATTACH: If the payload has a stale sessionId, try to refresh it from current context
         const contextStr = localStorage.getItem('_table_ctx');
-        if (contextStr) {
+        if (contextStr && item?.payload) {
           try {
             const ctx = JSON.parse(contextStr);
             if (ctx.activeSession?.id && item.payload.sessionId !== ctx.activeSession.id) {
@@ -167,7 +167,7 @@ export const syncManager = {
             localOrderId: item.id,
             serverOrderId: res.id,
             branchId: item.branchId,
-            sessionId: item.payload.sessionId,
+            sessionId: item?.payload?.sessionId,
           });
         } catch (err: any) {
           // Handle session expiry during background sync
@@ -179,7 +179,9 @@ export const syncManager = {
               if (!branchId) throw new Error('Missing branchId for session recovery');
 
               const ctx = await contextApi.getTableContext(branchId, item.tableId);
-              item.payload.sessionId = ctx.activeSession.id;
+              if (item?.payload) {
+                item.payload.sessionId = ctx.activeSession.id;
+              }
               useLocalOrderStore.getState().updateOrderSession(item.id, ctx.activeSession.id);
               
               const retryRes = await ordersApi.create(item.payload);

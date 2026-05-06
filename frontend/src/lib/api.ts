@@ -91,6 +91,8 @@ api.interceptors.response.use(
 
         // Unwrap if wrapped in {success, data}
         const payload = data?.data ?? data;
+        if (!payload) throw new Error('Invalid refresh response');
+
         const newAccessToken = payload.accessToken ?? payload.token;
         const newRefreshToken = payload.refreshToken;
 
