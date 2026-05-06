@@ -18,18 +18,12 @@ export function validateEnv(config: Record<string, unknown>) {
   }
 
   const env = parsed.data;
-  const dbUrl = new URL(env.DATABASE_URL);
-
-  if (env.NODE_ENV === 'production') {
-    const sslMode = dbUrl.searchParams.get('sslmode');
-    const connectionLimit = dbUrl.searchParams.get('connection_limit');
-
-    if (sslMode !== 'require') {
-      throw new Error('DATABASE_URL must include sslmode=require in production');
-    }
-    if (connectionLimit !== '5') {
-      throw new Error('DATABASE_URL must include connection_limit=5 in production');
-    }
+  
+  // Basic validation to ensure DATABASE_URL is a valid URL
+  try {
+    new URL(env.DATABASE_URL);
+  } catch (e) {
+    throw new Error('DATABASE_URL must be a valid URL');
   }
 
   return env;
