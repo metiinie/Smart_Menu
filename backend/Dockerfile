@@ -1,8 +1,9 @@
 # --- Stage 1: Build ---
 FROM node:20-alpine AS builder
 
-# Install system dependencies needed for some node modules
-RUN apk add --no-cache libc6-compat
+# Install system dependencies needed for Prisma and build
+RUN apk add --no-cache libc6-compat openssl
+
 RUN npm install -g pnpm
 
 WORKDIR /app
@@ -25,7 +26,9 @@ RUN pnpm build
 # --- Stage 2: Production ---
 FROM node:20-alpine AS runner
 
-RUN apk add --no-cache libc6-compat
+# Install runtime dependencies
+RUN apk add --no-cache libc6-compat openssl
+
 RUN npm install -g pnpm
 
 WORKDIR /app
