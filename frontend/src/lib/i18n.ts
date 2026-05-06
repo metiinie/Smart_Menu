@@ -339,6 +339,9 @@ export const UI_STRINGS = {
     branchNamePlaceholder: 'e.g. Downtown Branch',
     addressPlaceholder: '123 Main St...',
     phonePlaceholder: '+123456789',
+    address: 'Address',
+    phone: 'Phone',
+    branchName: 'Branch Name',
   },
   am: {
     welcome: 'እንኳን ደህና መጡ',
@@ -646,6 +649,9 @@ export const UI_STRINGS = {
     branchNamePlaceholder: 'ለምሳሌ፦ መሃል ከተማ ቅርንጫፍ',
     addressPlaceholder: 'አራት ኪሎ፣ አዲስ አበባ...',
     phonePlaceholder: '+251911...',
+    address: 'አድራሻ',
+    phone: 'ስልክ',
+    branchName: 'የቅርንጫፍ ስም',
   },
   or: {
     welcome: 'Baga nagaan dhuftan',
@@ -953,5 +959,8 @@ export const UI_STRINGS = {
     branchNamePlaceholder: 'fkn. Dammee Downtown',
     addressPlaceholder: 'Teessoo...',
     phonePlaceholder: '+251911...',
+    address: 'Teessoo',
+    phone: 'Lakkofsa Bilbilaa',
+    branchName: 'Maqaa Dammee',
   },
 };
