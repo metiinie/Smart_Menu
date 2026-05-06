@@ -79,7 +79,7 @@ export function PinLogin({ branchId, onSuccess }: Props) {
     } finally {
       setLoading(false);
     }
-  }, [selected, pin, onSuccess]);
+  }, [selected, pin, onSuccess, t]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { ordersApi, kitchenApi } from '@/lib/api';
 import { RotateCcw, AlertTriangle, CheckCircle2, Loader2, Clock, ChevronRight, Utensils } from 'lucide-react';
 import { useTranslation } from '@/hooks/useTranslation';
+import Image from 'next/image';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -172,7 +173,7 @@ export function KitchenOrderCard({ order, onUpdated }: Props) {
               {/* Image + Qty Overlay */}
               <div className="relative w-11 h-11 rounded-lg overflow-hidden bg-surface-200 flex-shrink-0 border border-surface-200">
                 {item.menuItem.imageUrl ? (
-                  <img src={item.menuItem.imageUrl} className="w-full h-full object-cover" alt={item.menuItem.name} />
+                  <Image src={item.menuItem.imageUrl} fill className="object-cover" alt={item.menuItem.name} sizes="44px" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-foreground/20">
                     <Utensils size={20} />

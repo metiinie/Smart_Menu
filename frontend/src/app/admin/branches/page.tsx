@@ -86,7 +86,7 @@ function BranchDrawer({ branch, onClose, onSaved }: BranchFormProps) {
             <label className="text-[10px] font-bold uppercase tracking-wider text-foreground/40 mb-1 block">{t('branchName')}</label>
             <input
               value={name} onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Downtown Branch"
+              placeholder={t('branchNamePlaceholder')}
               className="w-full bg-surface-100 text-foreground rounded-xl px-3 py-2.5 text-sm outline-none border border-surface-200 focus:border-brand-500 transition-colors"
             />
           </div>
@@ -95,7 +95,7 @@ function BranchDrawer({ branch, onClose, onSaved }: BranchFormProps) {
             <label className="text-[10px] font-bold uppercase tracking-wider text-foreground/40 mb-1 block">{t('address')}</label>
             <input
               value={address} onChange={(e) => setAddress(e.target.value)}
-              placeholder="123 Main St..."
+              placeholder={t('addressPlaceholder')}
               className="w-full bg-surface-100 text-foreground rounded-xl px-3 py-2.5 text-sm outline-none border border-surface-200 focus:border-brand-500 transition-colors"
             />
           </div>
@@ -104,7 +104,7 @@ function BranchDrawer({ branch, onClose, onSaved }: BranchFormProps) {
             <label className="text-[10px] font-bold uppercase tracking-wider text-foreground/40 mb-1 block">{t('phone')} ({t('optional')})</label>
             <input
               value={phone} onChange={(e) => setPhone(e.target.value)}
-              placeholder="+123456789"
+              placeholder={t('phonePlaceholder')}
               className="w-full bg-surface-100 text-foreground rounded-xl px-3 py-2.5 text-sm outline-none border border-surface-200 focus:border-brand-500 transition-colors"
             />
           </div>
@@ -194,7 +194,7 @@ export default function BranchesManagementPage() {
             <motion.button whileTap={{ scale: 0.9 }}
               onClick={() => setDrawer({ open: true, branch: undefined })}
               className="flex items-center gap-2 bg-brand-500 text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-brand-600 transition-colors">
-              <Plus size={16} /> Add Branch
+              <Plus size={16} /> {t('addBranch')}
             </motion.button>
           </div>
 
@@ -236,7 +236,7 @@ export default function BranchesManagementPage() {
                       </div>
                       <div className="flex items-center gap-2 p-2 rounded-xl bg-surface-100 border border-surface-200">
                         <Percent size={14} className="text-foreground/20" />
-                        <span className="text-xs font-medium text-foreground/60">VAT: {b.vatRate}% | SC: {b.serviceChargeRate}%</span>
+                        <span className="text-xs font-medium text-foreground/60">{t('vat')}: {b.vatRate}% | {t('serviceCharge')}: {b.serviceChargeRate}%</span>
                       </div>
                     </div>
 

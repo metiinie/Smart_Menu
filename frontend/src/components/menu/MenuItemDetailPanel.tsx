@@ -690,7 +690,7 @@ function NutritionModern({ insights, resetKey, item, language }: { insights: Ing
       return [];
     }
     return list;
-  }, [summary.energy, summary.fat, summary.protein, nutritionFilter]);
+  }, [summary.energy, summary.fat, summary.protein, nutritionFilter, language]);
 
   const sectionBlocks = useMemo((): { section: NutritionSection; title?: string }[] => {
     switch (nutritionFilter) {
