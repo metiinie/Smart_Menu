@@ -4,11 +4,17 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
+import helmet from 'helmet';
+import compression from 'compression';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     logger: ['error', 'warn', 'log'],
   });
+
+  // Security Hardening
+  app.use(helmet());
+  app.use(compression());
 
   // CORS — allow Next.js frontend
   app.enableCors({
@@ -42,6 +48,15 @@ async function bootstrap() {
     res.redirect(process.env.FRONTEND_URL || 'http://localhost:3000');
   });
   adapter.get('/api', (_req, res) => res.redirect('/api/docs'));
+  
+  // Health Check
+  adapter.get('/api/health', (_req, res) => {
+    res.status(200).json({
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+    });
+  });
 
   // Swagger docs
   const config = new DocumentBuilder()
