@@ -184,20 +184,22 @@ export const syncManager = {
               }
               useLocalOrderStore.getState().updateOrderSession(item.id, ctx.activeSession.id);
               
-              const retryRes = await ordersApi.create(item.payload);
-              useLocalOrderStore.getState().updateOrderStatus(item.id, LocalOrderStatus.SYNCED, retryRes.id);
-              emitOrderAudit('success', 'Queued order synced after session recovery', {
-                localOrderId: item.id,
-                serverOrderId: retryRes.id,
-                branchId,
-                sessionId: item.payload.sessionId,
-              });
+              if (item?.payload) {
+                const retryRes = await ordersApi.create(item.payload);
+                useLocalOrderStore.getState().updateOrderStatus(item.id, LocalOrderStatus.SYNCED, retryRes.id);
+                emitOrderAudit('success', 'Queued order synced after session recovery', {
+                  localOrderId: item.id,
+                  serverOrderId: retryRes.id,
+                  branchId,
+                  sessionId: item.payload?.sessionId,
+                });
+              }
             } catch (retryErr) {
               // Mark as failed if retry also fails
               emitOrderAudit('error', 'Queued order sync failed after recovery', {
                 localOrderId: item.id,
                 branchId: item.branchId,
-                sessionId: item.payload.sessionId,
+                sessionId: item.payload?.sessionId,
                 reason: (retryErr as any).message,
               });
               useLocalOrderStore.getState().updateOrderStatus(item.id, LocalOrderStatus.FAILED, undefined, (retryErr as any).message);
