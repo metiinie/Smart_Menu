@@ -9,7 +9,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { LocalOrder, LocalOrderStatus, MenuCategoryDto } from '@/shared/types';
 import { syncManager } from '@/lib/syncManager';
 import { useFavoritesStore } from '@/stores/favoritesStore';
-import { getLocalized } from '@/lib/i18n';
+import { getLocalized, UI_STRINGS } from '@/lib/i18n';
 
 // ── Tax rate defaults (used when branch settings are unavailable) ─────────
 const DEFAULT_SERVICE_CHARGE_RATE = 10; // percent
@@ -149,7 +149,7 @@ export function CartDrawer({ open, onClose, groupedMenu = [] }: Props) {
           >
             {/* Header */}
             <div className="flex items-center justify-between p-5 border-b border-surface-200">
-              <h2 className="font-display font-bold text-xl text-surface-900">Your Cart</h2>
+              <h2 className="font-display font-bold text-xl text-surface-900">{UI_STRINGS[language].yourCart}</h2>
               <button
                 onClick={onClose}
                 className="w-9 h-9 rounded-full bg-surface-100 flex items-center justify-center"
@@ -164,7 +164,7 @@ export function CartDrawer({ open, onClose, groupedMenu = [] }: Props) {
               {liveItems.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full gap-3 text-surface-400">
                   <span className="text-5xl">🛒</span>
-                  <p className="text-sm">Your cart is empty</p>
+                  <p className="text-sm">{UI_STRINGS[language].cartEmpty}</p>
                 </div>
               ) : (
                 liveItems.map((item) => (
@@ -204,7 +204,7 @@ export function CartDrawer({ open, onClose, groupedMenu = [] }: Props) {
                         {(!item.isAvailable || item.note || (item.options && item.options.length > 0)) && (
                           <div className="flex flex-col gap-0.5 mt-1">
                             {!item.isAvailable && (
-                              <p className="text-[10px] text-red-400 font-medium">Item Unavailable</p>
+                              <p className="text-[10px] text-red-400 font-medium">{UI_STRINGS[language].itemUnavailable}</p>
                             )}
                             {item.note && (
                               <p className="text-[10px] text-amber-400 font-medium italic truncate">
@@ -264,26 +264,26 @@ export function CartDrawer({ open, onClose, groupedMenu = [] }: Props) {
                   <p className="text-red-400 text-sm text-center bg-red-400/10 py-2 rounded-lg">{error}</p>
                 )}
                 {hasUnavailable && (
-                  <p className="text-red-400 text-xs text-center">Please remove unavailable items to checkout.</p>
+                  <p className="text-red-400 text-xs text-center">{UI_STRINGS[language].removeUnavailable}</p>
                 )}
                 
                 {/* Centered Receipt Design */}
                 <div className="bg-surface-100/50 rounded-2xl p-4 mx-2 space-y-3 backdrop-blur-sm border border-surface-200/50">
                   <div className="flex items-center justify-between text-surface-500 text-xs font-medium">
-                    <span>Subtotal</span>
+                    <span>{UI_STRINGS[language].subtotal}</span>
                     <span>ETB {subTotal.toFixed(2)}</span>
                   </div>
                   <div className="flex items-center justify-between text-surface-500 text-xs font-medium">
-                    <span>Service Charge ({serviceChargeRate}%)</span>
+                    <span>{UI_STRINGS[language].serviceCharge} ({serviceChargeRate}%)</span>
                     <span>ETB {serviceCharge.toFixed(2)}</span>
                   </div>
                   <div className="flex items-center justify-between text-surface-500 text-xs font-medium">
-                    <span>VAT ({vatRate}%)</span>
+                    <span>{UI_STRINGS[language].vat} ({vatRate}%)</span>
                     <span>ETB {vat.toFixed(2)}</span>
                   </div>
                   
                   <div className="border-t border-surface-200/50 pt-3 flex items-center justify-between">
-                    <span className="text-surface-900 text-sm font-bold">Grand Total</span>
+                    <span className="text-surface-900 text-sm font-bold">{UI_STRINGS[language].grandTotal}</span>
                     <span className="font-display font-bold text-xl text-brand-400">
                       ETB {grandTotal.toFixed(2)}
                     </span>
@@ -307,7 +307,7 @@ export function CartDrawer({ open, onClose, groupedMenu = [] }: Props) {
                       <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                     ) : (
                       <>
-                        Place Order <ChevronRight size={16} />
+                        {UI_STRINGS[language].placeOrder} <ChevronRight size={16} />
                       </>
                     )}
                   </motion.button>

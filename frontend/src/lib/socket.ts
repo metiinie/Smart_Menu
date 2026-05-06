@@ -1,4 +1,5 @@
 import { io, Socket } from 'socket.io-client';
+import { useAuthStore } from '@/stores/authStore';
 
 const WS_URL = process.env.NEXT_PUBLIC_WS_URL ?? 'http://localhost:3001';
 
@@ -11,21 +12,24 @@ let socket: Socket | null = null;
  */
 export function getSocket(): Socket {
   if (!socket) {
+    console.log('[Socket] 🔌 Initializing connection to:', WS_URL);
     socket = io(WS_URL, {
-      transports: ['websocket', 'polling'],
+      transports: ['websocket', 'polling'], // Try websocket first, then fallback to polling
       autoConnect: true,
       reconnection: true,
-      reconnectionAttempts: Infinity,   // keep trying forever — kitchen screens must stay live
+      reconnectionAttempts: Infinity,
       reconnectionDelay: 1000,
-      reconnectionDelayMax: 10_000,
+      reconnectionDelayMax: 5000,
+      timeout: 20000,
       auth: (cb) => {
-        // Lazily attach the JWT token on every connect/reconnect attempt
-        const token =
-          typeof window !== 'undefined'
-            ? localStorage.getItem('arifsmart_token')
-            : null;
+        const token = useAuthStore.getState().token;
         cb({ token: token ?? '' });
       },
+    });
+
+    // Debug listener for connection failures
+    socket.on('connect_error', (err) => {
+      console.error(`[Socket] ❌ Connection error to ${WS_URL}:`, err.message);
     });
   } else if (!socket.connected) {
     socket.connect();
@@ -58,6 +62,7 @@ export function disconnectSocket(): void {
 export function callWaiter(data: {
   tableNumber: number;
   tableId: string;
+  branchId: string;
   requestType: 'WAITER' | 'BILL' | 'HELP';
 }): void {
   getSocket().emit('call-waiter', data);

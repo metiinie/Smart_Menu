@@ -41,6 +41,19 @@ export class HttpExceptionFilter implements ExceptionFilter {
     if (status >= 500) {
       const stack = exception instanceof Error ? exception.stack : 'No stack trace';
       this.logger.error(`${request.method} ${request.url}\n${stack}`);
+      
+      // Write to a local file for immediate visibility in this session
+      try {
+        const fs = require('fs');
+        const path = require('path');
+        const logDir = path.join(process.cwd(), 'logs');
+        if (!fs.existsSync(logDir)) fs.mkdirSync(logDir);
+        const logFile = path.join(logDir, 'backend-errors.log');
+        const logEntry = `[${new Date().toISOString()}] ${request.method} ${request.url}\n${stack}\n\n`;
+        fs.appendFileSync(logFile, logEntry);
+      } catch (e) {
+        // Ignore logging failures
+      }
     }
 
     response.status(status).json(errorBody);

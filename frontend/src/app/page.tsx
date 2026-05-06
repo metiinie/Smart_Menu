@@ -7,6 +7,7 @@ import { Globe} from 'lucide-react';
 import { PageTransition } from '@/components/ui/PageTransition';
 import { useFavoritesStore } from '@/stores/favoritesStore';
 import { authApi } from '@/lib/api';
+import { useTranslation } from '@/hooks/useTranslation';
 
 const LANGUAGES = [
   { code: 'en' as const, label: 'English' },
@@ -15,6 +16,7 @@ const LANGUAGES = [
 ];
 
 export default function HomePage() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { language, setLanguage } = useFavoritesStore();
   const [resolvedBranchId, setResolvedBranchId] = useState('');
@@ -85,11 +87,10 @@ export default function HomePage() {
               ArifSmart Experience
             </span>
             <h1 className="font-display text-4xl md:text-6xl lg:text-7xl font-black text-[#1E293B] leading-[0.9] tracking-tighter">
-              READY TO<br />
-              <span className="text-brand-500 drop-shadow-sm">ORDER?</span>
+              {t('readyToOrder' as any)}
             </h1>
             <p className="text-slate-400 text-[10px] md:text-sm font-medium max-w-[280px] md:max-w-md mx-auto leading-relaxed mt-4 uppercase tracking-widest">
-              Tap below to begin your culinary journey
+              {t('culinaryJourney' as any)}
             </p>
           </motion.div>
 
@@ -102,7 +103,7 @@ export default function HomePage() {
           >
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-shimmer" />
             <span className="relative z-10 flex items-center gap-3">
-              Continue
+              {t('continue' as any)}
               <motion.span
                 animate={{ x: [0, 5, 0] }}
                 transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
@@ -123,7 +124,7 @@ export default function HomePage() {
           <div className="flex items-center gap-2 px-6 py-2 rounded-full bg-brand-50 border border-brand-100/50 shadow-sm">
             <Globe size={14} className="text-brand-500" />
             <span className="font-display text-[11px] text-brand-600 font-black tracking-[0.2em] uppercase">
-              Select Language
+              {t('selectLanguage' as any)}
             </span>
           </div>
           

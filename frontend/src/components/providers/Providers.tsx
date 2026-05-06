@@ -7,6 +7,8 @@ import dynamic from 'next/dynamic';
 import { Toaster } from 'sonner';
 import { useFavoritesStore } from '@/stores/favoritesStore';
 import { Toast, ToastContainer, ToastType } from '@/components/ui/Toast';
+import { ErrorBoundary } from '@/components/providers/ErrorBoundary';
+import { initGlobalErrorLogger } from '@/lib/logger';
 
 /**
  * NOTE: SyncProvider.tsx contains identical logic and is NOT rendered anywhere.
@@ -93,6 +95,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
+    // Initialize global crash reporter
+    initGlobalErrorLogger();
+
     // 1. Attempt to flush any orders queued while offline
     if (navigator.onLine) {
       syncManager.startSync();
@@ -129,13 +134,15 @@ export function Providers({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeWrapper>
-        {children}
-        <PwaInstallPrompt />
-        <OrderAuditToaster />
-        <Toaster position="top-center" richColors theme="dark" />
-      </ThemeWrapper>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <ThemeWrapper>
+          {children}
+          <PwaInstallPrompt />
+          <OrderAuditToaster />
+          <Toaster position="top-center" richColors theme="dark" />
+        </ThemeWrapper>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }

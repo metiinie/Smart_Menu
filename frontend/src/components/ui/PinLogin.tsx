@@ -7,6 +7,7 @@ import { authApi } from '@/lib/api';
 import { BrandLogo } from './BrandLogo';
 
 import { Role } from '@/shared/types';
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface StaffUser {
   id: string;
@@ -16,10 +17,11 @@ interface StaffUser {
 
 interface Props {
   branchId: string;
-  onSuccess: (token: string, user: StaffUser) => void;
+  onSuccess: (token: string, user: StaffUser, refreshToken?: string) => void;
 }
 
 export function PinLogin({ branchId, onSuccess }: Props) {
+  const { t } = useTranslation();
   const [staff, setStaff] = useState<StaffUser[]>([]);
   const [selected, setSelected] = useState<StaffUser | null>(null);
   const [pin, setPin] = useState('');
@@ -68,11 +70,11 @@ export function PinLogin({ branchId, onSuccess }: Props) {
     setError('');
     try {
       const res = await authApi.pinLogin(selected.id, pin);
-      localStorage.setItem('arifsmart_token', res.token);
+      localStorage.setItem('arifsmart_token', res.token ?? res.accessToken);
       localStorage.setItem('arifsmart_user', JSON.stringify(res.user));
-      onSuccess(res.token, res.user);
+      onSuccess(res.token ?? res.accessToken, res.user, res.refreshToken);
     } catch {
-      setError('Incorrect security PIN. Please try again.');
+      setError(t('incorrectPin' as any));
       setPin('');
     } finally {
       setLoading(false);
@@ -109,13 +111,13 @@ export function PinLogin({ branchId, onSuccess }: Props) {
             
             <div className="space-y-3">
               <p className="text-slate-400 text-xs font-bold uppercase tracking-widest text-center mb-6">
-                Choose your profile to sign in
+                {t('chooseProfile' as any)}
               </p>
               
               {loading && !staff.length && (
                 <div className="flex flex-col items-center justify-center py-10 gap-4">
                   <div className="w-10 h-10 border-2 border-gold-500/20 border-t-gold-500 rounded-full animate-spin" />
-                  <p className="text-gold-500/60 text-[10px] font-bold uppercase tracking-widest animate-pulse">Connecting to server...</p>
+                  <p className="text-gold-500/60 text-[10px] font-bold uppercase tracking-widest animate-pulse">{t('connectingToServer' as any)}</p>
                 </div>
               )}
 
@@ -129,16 +131,16 @@ export function PinLogin({ branchId, onSuccess }: Props) {
                     <ShieldCheck size={24} className="text-red-400" />
                   </div>
                   <div>
-                    <p className="text-white font-bold text-sm">Connection Error</p>
+                    <p className="text-white font-bold text-sm">{t('operationFailed')}</p>
                     <p className="text-white/40 text-[11px] mt-1 leading-relaxed">
-                      Unable to reach the server. Please ensure the backend is running and the database is awake.
+                      {t('noData')}
                     </p>
                   </div>
                   <button 
                     onClick={loadStaff}
                     className="w-full py-3 bg-white/5 hover:bg-white/10 rounded-xl text-white text-xs font-bold uppercase tracking-widest transition-colors border border-white/10"
                   >
-                    Try Reconnecting
+                    {t('tryReconnecting' as any)}
                   </button>
                 </motion.div>
               )}
@@ -166,11 +168,7 @@ export function PinLogin({ branchId, onSuccess }: Props) {
                       <div className="text-left">
                         <p className="font-display font-bold text-slate-900 text-base">{s.name}</p>
                         <p className="text-slate-500 text-xs font-medium">
-                          {s.role === Role.RESTAURANT_ADMIN ? 'Restaurant Admin' 
-                           : s.role === Role.MANAGER ? 'Manager'
-                           : s.role === Role.KITCHEN ? 'Kitchen Staff'
-                           : s.role === Role.SUPER_ADMIN ? 'Super Admin'
-                           : 'Staff'}
+                          {t(s.role.toLowerCase() as any)}
                         </p>
                       </div>
                     </div>
@@ -200,7 +198,7 @@ export function PinLogin({ branchId, onSuccess }: Props) {
                 <ChevronLeft size={20} />
               </button>
               <div className="text-right">
-                <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">{selected.role}</p>
+                <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">{t(selected.role.toLowerCase() as any)}</p>
                 <p className="font-display font-black text-slate-900 text-xl uppercase tracking-tight">{selected.name}</p>
               </div>
             </div>
@@ -233,7 +231,7 @@ export function PinLogin({ branchId, onSuccess }: Props) {
                 </motion.p>
               ) : (
                 <p className="text-slate-300 text-[10px] font-bold uppercase tracking-[0.3em]">
-                  Security Verification Required
+                  {t('securityVerification' as any)}
                 </p>
               )}
             </div>
@@ -273,7 +271,7 @@ export function PinLogin({ branchId, onSuccess }: Props) {
               ) : (
                 <>
                   <Fingerprint size={20} className="group-hover:scale-110 transition-transform" />
-                  <span className="uppercase tracking-[0.1em] text-sm">Verify & Sign In</span>
+                  <span className="uppercase tracking-[0.1em] text-sm">{t('verifyAndSignIn' as any)}</span>
                 </>
               )}
             </motion.button>

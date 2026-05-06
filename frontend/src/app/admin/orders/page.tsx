@@ -8,14 +8,16 @@ import { adminApi } from '@/lib/api';
 import { getSocket, joinRoom, leaveRoom } from '@/lib/socket';
 import { AdminOrderTable } from '@/components/admin/AdminOrderTable';
 import { useAuthStore, selectBranchId } from '@/stores/authStore';
-import { ErrorState, EmptyState } from '@/components/ui/StatusStates';
+import { EmptyState, ErrorState } from '@/components/ui/StatusStates';
 import { AdminHeader } from '@/components/admin/AdminHeader';
+import { useTranslation } from '@/hooks/useTranslation';
 
 const ALL_STATUSES = ['ALL', 'CREATED', 'CONFIRMED', 'PREPARING', 'READY', 'DELIVERED'] as const;
 type StatusFilter = typeof ALL_STATUSES[number];
 
 export default function AdminOrdersPage() {
   const { user, logout } = useAuthStore();
+  const { t } = useTranslation();
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
   const [isConnected, setIsConnected] = useState(false);
 
@@ -78,7 +80,7 @@ export default function AdminOrdersPage() {
   return (
     <>
       <AdminHeader
-        title="Orders"
+        title={t('orders')}
         onLogout={logout}
         titleBadge={
           <div
@@ -89,14 +91,14 @@ export default function AdminOrdersPage() {
             }`}
           >
             {isConnected ? <Wifi size={10} /> : <WifiOff size={10} />}
-            {isConnected ? 'Live' : 'Polling'}
+            {isConnected ? t('online' as any) : t('polling')}
           </div>
         }
       >
         <motion.button
           whileTap={{ scale: 0.9 }}
           onClick={() => refetch()}
-          aria-label="Refresh orders"
+          aria-label={t('refresh')}
           className="w-8 h-8 rounded-full bg-surface-100 flex items-center justify-center"
         >
           <RefreshCw size={14} className={`text-white/60 ${isFetching ? 'animate-spin' : ''}`} />
@@ -104,7 +106,7 @@ export default function AdminOrdersPage() {
       </AdminHeader>
 
       {/* Status filter tabs */}
-      <div className="flex gap-1 overflow-x-auto no-scrollbar px-4 pb-3" role="tablist">
+      <div className="flex gap-2 overflow-x-auto no-scrollbar px-6 pb-4" role="tablist">
         {ALL_STATUSES.map((s) => (
           <button
             key={s}
@@ -112,13 +114,13 @@ export default function AdminOrdersPage() {
             aria-selected={statusFilter === s}
             onClick={() => setStatusFilter(s)}
             id={`filter-${s}`}
-            className={`flex-shrink-0 px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
+            className={`flex-shrink-0 px-4 py-2 rounded-xl text-xs font-black transition-all border-2 ${
               statusFilter === s
-                ? 'bg-brand-500 text-white'
-                : 'bg-surface-100 text-white/50 hover:text-white/80'
+                ? 'bg-brand-500 text-slate-900 border-brand-500 shadow-lg shadow-brand-500/20'
+                : 'bg-white text-slate-400 border-slate-100 hover:border-slate-200 hover:text-slate-600'
             }`}
           >
-            {s}
+            {s === 'ALL' ? t('orders') : t(s.toLowerCase() as any)}
           </button>
         ))}
       </div>
@@ -126,16 +128,16 @@ export default function AdminOrdersPage() {
       <main className="p-4 pb-12">
         {isError && (
           <div className="mb-6">
-            <ErrorState message="Failed to fetch orders" onRetry={refetch} />
+            <ErrorState message={t('operationFailed')} onRetry={refetch} />
           </div>
         )}
 
         <p className="text-white/40 text-xs mb-3">
-          {filtered.length} order{filtered.length !== 1 ? 's' : ''}
+          {filtered.length} {t('orders').toLowerCase()}
         </p>
 
         {filtered.length === 0 ? (
-          <EmptyState message="No orders match the current filter" />
+          <EmptyState message={t('noData')} />
         ) : (
           <AdminOrderTable orders={filtered} onOrdersChange={stableRefetch} />
         )}

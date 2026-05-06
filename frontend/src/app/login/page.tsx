@@ -7,6 +7,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { MeshBackground } from '@/components/ui/Backgrounds';
 import { PageTransition } from '@/components/ui/PageTransition';
 import { Role } from '@/shared/types';
+import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher';
 
 function LoginContent() {
   const router = useRouter();
@@ -15,17 +16,26 @@ function LoginContent() {
   
   const returnUrl = searchParams.get('returnUrl') || '/admin/dashboard';
 
-  const handleSuccess = (token: string, user: any) => {
-    login(user, token);
+  const handleSuccess = (token: string, user: any, refreshToken?: string) => {
+    login(user, token, refreshToken);
     
-    // Role-based redirection logic
-    if (searchParams.get('returnUrl')) {
+    const returnUrl = searchParams.get('returnUrl');
+    
+    // Check if returnUrl is appropriate for the role
+    let isSafeReturn = false;
+    if (returnUrl) {
+      if (user.role === Role.SUPER_ADMIN && returnUrl.startsWith('/super-admin')) isSafeReturn = true;
+      if ([Role.RESTAURANT_ADMIN, Role.MANAGER, Role.STAFF].includes(user.role) && returnUrl.startsWith('/admin')) isSafeReturn = true;
+      if (user.role === Role.KITCHEN && returnUrl.startsWith('/kitchen')) isSafeReturn = true;
+    }
+
+    if (isSafeReturn && returnUrl) {
       router.replace(returnUrl);
-    } else if (user.role === 'KITCHEN') {
+    } else if (user.role === Role.KITCHEN) {
       router.replace('/kitchen');
-    } else if (user.role === 'SUPER_ADMIN') {
+    } else if (user.role === Role.SUPER_ADMIN) {
       router.replace('/super-admin/restaurants');
-    } else if (user.role === 'STAFF') {
+    } else if (user.role === Role.STAFF) {
       router.replace('/admin/orders');
     } else {
       router.replace('/admin/dashboard');
@@ -36,6 +46,9 @@ function LoginContent() {
     <PageTransition>
       <div className="min-h-dvh relative flex flex-col items-center justify-center p-6 overflow-hidden bg-surface">
         <MeshBackground />
+        <div className="absolute top-6 right-6 z-20">
+          <LanguageSwitcher />
+        </div>
         <div className="relative z-10 w-full max-w-md mx-auto">
           <EmailLogin onSuccess={handleSuccess} />
         </div>

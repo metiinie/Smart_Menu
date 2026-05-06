@@ -5,8 +5,11 @@ export function middleware(request: NextRequest) {
   const url = request.nextUrl;
   const hostname = request.headers.get('host') || '';
 
-  // E.g. hostname: tenant1.arifsmart.com
-  const isSubdomain = hostname.includes('.') && !hostname.startsWith('www') && !hostname.startsWith('localhost');
+  // Improved subdomain detection
+  const isIpAddress = /^(\d{1,3}\.){3}\d{1,3}$/.test(hostname.split(':')[0]);
+  const isLocalhost = hostname.startsWith('localhost');
+  
+  const isSubdomain = !isIpAddress && !isLocalhost && hostname.includes('.') && !hostname.startsWith('www');
   const subdomain = isSubdomain ? hostname.split('.')[0] : null;
 
   // 1. Subdomain Routing (Staff/Admin)

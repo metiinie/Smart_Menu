@@ -51,6 +51,13 @@ export const useLocalOrderStore = create<LocalOrderStore>()(
         set((state) => {
           const order = state.orders[id];
           if (!order) return state;
+
+          // 🔒 GUARD: Once an order is SYNCED, do not allow it to be moved back to PENDING or SYNCING.
+          // This prevents race conditions between multiple tabs trying to sync the same order.
+          if (order.status === LocalOrderStatus.SYNCED && status !== LocalOrderStatus.SYNCED) {
+            return state;
+          }
+
           return {
             orders: {
               ...state.orders,
@@ -63,11 +70,18 @@ export const useLocalOrderStore = create<LocalOrderStore>()(
         set((state) => {
           const now = Date.now();
           const pruned: Record<string, LocalOrder> = {};
+          let didPrune = false;
+          const currentKeys = Object.keys(state.orders);
+          
           for (const [id, o] of Object.entries(state.orders)) {
             if (shouldKeepLocalOrder(o, now)) {
               pruned[id] = o;
+            } else {
+              didPrune = true;
             }
           }
+          
+          if (!didPrune) return state;
           return { orders: pruned };
         }),
       clearAll: () => set({ orders: {} }),

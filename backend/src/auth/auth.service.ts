@@ -5,6 +5,9 @@ import { PrismaService } from '../prisma/prisma.service';
 import { PinLoginDto } from './dto/pin-login.dto';
 import { LoginDto } from './dto/login.dto';
 
+const ACCESS_TOKEN_TTL  = '15m';
+const REFRESH_TOKEN_TTL = '7d';
+
 
 @Injectable()
 export class AuthService {
@@ -14,12 +17,14 @@ export class AuthService {
   ) {}
 
   async login(dto: LoginDto) {
+    console.log(`[AuthService] Attempting login for email: ${dto.email}`);
     const user = await this.prisma.withRetry(() =>
       this.prisma.user.findUnique({
         where: { email: dto.email.toLowerCase() },
         include: { branch: { select: { id: true, name: true } } },
       }),
     );
+    console.log(`[AuthService] User found: ${!!user}, HasPassword: ${!!user?.passwordHash}`);
 
     if (!user || !user.passwordHash) {
       throw new UnauthorizedException('Invalid credentials');
@@ -34,17 +39,19 @@ export class AuthService {
       throw new UnauthorizedException('Account is deactivated');
     }
 
-    const payload = { 
+    const basePayload = { 
       sub: user.id, 
       role: user.role, 
       branchId: user.branchId, 
       restaurantId: user.restaurantId 
     };
     
-    const token = this.jwt.sign(payload);
+    const { accessToken, refreshToken } = this.generateTokenPair(basePayload);
 
     return {
-      token,
+      token: accessToken,       // backward-compat alias
+      accessToken,
+      refreshToken,
       user: {
         id: user.id,
         name: user.name,
@@ -79,11 +86,13 @@ export class AuthService {
       throw new UnauthorizedException('Invalid PIN');
     }
 
-    const payload = { sub: staff.id, role: staff.role, branchId: staff.branchId, restaurantId: staff.restaurantId };
-    const token = this.jwt.sign(payload);
+    const basePayload = { sub: staff.id, role: staff.role, branchId: staff.branchId, restaurantId: staff.restaurantId };
+    const { accessToken, refreshToken } = this.generateTokenPair(basePayload);
 
     return {
-      token,
+      token: accessToken,       // backward-compat alias
+      accessToken,
+      refreshToken,
       user: {
         id: staff.id,
         name: staff.name,
@@ -133,5 +142,71 @@ export class AuthService {
         select: { id: true, name: true },
       }),
     );
+  }
+
+  // ── Token helpers ────────────────────────────────────────────────────────
+
+  private generateTokenPair(basePayload: Record<string, unknown>) {
+    const accessToken  = this.jwt.sign(
+      { ...basePayload, type: 'access' },
+      { expiresIn: ACCESS_TOKEN_TTL },
+    );
+    const refreshToken = this.jwt.sign(
+      { sub: basePayload.sub, type: 'refresh' },
+      { expiresIn: REFRESH_TOKEN_TTL },
+    );
+    return { accessToken, refreshToken };
+  }
+
+  /**
+   * Verify a refresh token, confirm the user is still active,
+   * and issue a fresh token pair (sliding expiration).
+   */
+  async refreshSession(refreshToken: string) {
+    let decoded: any;
+    try {
+      decoded = this.jwt.verify(refreshToken);
+    } catch {
+      throw new UnauthorizedException('Refresh token is invalid or expired');
+    }
+
+    if (decoded.type !== 'refresh') {
+      throw new UnauthorizedException('Token is not a refresh token');
+    }
+
+    const user = await this.prisma.withRetry(() =>
+      this.prisma.user.findUnique({
+        where: { id: decoded.sub },
+        include: { branch: { select: { id: true, name: true } } },
+      }),
+    );
+
+    if (!user || !user.isActive) {
+      throw new UnauthorizedException('User account is deactivated');
+    }
+
+    const basePayload = {
+      sub: user.id,
+      role: user.role,
+      branchId: user.branchId,
+      restaurantId: user.restaurantId,
+    };
+
+    const tokens = this.generateTokenPair(basePayload);
+
+    return {
+      token: tokens.accessToken,  // backward-compat alias
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        branchId: user.branchId,
+        restaurantId: user.restaurantId,
+        branch: user.branch,
+      },
+    };
   }
 }

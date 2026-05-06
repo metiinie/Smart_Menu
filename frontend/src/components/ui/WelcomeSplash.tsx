@@ -1,7 +1,7 @@
-'use client';
-
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useFavoritesStore } from '@/stores/favoritesStore';
+import { UI_STRINGS } from '@/lib/i18n';
 
 interface WelcomeSplashProps {
   onComplete: () => void;
@@ -14,10 +14,12 @@ interface WelcomeSplashProps {
  * Phase 3: Fades out to reveal menu.
  */
 export function WelcomeSplash({ onComplete }: WelcomeSplashProps) {
+  const { language } = useFavoritesStore();
+  const t = UI_STRINGS[language];
   const palette = {
-    appGreen: '#08AE75',
-    appWhite: '#FBF8F3',
-    pattern: '#E9DFD1',
+    appGreen: 'var(--brand-accent)',
+    appWhite: 'var(--customer-bg)',
+    pattern: 'var(--customer-stroke)',
   };
   const [phase, setPhase] = useState<'splash' | 'revealText' | 'expand'>('splash');
 
@@ -90,9 +92,9 @@ export function WelcomeSplash({ onComplete }: WelcomeSplashProps) {
                   : { y: 0, scale: 1 }
               }
               transition={{ type: "spring", damping: 25, stiffness: 120 }}
-              className="text-white text-4xl font-black tracking-[0.08em] drop-shadow-md"
+              className="text-white text-4xl font-black tracking-[0.08em] drop-shadow-md text-center px-4"
             >
-              WELCOME
+              {t.welcome}
             </motion.h1>
 
             <motion.h1
@@ -157,7 +159,7 @@ export function WelcomeSplash({ onComplete }: WelcomeSplashProps) {
                   transition={{ duration: 0.45, delay: 0.08, ease: 'easeOut' }}
                   className="text-[#FABD2F] font-serif text-xl font-bold tracking-widest drop-shadow-sm leading-none"
                 >
-                  RESTAURANT
+                  {t.restaurant}
                 </motion.h2>
                 <motion.span
                   initial={{ opacity: 0, clipPath: 'inset(0 100% 0 0)' }}
@@ -167,9 +169,9 @@ export function WelcomeSplash({ onComplete }: WelcomeSplashProps) {
                       : { opacity: 1, clipPath: 'inset(0 0% 0 0)' }
                   }
                   transition={{ duration: 0.42, delay: 0.2, ease: 'easeOut' }}
-                  className={`block font-normal italic text-lg capitalize mt-1 ${phase === 'expand' ? 'text-[#E8B832]' : 'text-slate-600'}`}
+                  className={`block font-normal italic text-lg capitalize mt-1 ${phase === 'expand' ? 'text-[#E8B832]' : 'text-foreground/60'}`}
                 >
-                  Menu
+                  {t.menu}
                 </motion.span>
               </motion.div>
             </motion.div>

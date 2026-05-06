@@ -56,7 +56,14 @@ export class PlatformController {
       name: string;
       slug: string;
       planId: string;
-      branchName?: string;
+      themeConfig?: { primaryColor?: string; logoUrl?: string };
+      branches: Array<{
+        name: string;
+        address: string;
+        phone?: string;
+        vatRate?: number;
+        serviceChargeRate?: number;
+      }>;
       adminEmail: string;
       adminName: string;
       adminPassword: string;

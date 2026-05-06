@@ -2,8 +2,10 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import {  X, Receipt, User, HelpCircle } from 'lucide-react';
-import { getSocket } from '@/lib/socket';
+import { X, Receipt, User, HelpCircle } from 'lucide-react';
+import { getSocket, joinRoom, leaveRoom } from '@/lib/socket';
+import { useTranslation } from '@/hooks/useTranslation';
+import { useAuthStore, selectBranchId } from '@/stores/authStore';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -25,6 +27,9 @@ const AUTO_DISMISS_MS = 12_000;
 // ── Component ──────────────────────────────────────────────────────────────
 
 export function StaffNotificationCenter() {
+  const { t } = useTranslation();
+  const { user } = useAuthStore();
+  const branchId = selectBranchId(user);
   const [calls, setCalls] = useState<WaiterCallWithId[]>([]);
   // Track timeout IDs so we can clear them all on unmount
   const timeoutsRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
@@ -39,8 +44,13 @@ export function StaffNotificationCenter() {
   }, []);
 
   useEffect(() => {
+    if (!user || !branchId) return;
+
     const socket = getSocket();
     const timeouts = timeoutsRef.current;
+    
+    const room = `staff:${branchId}`;
+    joinRoom(room);
 
     const handleWaiterCall = (data: WaiterCall) => {
       const id = crypto.randomUUID();
@@ -66,11 +76,12 @@ export function StaffNotificationCenter() {
     return () => {
       // Remove only our specific handler
       socket.off('waiter-call', handleWaiterCall);
+      leaveRoom(room);
       // Clear every pending auto-dismiss timeout so we don't fire on unmounted state
       timeouts.forEach((t) => clearTimeout(t));
       timeouts.clear();
     };
-  }, []); // Empty deps — the socket singleton is stable
+  }, [user, branchId]);
 
   if (calls.length === 0) return null;
 
@@ -88,7 +99,7 @@ export function StaffNotificationCenter() {
             animate={{ opacity: 1, x: 0, scale: 1 }}
             exit={{ opacity: 0, x: 40, scale: 0.92 }}
             transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-            className="bg-white rounded-2xl shadow-2xl border border-slate-100 p-4 pointer-events-auto flex gap-4 items-start"
+            className="bg-surface rounded-2xl shadow-2xl border border-surface-200 p-4 pointer-events-auto flex gap-4 items-start backdrop-blur-md transition-colors duration-300"
           >
             {/* Icon */}
             <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${iconStyle(call.requestType)}`}>
@@ -98,21 +109,21 @@ export function StaffNotificationCenter() {
             {/* Content */}
             <div className="flex-1 min-w-0">
               <div className="flex justify-between items-start gap-2">
-                <h4 className="font-black text-slate-900 text-sm uppercase truncate">
-                  Table {call.tableNumber}
+                <h4 className="font-black text-foreground text-sm uppercase truncate">
+                   {t('table')} {call.tableNumber}
                 </h4>
                 <button
                   onClick={() => removeCall(call.id)}
-                  aria-label="Dismiss notification"
-                  className="text-slate-300 hover:text-slate-600 transition-colors shrink-0"
+                  aria-label={t('dismissNotification' as any)}
+                  className="text-foreground/20 hover:text-foreground/60 transition-colors shrink-0"
                 >
                   <X size={14} />
                 </button>
               </div>
-              <p className="text-xs text-slate-500 font-bold mt-0.5">
-                {requestLabel(call.requestType)}
+              <p className="text-xs text-foreground/40 font-bold mt-0.5">
+                {requestLabel(call.requestType, t)}
               </p>
-              <p className="text-[10px] text-slate-400 mt-2 font-medium">
+              <p className="text-[10px] text-foreground/20 mt-2 font-medium">
                 {new Date(call.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </p>
             </div>
@@ -127,9 +138,9 @@ export function StaffNotificationCenter() {
 
 function iconStyle(type: 'WAITER' | 'BILL' | 'HELP'): string {
   switch (type) {
-    case 'BILL':   return 'bg-amber-100 text-amber-600';
-    case 'WAITER': return 'bg-blue-100 text-blue-600';
-    case 'HELP':   return 'bg-rose-100 text-rose-600';
+    case 'BILL':   return 'bg-amber-500/10 text-amber-500';
+    case 'WAITER': return 'bg-blue-500/10 text-blue-500';
+    case 'HELP':   return 'bg-rose-500/10 text-rose-500';
   }
 }
 
@@ -141,10 +152,10 @@ function requestIcon(type: 'WAITER' | 'BILL' | 'HELP') {
   }
 }
 
-function requestLabel(type: 'WAITER' | 'BILL' | 'HELP'): string {
+function requestLabel(type: 'WAITER' | 'BILL' | 'HELP', t: any): string {
   switch (type) {
-    case 'BILL':   return 'Requesting Bill';
-    case 'WAITER': return 'Call for Waiter';
-    case 'HELP':   return 'Needs Assistance';
+    case 'BILL':   return t('requestingBill');
+    case 'WAITER': return t('callForWaiter');
+    case 'HELP':   return t('needsAssistance');
   }
 }

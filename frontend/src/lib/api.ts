@@ -21,20 +21,104 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Unwrap data from {success, data, timestamp} wrapper
+// ─── 401 Refresh Token Interceptor ───────────────────────────────────────────
+// When an API call returns 401 (access token expired), this interceptor:
+// 1. Pauses the failed request
+// 2. Calls /auth/refresh with the stored refresh token
+// 3. Updates the auth store with new tokens
+// 4. Retries the original request with the new access token
+// If the refresh itself fails, the user is logged out.
+
+let isRefreshing = false;
+let failedQueue: Array<{ resolve: (token: string) => void; reject: (err: any) => void }> = [];
+
+function processQueue(error: any, token: string | null) {
+  failedQueue.forEach((p) => {
+    if (error) {
+      p.reject(error);
+    } else {
+      p.resolve(token!);
+    }
+  });
+  failedQueue = [];
+}
+
 api.interceptors.response.use(
   (res) => {
     // If it's the standard wrapper, extract the data payload
     if (res.data && typeof res.data === 'object' && 'success' in res.data) {
-      // Return the data if it exists, otherwise a safe fallback
       return { ...res, data: res.data.data ?? res.data };
     }
     return res;
   },
-  (error) => {
-    // ⚠️ IMPORTANT: Re-throw the original Axios error so callers can still
-    // inspect error.response.status and error.response.data.message.
-    // (e.g. SESSION_EXPIRED recovery in syncManager depends on this)
+  async (error) => {
+    const originalRequest = error.config;
+
+    // ── 401 Auto-Refresh Logic ──────────────────────────────────────────
+    if (
+      error.response?.status === 401 &&
+      !originalRequest._retry &&
+      typeof window !== 'undefined'
+    ) {
+      const refreshToken = useAuthStore.getState().refreshToken;
+
+      // No refresh token available → logout immediately
+      if (!refreshToken) {
+        useAuthStore.getState().logout();
+        return Promise.reject(error);
+      }
+
+      // If a refresh is already in flight, queue this request
+      if (isRefreshing) {
+        return new Promise<string>((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        }).then((newToken) => {
+          originalRequest.headers.Authorization = `Bearer ${newToken}`;
+          return api(originalRequest);
+        });
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      try {
+        // Call the refresh endpoint directly (bypasses the interceptor)
+        const { data } = await axios.post(
+          `${API_URL}/auth/refresh`,
+          { refreshToken },
+          { headers: { 'Content-Type': 'application/json' } },
+        );
+
+        // Unwrap if wrapped in {success, data}
+        const payload = data?.data ?? data;
+        const newAccessToken = payload.accessToken ?? payload.token;
+        const newRefreshToken = payload.refreshToken;
+
+        // Update store
+        const store = useAuthStore.getState();
+        if (store.user) {
+          store.login(store.user, newAccessToken, newRefreshToken);
+        }
+
+        processQueue(null, newAccessToken);
+
+        // Retry the original request
+        originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+        return api(originalRequest);
+      } catch (refreshError) {
+        processQueue(refreshError, null);
+        // Refresh failed → user session is truly expired
+        useAuthStore.getState().logout();
+        if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
+          window.location.href = '/login';
+        }
+        return Promise.reject(refreshError);
+      } finally {
+        isRefreshing = false;
+      }
+    }
+
+    // ── Standard error normalization (non-401) ──────────────────────────
     const raw = error.response?.data?.message ?? error.message ?? 'Something went wrong';
     const normalized = Array.isArray(raw) ? raw.join(', ') : String(raw);
     error.message =
@@ -99,8 +183,30 @@ export const ordersApi = {
 export const kitchenApi = {
   getOrders: (branchId: string) =>
     api.get('/kitchen/orders', { params: { branchId } }).then((r) => r.data),
+
+  updateItemStatus: (itemId: string, status: string) =>
+    api.patch(`/kitchen/items/${itemId}/status`, { status }).then((r) => r.data),
+
+  moveOrderBack: (orderId: string) =>
+    api.patch(`/kitchen/orders/${orderId}/move-back`).then((r) => r.data),
+
+  toggleMenuItemAvailability: (itemId: string, isAvailable: boolean) =>
+    api.patch(`/kitchen/menu-items/${itemId}/availability`, { isAvailable }).then((r) => r.data),
 };
 
+export const staffApi = {
+  getOrders: (branchId: string) =>
+    api.get('/admin/orders', { params: { branchId } }).then((r) => r.data),
+
+  getPickupOrders: (branchId: string) =>
+    api.get('/admin/orders', { params: { branchId, status: 'READY' } }).then((r) => r.data),
+  
+  getTables: (branchId: string) =>
+    api.get('/admin/tables', { params: { branchId } }).then((r) => r.data),
+
+  markAsDelivered: (orderId: string) =>
+    api.patch(`/orders/${orderId}/status`, { status: 'DELIVERED' }).then((r) => r.data),
+};
 export const adminApi = {
   // Menu Items
   getMenuItems: (branchId: string) =>
@@ -158,30 +264,39 @@ export const adminApi = {
     api.get('/admin/dashboard', { params: { branchId } }).then((r) => r.data),
 
   // Staff
-  getStaff: (branchId: string) =>
-    api.get('/admin/staff', { params: { branchId } }).then((r) => r.data),
+  getStaff: (branchId?: string) =>
+    api.get('/admin/users', { params: { branchId } }).then((r) => r.data),
 
-  createStaff: (data: { name: string; role: string; email: string; password?: string; pin?: string; branchId: string }) =>
-    api.post('/admin/staff', data).then((r) => r.data),
+  createStaff: (data: { name: string; role: string; email: string; password?: string; pin?: string; branchId?: string }) =>
+    api.post('/admin/users', data).then((r) => r.data),
 
   updateStaff: (id: string, data: { name?: string; role?: string; email?: string; isActive?: boolean }) =>
-    api.patch(`/admin/staff/${id}`, data).then((r) => r.data),
+    api.patch(`/admin/users/${id}`, data).then((r) => r.data),
 
   deleteStaff: (id: string) =>
-    api.delete(`/admin/staff/${id}`).then((r) => r.data),
+    api.delete(`/admin/users/${id}`).then((r) => r.data),
 
   resetStaffPin: (id: string, newPin: string) =>
-    api.post(`/admin/staff/${id}/reset-pin`, { newPin }).then((r) => r.data),
+    api.post(`/admin/users/${id}/reset-pin`, { newPin }).then((r) => r.data),
 
   resetStaffPassword: (id: string, newPassword: string) =>
-    api.post(`/admin/staff/${id}/reset-password`, { newPassword }).then((r) => r.data),
+    api.post(`/admin/users/${id}/reset-password`, { newPassword }).then((r) => r.data),
 
   // Branch Settings
-  getBranch: (branchId: string) =>
-    api.get('/admin/branch', { params: { branchId } }).then((r) => r.data),
+  getBranches: () =>
+    api.get('/admin/branches').then((r) => r.data),
 
-  updateBranch: (id: string, data: { name?: string; vatRate?: number; serviceChargeRate?: number }) =>
-    api.patch(`/admin/branch/${id}`, data).then((r) => r.data),
+  createBranch: (data: { name: string; address: string; phone?: string; vatRate?: number; serviceChargeRate?: number }) =>
+    api.post('/admin/branches', data).then((r) => r.data),
+
+  getBranch: (id: string) =>
+    api.get(`/admin/branches/${id}`).then((r) => r.data),
+
+  updateBranch: (id: string, data: { name?: string; address?: string; phone?: string; vatRate?: number; serviceChargeRate?: number }) =>
+    api.patch(`/admin/branches/${id}`, data).then((r) => r.data),
+
+  deleteBranch: (id: string) =>
+    api.delete(`/admin/branches/${id}`).then((r) => r.data),
 
   // Uploads
   uploadAsset: (file: File) => {
@@ -208,6 +323,10 @@ export const authApi = {
 
   getDefaultBranch: () =>
     api.get('/auth/default-branch').then((r) => r.data),
+
+  /** Exchange a refresh token for a new access + refresh token pair */
+  refresh: (refreshToken: string) =>
+    api.post('/auth/refresh', { refreshToken }).then((r) => r.data),
 };
 
 export const notificationsApi = {
@@ -242,7 +361,14 @@ export const superAdminApi = {
     name: string;
     slug: string;
     planId: string;
-    branchName?: string;
+    themeConfig?: { primaryColor?: string; logoUrl?: string };
+    branches: Array<{
+      name: string;
+      address: string;
+      phone?: string;
+      vatRate?: number;
+      serviceChargeRate?: number;
+    }>;
     adminEmail: string;
     adminName: string;
     adminPassword: string;
@@ -274,4 +400,22 @@ export const superAdminApi = {
   // ── Cross-Tenant Branches ────────────────────────────────────────────────
   getAllBranches: (restaurantId?: string) =>
     api.get('/platform/branches', { params: restaurantId ? { restaurantId } : {} }).then((r) => r.data),
+};
+
+export const telemetryApi = {
+  logError: (data: {
+    message: string;
+    stackTrace?: string;
+    url: string;
+    userAgent?: string;
+    userId?: string;
+    restaurantId?: string;
+    branchId?: string;
+  }) => api.post('/telemetry/error', data).then((r) => r.data),
+
+  getErrors: (params?: { resolved?: boolean; restaurantId?: string }) =>
+    api.get('/telemetry/errors', { params }).then((r) => r.data),
+
+  resolveError: (id: string) =>
+    api.patch(`/telemetry/errors/${id}/resolve`).then((r) => r.data),
 };

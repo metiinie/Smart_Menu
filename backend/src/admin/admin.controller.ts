@@ -11,6 +11,7 @@ import {
   UseInterceptors,
   UploadedFile,
   BadRequestException,
+  ForbiddenException,
   Req,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -24,23 +25,12 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 
-// ── Allowed file types for uploads ───────────────────────────────────────────
 const ALLOWED_MIME_TYPES = new Set([
-  'image/jpeg',
-  'image/png',
-  'image/webp',
-  'image/gif',
-  'image/svg+xml',
-  'model/gltf-binary',   // .glb
-  'model/gltf+json',     // .gltf
-  'application/octet-stream', // .glb fallback MIME
+  'image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml',
+  'model/gltf-binary', 'model/gltf+json', 'application/octet-stream',
 ]);
 
-const ALLOWED_EXTENSIONS = new Set([
-  '.jpg', '.jpeg', '.png', '.webp', '.gif', '.svg',
-  '.glb', '.gltf',
-]);
-
+const ALLOWED_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.webp', '.gif', '.svg', '.glb', '.gltf']);
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
 
 @ApiTags('Admin')
@@ -50,6 +40,13 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
 @Controller('admin')
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
+
+  private resolveRestaurantId(req: any): string {
+    const rId = req.user?.restaurantId;
+    if (!rId) throw new BadRequestException('No restaurant context found for user');
+    return rId;
+  }
+
   private resolveBranchId(req: any, fallback?: string) {
     return req.user?.branchId || fallback;
   }
@@ -58,51 +55,51 @@ export class AdminController {
 
   @Get('dashboard')
   @ApiOperation({ summary: 'Get dashboard analytics' })
-  getDashboard(@Req() req: any, @Query('branchId') branchId: string) {
-    return this.adminService.getDashboardAnalytics(this.resolveBranchId(req, branchId));
+  getDashboard(@Req() req: any, @Query('branchId') branchId?: string) {
+    return this.adminService.getDashboardAnalytics(this.resolveRestaurantId(req), branchId || this.resolveBranchId(req, undefined));
   }
 
   // ─── Menu Items ──────────────────────────────────────────────────
 
   @Get('menu-items')
   @ApiOperation({ summary: 'Get all menu items (admin view)' })
-  getAllMenuItems(@Req() req: any, @Query('branchId') branchId: string) {
-    return this.adminService.getAllMenuItems(this.resolveBranchId(req, branchId));
+  getAllMenuItems(@Req() req: any, @Query('branchId') branchId?: string) {
+    return this.adminService.getAllMenuItems(this.resolveRestaurantId(req), branchId || this.resolveBranchId(req, undefined));
   }
 
   @Post('menu-items')
   @Roles('SUPER_ADMIN', 'RESTAURANT_ADMIN', 'MANAGER')
   @ApiOperation({ summary: 'Create a new menu item' })
-  createMenuItem(@Body() dto: CreateMenuItemDto) {
-    return this.adminService.createMenuItem(dto);
+  createMenuItem(@Req() req: any, @Body() dto: CreateMenuItemDto) {
+    return this.adminService.createMenuItem(this.resolveRestaurantId(req), dto);
   }
 
   @Patch('menu-items/:id')
   @Roles('SUPER_ADMIN', 'RESTAURANT_ADMIN', 'MANAGER')
   @ApiOperation({ summary: 'Update a menu item' })
-  updateMenuItem(@Param('id') id: string, @Body() dto: Partial<CreateMenuItemDto>) {
-    return this.adminService.updateMenuItem(id, dto);
+  updateMenuItem(@Req() req: any, @Param('id') id: string, @Body() dto: Partial<CreateMenuItemDto>) {
+    return this.adminService.updateMenuItem(this.resolveRestaurantId(req), id, dto, req.user?.branchId);
   }
 
   @Patch('menu-items/:id/availability')
   @ApiOperation({ summary: 'Toggle item availability' })
-  toggleAvailability(@Param('id') id: string, @Body() dto: ToggleAvailabilityDto) {
-    return this.adminService.toggleAvailability(id, dto);
+  toggleAvailability(@Req() req: any, @Param('id') id: string, @Body() dto: ToggleAvailabilityDto) {
+    return this.adminService.toggleAvailability(this.resolveRestaurantId(req), id, dto, req.user?.branchId);
   }
 
   @Delete('menu-items/:id')
   @Roles('SUPER_ADMIN', 'RESTAURANT_ADMIN', 'MANAGER')
   @ApiOperation({ summary: 'Delete a menu item' })
-  deleteMenuItem(@Param('id') id: string) {
-    return this.adminService.deleteMenuItem(id);
+  deleteMenuItem(@Req() req: any, @Param('id') id: string) {
+    return this.adminService.deleteMenuItem(this.resolveRestaurantId(req), id, req.user?.branchId);
   }
 
   // ─── Categories ──────────────────────────────────────────────────
 
   @Get('categories')
   @ApiOperation({ summary: 'Get all categories' })
-  getCategories(@Req() req: any, @Query('branchId') branchId: string) {
-    return this.adminService.getCategories(this.resolveBranchId(req, branchId));
+  getCategories(@Req() req: any, @Query('branchId') branchId?: string) {
+    return this.adminService.getCategories(this.resolveRestaurantId(req), branchId || this.resolveBranchId(req, undefined));
   }
 
   @Post('categories')
@@ -113,138 +110,170 @@ export class AdminController {
     @Body() body: { name: string; branchId?: string; sortOrder?: number; imageUrl?: string; nameTranslations?: any },
   ) {
     const branchId = this.resolveBranchId(req, body.branchId);
-    return this.adminService.createCategory(body.name, branchId, body.sortOrder, body.imageUrl, body.nameTranslations);
+    if (!branchId) throw new BadRequestException('branchId is required');
+    return this.adminService.createCategory(this.resolveRestaurantId(req), body.name, branchId, body.sortOrder, body.imageUrl, body.nameTranslations);
   }
 
   @Patch('categories/:id')
   @Roles('SUPER_ADMIN', 'RESTAURANT_ADMIN', 'MANAGER')
   @ApiOperation({ summary: 'Update a category' })
-  updateCategory(@Param('id') id: string, @Body() body: { name?: string; sortOrder?: number; imageUrl?: string; nameTranslations?: any }) {
-    return this.adminService.updateCategory(id, body);
+  updateCategory(@Req() req: any, @Param('id') id: string, @Body() body: { name?: string; sortOrder?: number; imageUrl?: string; nameTranslations?: any }) {
+    return this.adminService.updateCategory(this.resolveRestaurantId(req), id, body, req.user?.branchId);
   }
 
   @Delete('categories/:id')
   @Roles('SUPER_ADMIN', 'RESTAURANT_ADMIN', 'MANAGER')
   @ApiOperation({ summary: 'Delete a category' })
-  deleteCategory(@Param('id') id: string) {
-    return this.adminService.deleteCategory(id);
+  deleteCategory(@Req() req: any, @Param('id') id: string) {
+    return this.adminService.deleteCategory(this.resolveRestaurantId(req), id, req.user?.branchId);
   }
 
   // ─── Table Management ────────────────────────────────────────────
 
   @Get('tables')
   @ApiOperation({ summary: 'Get all dining tables' })
-  getTables(@Req() req: any, @Query('branchId') branchId: string) {
-    return this.adminService.getTables(this.resolveBranchId(req, branchId));
+  getTables(@Req() req: any, @Query('branchId') branchId?: string) {
+    return this.adminService.getTables(this.resolveRestaurantId(req), branchId || this.resolveBranchId(req, undefined));
   }
 
   @Post('tables')
+  @Roles('SUPER_ADMIN', 'RESTAURANT_ADMIN', 'MANAGER')
   @ApiOperation({ summary: 'Create a new dining table' })
   createTable(@Req() req: any, @Body() body: { branchId?: string; tableNumber: number }) {
     const branchId = this.resolveBranchId(req, body.branchId);
-    return this.adminService.createTable(branchId, body.tableNumber);
+    if (!branchId) throw new BadRequestException('branchId is required');
+    return this.adminService.createTable(this.resolveRestaurantId(req), branchId, body.tableNumber);
   }
 
   @Patch('tables/:id/status')
   @ApiOperation({ summary: 'Toggle table active status' })
-  toggleTableStatus(@Param('id') id: string, @Body() body: { isActive: boolean }) {
-    return this.adminService.toggleTableStatus(id, body.isActive);
+  toggleTableStatus(@Req() req: any, @Param('id') id: string, @Body() body: { isActive: boolean }) {
+    return this.adminService.toggleTableStatus(this.resolveRestaurantId(req), id, body.isActive, req.user?.branchId);
   }
 
   @Delete('tables/:id')
+  @Roles('SUPER_ADMIN', 'RESTAURANT_ADMIN', 'MANAGER')
   @ApiOperation({ summary: 'Delete a dining table' })
-  deleteTable(@Param('id') id: string) {
-    return this.adminService.deleteTable(id);
+  deleteTable(@Req() req: any, @Param('id') id: string) {
+    return this.adminService.deleteTable(this.resolveRestaurantId(req), id, req.user?.branchId);
   }
 
   // ─── Orders ──────────────────────────────────────────────────────
 
   @Get('orders')
   @ApiOperation({ summary: 'Get all orders (admin view)' })
-  getAllOrders(@Req() req: any, @Query('branchId') branchId: string) {
-    return this.adminService.getAllOrders(this.resolveBranchId(req, branchId));
+  getAllOrders(@Req() req: any, @Query('branchId') branchId?: string) {
+    return this.adminService.getAllOrders(this.resolveRestaurantId(req), branchId || this.resolveBranchId(req, undefined));
   }
 
   @Get('orders/audit')
   @ApiOperation({ summary: 'Get recent order audit events (admin debug)' })
-  getOrderAudit(@Req() req: any, @Query('branchId') branchId: string, @Query('limit') limit?: string) {
+  getOrderAudit(@Req() req: any, @Query('branchId') branchId?: string, @Query('limit') limit?: string) {
     const resolvedLimit = limit ? Number(limit) : undefined;
-    return this.adminService.getOrderAudit(this.resolveBranchId(req, branchId), resolvedLimit);
+    return this.adminService.getOrderAudit(this.resolveRestaurantId(req), branchId || this.resolveBranchId(req, undefined), resolvedLimit);
   }
 
   // ─── Staff ───────────────────────────────────────────────────────
 
-  @Get('staff')
+  @Get('users')
+  @Roles('SUPER_ADMIN', 'RESTAURANT_ADMIN')
   @ApiOperation({ summary: 'Get all staff users' })
-  getStaff(@Req() req: any, @Query('branchId') branchId: string) {
-    return this.adminService.getStaffUsers(this.resolveBranchId(req, branchId));
+  getStaff(@Req() req: any, @Query('branchId') branchId?: string) {
+    return this.adminService.getStaffUsers(this.resolveRestaurantId(req), branchId || this.resolveBranchId(req, undefined));
   }
 
-  @Post('staff')
-  @Roles('SUPER_ADMIN', 'RESTAURANT_ADMIN', 'MANAGER')
+  @Post('users')
+  @Roles('SUPER_ADMIN', 'RESTAURANT_ADMIN')
   @ApiOperation({ summary: 'Create a new staff user' })
   createStaff(
     @Req() req: any,
     @Body() body: { name: string; role: string; email: string; pin?: string; password?: string; branchId?: string },
   ) {
     const branchId = this.resolveBranchId(req, body.branchId);
-    return this.adminService.createStaffUser({ ...body, branchId });
+    if (!branchId) throw new BadRequestException('branchId is required');
+    return this.adminService.createStaffUser(this.resolveRestaurantId(req), { ...body, branchId });
   }
 
-  @Patch('staff/:id')
-  @Roles('SUPER_ADMIN', 'RESTAURANT_ADMIN', 'MANAGER')
+  @Patch('users/:id')
+  @Roles('SUPER_ADMIN', 'RESTAURANT_ADMIN')
   @ApiOperation({ summary: 'Update a staff user' })
   updateStaff(
+    @Req() req: any,
     @Param('id') id: string,
     @Body() body: { name?: string; role?: string; email?: string; isActive?: boolean },
   ) {
-    return this.adminService.updateStaffUser(id, body);
+    return this.adminService.updateStaffUser(this.resolveRestaurantId(req), id, body);
   }
 
-  @Delete('staff/:id')
-  @Roles('SUPER_ADMIN', 'RESTAURANT_ADMIN', 'MANAGER')
+  @Delete('users/:id')
+  @Roles('SUPER_ADMIN', 'RESTAURANT_ADMIN')
   @ApiOperation({ summary: 'Deactivate a staff user' })
-  deleteStaff(@Param('id') id: string) {
-    return this.adminService.deactivateStaffUser(id);
+  deleteStaff(@Req() req: any, @Param('id') id: string) {
+    return this.adminService.deactivateStaffUser(this.resolveRestaurantId(req), id);
   }
 
-  @Post('staff/:id/reset-pin')
+  @Post('users/:id/reset-pin')
   @Roles('SUPER_ADMIN', 'RESTAURANT_ADMIN', 'MANAGER')
   @ApiOperation({ summary: 'Reset a staff user PIN' })
-  resetStaffPin(@Param('id') id: string, @Body() body: { newPin: string }) {
-    return this.adminService.resetStaffPin(id, body.newPin);
+  resetStaffPin(@Req() req: any, @Param('id') id: string, @Body() body: { newPin: string }) {
+    return this.adminService.resetStaffPin(this.resolveRestaurantId(req), id, body.newPin);
   }
 
-  @Post('staff/:id/reset-password')
+  @Post('users/:id/reset-password')
   @Roles('SUPER_ADMIN', 'RESTAURANT_ADMIN', 'MANAGER')
   @ApiOperation({ summary: 'Reset a staff user password' })
-  resetStaffPassword(@Param('id') id: string, @Body() body: { newPassword: string }) {
-    return this.adminService.resetStaffPassword(id, body.newPassword);
+  resetStaffPassword(@Req() req: any, @Param('id') id: string, @Body() body: { newPassword: string }) {
+    return this.adminService.resetStaffPassword(this.resolveRestaurantId(req), id, body.newPassword);
   }
 
-  // ─── Branch Settings ─────────────────────────────────────────────
+  // ─── Branches ────────────────────────────────────────────────────
 
-  @Get('branch')
+  @Get('branches')
+  @Roles('RESTAURANT_ADMIN')
+  @ApiOperation({ summary: 'Get all branches for the restaurant' })
+  getBranches(@Req() req: any) {
+    return this.adminService.getAllBranches(this.resolveRestaurantId(req));
+  }
+
+  @Post('branches')
+  @Roles('RESTAURANT_ADMIN')
+  @ApiOperation({ summary: 'Create a new branch' })
+  createBranch(
+    @Req() req: any,
+    @Body() body: { name: string; address: string; phone?: string; vatRate?: number; serviceChargeRate?: number }
+  ) {
+    return this.adminService.createBranch(this.resolveRestaurantId(req), body);
+  }
+
+  @Get('branches/:id')
+  @Roles('SUPER_ADMIN', 'RESTAURANT_ADMIN', 'MANAGER')
   @ApiOperation({ summary: 'Get branch details' })
-  getBranch(@Req() req: any, @Query('branchId') branchId: string) {
-    return this.adminService.getBranch(this.resolveBranchId(req, branchId));
+  getBranch(@Req() req: any, @Param('id') id: string) {
+    return this.adminService.getBranch(this.resolveRestaurantId(req), id);
   }
 
-  @Patch('branch/:id')
+  @Patch('branches/:id')
   @Roles('SUPER_ADMIN', 'RESTAURANT_ADMIN', 'MANAGER')
   @ApiOperation({ summary: 'Update branch settings' })
   updateBranch(
     @Req() req: any,
     @Param('id') id: string,
-    @Body() body: { name?: string; vatRate?: number; serviceChargeRate?: number },
+    @Body() body: { name?: string; address?: string; phone?: string; vatRate?: number; serviceChargeRate?: number },
   ) {
-    const branchId = this.resolveBranchId(req, id);
-    return this.adminService.updateBranch(branchId, body);
+    return this.adminService.updateBranch(this.resolveRestaurantId(req), id, body);
+  }
+
+  @Delete('branches/:id')
+  @Roles('RESTAURANT_ADMIN')
+  @ApiOperation({ summary: 'Delete branch' })
+  deleteBranch(@Req() req: any, @Param('id') id: string) {
+    return this.adminService.deleteBranch(this.resolveRestaurantId(req), id);
   }
 
   // ─── Uploads ──────────────────────────────────────────────────────
 
   @Post('upload')
+  @Roles('SUPER_ADMIN', 'RESTAURANT_ADMIN', 'MANAGER')
   @ApiOperation({ summary: 'Upload an asset (image or 3D model, max 5MB)' })
   @UseInterceptors(
     FileInterceptor('file', {

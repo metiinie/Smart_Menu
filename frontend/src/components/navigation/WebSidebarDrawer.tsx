@@ -19,7 +19,7 @@ interface Props {
 export function WebSidebarDrawer({ open, onClose, activeTab, onTabChange }: Props) {
   const cartItems = useCartStore((s) => s.items);
   const { favorites, language } = useFavoritesStore();
-  const t = UI_STRINGS[language];
+  const t = (UI_STRINGS as any)[language];
 
   const cartCount = useMemo(
     () => cartItems.reduce((sum, i) => sum + i.quantity, 0),
@@ -114,7 +114,7 @@ export function WebSidebarDrawer({ open, onClose, activeTab, onTabChange }: Prop
             {/* Quick actions */}
             <div className="web-sidebar__quick-actions">
               <p className="web-sidebar__section-title">Quick Actions</p>
-              <button className="web-sidebar__action-btn" id="sidebar-call-waiter" onClick={() => handleNav('profile')}>
+              <button className="web-sidebar__action-btn" id="sidebar-call-waiter" onClick={() => handleNav('home')}>
                 <Bell size={16} />
                 <span>Call Waiter</span>
               </button>

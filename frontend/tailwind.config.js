@@ -5,9 +5,12 @@ module.exports = {
     './src/components/**/*.{js,ts,jsx,tsx,mdx}',
     './src/app/**/*.{js,ts,jsx,tsx,mdx}',
   ],
+  darkMode: 'class',
   theme: {
     extend: {
       colors: {
+        background: 'rgb(var(--background-rgb))',
+        foreground: 'rgb(var(--foreground-rgb))',
         brand: {
           50:  '#fff7ed',
           100: '#ffedd5',
@@ -35,11 +38,12 @@ module.exports = {
           950: '#451a03',
         },
         surface: {
-          DEFAULT: '#FCFAF7', // Cream background
-          50: '#FFFFFF',
-          100: '#F1F5F9',
-          200: '#E2E8F0',
-          300: '#CBD5E1',
+          DEFAULT: 'var(--surface-50)',
+          50: 'var(--surface-50)',
+          100: 'var(--surface-100)',
+          200: 'var(--surface-200)',
+          300: 'var(--surface-300)',
+          card: 'var(--surface-card)',
           dark: '#0f0f0f',
         },
       },

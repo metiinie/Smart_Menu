@@ -13,10 +13,15 @@ interface AuthGuardProps {
 export function AuthGuard({ children, allowedRoles }: AuthGuardProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, isAuthenticated, token } = useAuthStore();
+  const { user, isAuthenticated, token, _hasHydrated } = useAuthStore();
   const [isAuthorized, setIsAuthorized] = useState(false);
 
   useEffect(() => {
+    // 🛡️ CRITICAL: Wait for Zustand to hydrate from localStorage before making a decision.
+    // Without this check, every refresh momentarily has isAuthenticated=false, 
+    // triggering a premature redirect to /login.
+    if (!_hasHydrated) return;
+
     if (!isAuthenticated || !token || !user) {
       router.replace(`/login?returnUrl=${encodeURIComponent(pathname)}`);
       return;
@@ -30,7 +35,7 @@ export function AuthGuard({ children, allowedRoles }: AuthGuardProps) {
     }
 
     setIsAuthorized(true);
-  }, [isAuthenticated, token, user, allowedRoles, router, pathname]);
+  }, [isAuthenticated, token, user, allowedRoles, router, pathname, _hasHydrated]);
 
   if (!isAuthorized) {
     return (

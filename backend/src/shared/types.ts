@@ -11,6 +11,12 @@ export enum OrderStatus {
   DELIVERED = 'DELIVERED',
 }
 
+export enum OrderItemStatus {
+  PENDING = 'PENDING',
+  PREPARING = 'PREPARING',
+  READY = 'READY',
+}
+
 export enum Role {
   SUPER_ADMIN = 'SUPER_ADMIN',
   RESTAURANT_ADMIN = 'RESTAURANT_ADMIN',

@@ -102,7 +102,14 @@ export class PlatformService {
     name: string;
     slug: string;
     planId: string;
-    branchName?: string;
+    themeConfig?: { primaryColor?: string; logoUrl?: string };
+    branches: Array<{
+      name: string;
+      address: string;
+      phone?: string;
+      vatRate?: number;
+      serviceChargeRate?: number;
+    }>;
     adminEmail: string;
     adminName: string;
     adminPassword: string;
@@ -125,24 +132,33 @@ export class PlatformService {
           planId: data.planId,
           isActive: true,
           subscriptionStatus: 'TRIALING',
+          themeConfig: data.themeConfig ? data.themeConfig : undefined,
         },
       });
 
-      // 2. Create default branch (every restaurant starts with 1 branch)
-      const branch = await tx.branch.create({
-        data: {
-          restaurantId: restaurant.id,
-          name: data.branchName || `${data.name} - Main Branch`,
-          address: 'To be configured',
-        },
-      });
+      // 2. Create branches
+      const createdBranches = [];
+      for (let i = 0; i < data.branches.length; i++) {
+        const b = data.branches[i];
+        const branch = await tx.branch.create({
+          data: {
+            restaurantId: restaurant.id,
+            name: b.name || `${data.name} - Branch ${i + 1}`,
+            address: b.address || 'To be configured',
+            phone: b.phone,
+            ...(b.vatRate !== undefined ? { vatRate: b.vatRate } : {}),
+            ...(b.serviceChargeRate !== undefined ? { serviceChargeRate: b.serviceChargeRate } : {}),
+          },
+        });
+        createdBranches.push(branch);
+      }
 
       // 3. Create RESTAURANT_ADMIN user
       const passwordHash = await bcrypt.hash(data.adminPassword, 12);
       const admin = await tx.user.create({
         data: {
           restaurantId: restaurant.id,
-          branchId: branch.id,
+          branchId: createdBranches[0].id,
           name: data.adminName,
           email: data.adminEmail.toLowerCase(),
           passwordHash,
@@ -152,7 +168,7 @@ export class PlatformService {
         select: { id: true, name: true, email: true, role: true },
       });
 
-      return { restaurant, branch, admin };
+      return { restaurant, branches: createdBranches, admin };
     });
   }
 
@@ -279,6 +295,54 @@ export class PlatformService {
           _count: { select: { tables: true, users: true } },
         },
         orderBy: { createdAt: 'desc' },
+      }),
+    );
+  }
+
+  // ─── Telemetry ─────────────────────────────────────────────────────────────
+
+  async logFrontendError(data: {
+    message: string;
+    stackTrace?: string;
+    url: string;
+    userAgent?: string;
+    userId?: string;
+    restaurantId?: string;
+    branchId?: string;
+  }) {
+    return this.prisma.withRetry(() =>
+      this.prisma.frontendErrorLog.create({
+        data: {
+          message: data.message,
+          stackTrace: data.stackTrace,
+          url: data.url,
+          userAgent: data.userAgent,
+          userId: data.userId,
+          restaurantId: data.restaurantId,
+          branchId: data.branchId,
+        },
+      }),
+    );
+  }
+
+  async getFrontendErrors(filters?: { resolved?: boolean; restaurantId?: string }) {
+    return this.prisma.withRetry(() =>
+      this.prisma.frontendErrorLog.findMany({
+        where: {
+          ...(filters?.resolved !== undefined ? { resolved: filters.resolved } : {}),
+          ...(filters?.restaurantId ? { restaurantId: filters.restaurantId } : {}),
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 100, // Limit to recent 100
+      }),
+    );
+  }
+
+  async resolveFrontendError(id: string) {
+    return this.prisma.withRetry(() =>
+      this.prisma.frontendErrorLog.update({
+        where: { id },
+        data: { resolved: true },
       }),
     );
   }

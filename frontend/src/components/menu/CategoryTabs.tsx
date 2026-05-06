@@ -95,21 +95,21 @@ export function CategoryTabs({ categories, activeId, onChange }: Props) {
             <div
               className={`w-[58px] h-[58px] sm:w-[68px] sm:h-[68px] rounded-full flex items-center justify-center relative transition-all duration-300
                 ${isActive 
-                  ? 'bg-[#F1CFAE] text-[#1E1E1E] shadow-xl shadow-[#F1CFAE]/35 scale-105' 
-                  : 'bg-white text-[#1E1E1E] border border-black/5 shadow-sm hover:border-[#C59B76]/30'}`}
+                  ? 'bg-brand-600 text-white shadow-xl shadow-brand-500/40 scale-105 border-2 border-white/20' 
+                  : 'bg-surface-card text-foreground border border-surface-200 shadow-sm hover:border-brand-500/30'}`}
             >
               <span className={`text-[24px] sm:text-[30px] transition-opacity duration-300 ${isActive ? 'opacity-0' : 'opacity-100'}`}>
                 {meta.emoji}
               </span>
               {isActive && (
-                <div className="absolute inset-0 flex items-center justify-center text-[#1E1E1E]">
+                <div className="absolute inset-0 flex items-center justify-center text-white">
                   {meta.icon}
                 </div>
               )}
             </div>
             <span
-              className={`text-[11px] sm:text-[14px] leading-none transition-colors duration-300 font-medium font-serif text-center
-                ${isActive ? 'text-white' : 'text-white/95'}`}
+              className={`text-[11px] sm:text-[14px] leading-none transition-colors duration-300 font-bold tracking-tight text-center
+                ${isActive ? 'text-brand-600 dark:text-brand-400' : 'text-foreground/40'}`}
             >
               {getLocalized((cat as any).nameTranslations, cat.name, language)}
             </span>

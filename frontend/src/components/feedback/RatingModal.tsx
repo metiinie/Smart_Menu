@@ -5,6 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { Star, X, Send, MessageSquare } from 'lucide-react';
 import { ordersApi } from '@/lib/api';
+import { useFavoritesStore } from '@/stores/favoritesStore';
+import { UI_STRINGS } from '@/lib/i18n';
 
 interface RatingModalProps {
   isOpen: boolean;
@@ -30,6 +32,8 @@ export function RatingModal({
   const [comment, setComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const { language } = useFavoritesStore();
+  const t = UI_STRINGS[language];
 
   const handleSubmit = async () => {
     if (rating === 0) return;
@@ -54,7 +58,7 @@ export function RatingModal({
       }, 2000);
     } catch (err) {
       console.error('Failed to submit rating:', err);
-      toast.error('Failed to submit rating. Please try again.');
+      toast.error(t.orderFailed);
     } finally {
       setIsSubmitting(false);
     }
@@ -86,12 +90,12 @@ export function RatingModal({
           <div className="flex justify-between items-start mb-6">
             <div>
               <h3 className="text-xl font-bold text-surface-900">
-                {isSubmitted ? 'Thank You!' : itemName ? `Rate ${itemName}` : 'Rate Your Experience'}
+                {isSubmitted ? t.thankYou : itemName ? `${t.rateItem} ${itemName}` : t.rateExperience}
               </h3>
               <p className="text-surface-500 text-sm mt-1">
                 {isSubmitted 
-                  ? 'Your feedback helps us improve!' 
-                  : 'How was your dish today?'}
+                   ? t.feedbackHelp 
+                   : t.howWasDish}
               </p>
             </div>
             {!isSubmitting && !isSubmitted && (
@@ -110,7 +114,7 @@ export function RatingModal({
                 <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mb-4">
                   <Star size={40} className="text-emerald-500 fill-emerald-500" />
                 </div>
-                <p className="font-semibold text-surface-800">Rating Submitted Successfully</p>
+                <p className="font-semibold text-surface-800">{t.ratingSuccess}</p>
               </motion.div>
             ) : (
               <div className="space-y-6">
@@ -141,12 +145,12 @@ export function RatingModal({
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-surface-400 text-xs font-bold uppercase tracking-wider">
                     <MessageSquare size={14} />
-                    <span>Any comments? (Optional)</span>
+                    <span>{t.anyComments}</span>
                   </div>
                   <textarea
                     value={comment}
                     onChange={(e) => setComment(e.target.value)}
-                    placeholder="Tell us what you liked or how we can improve..."
+                    placeholder={t.commentPlaceholder}
                     className="w-full bg-surface-100 border border-surface-200 rounded-2xl p-4 text-sm text-surface-800 outline-none focus:border-brand-500 transition-colors h-32 resize-none"
                   />
                 </div>
@@ -167,7 +171,7 @@ export function RatingModal({
                   ) : (
                     <>
                       <Send size={18} />
-                      <span>Submit Review</span>
+                      <span>{t.submitReview}</span>
                     </>
                   )}
                 </motion.button>

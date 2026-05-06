@@ -84,7 +84,7 @@ export const syncManager = {
         }
       }
 
-      const isNetworkError = !error.response || [503, 504].includes(error.response.status);
+      const isNetworkError = !error.response || [500, 502, 503, 504].includes(error.response.status);
 
       if (isNetworkError) {
         this._enqueue(localOrder.id, payload, localOrder.branchId, localOrder.tableId);
@@ -97,20 +97,18 @@ export const syncManager = {
       }
 
       // If it's a 400 or other terminal error, mark as FAILED
-      if (error.response?.status === 400) {
-        emitOrderAudit('error', 'Order rejected by server', {
-          localOrderId: localOrder.id,
-          branchId: localOrder.branchId,
-          sessionId: localOrder.sessionId,
-          reason: error.response?.data?.message || error.message,
-        });
-        useLocalOrderStore.getState().updateOrderStatus(
-          localOrder.id,
-          LocalOrderStatus.FAILED,
-          undefined,
-          error.response?.data?.message || error.message,
-        );
-      }
+      emitOrderAudit('error', 'Order rejected by server', {
+        localOrderId: localOrder.id,
+        branchId: localOrder.branchId,
+        sessionId: localOrder.sessionId,
+        reason: error.response?.data?.message || error.message,
+      });
+      useLocalOrderStore.getState().updateOrderStatus(
+        localOrder.id,
+        LocalOrderStatus.FAILED,
+        undefined,
+        error.response?.data?.message || error.message,
+      );
       throw error;
     }
   },
@@ -131,9 +129,16 @@ export const syncManager = {
 
     for (const item of queue) {
       try {
-        // Double-check status — don't sync if already SYNCED or FAILED
+        // 1. FRESH CHECK: Get latest state from store (might have been updated by another tab)
         const currentOrder = useLocalOrderStore.getState().orders[item.id];
+        
+        // 2. TERMINAL STATE GUARD: Skip if already synced or failed
         if (!currentOrder || currentOrder.status === LocalOrderStatus.SYNCED || currentOrder.status === LocalOrderStatus.FAILED) {
+          continue;
+        }
+
+        // 3. CONCURRENCY GUARD: If it's already being synced by another process/tab, skip
+        if (currentOrder.status === LocalOrderStatus.SYNCING) {
           continue;
         }
 
@@ -154,8 +159,7 @@ export const syncManager = {
         }
 
         try {
-          // Add a tiny delay to ensure the UI transition is visible and smooth
-          await new Promise(resolve => setTimeout(resolve, 800));
+          // REMOVED artificial delay to minimize race condition window
           
           const res = await ordersApi.create(item.payload);
           useLocalOrderStore.getState().updateOrderStatus(item.id, LocalOrderStatus.SYNCED, res.id);
@@ -198,7 +202,7 @@ export const syncManager = {
             }
           } else {
             // Check for terminal errors (like 400, 404, 403)
-            const isNetworkError = !err.response || [503, 504].includes(err.response.status);
+            const isNetworkError = !err.response || [500, 502, 503, 504].includes(err.response.status);
     
             if (isNetworkError) {
               remaining.push(item);
@@ -292,7 +296,7 @@ export const syncManager = {
         }
       }
 
-      const isNetworkError = !err.response || [503, 504].includes(err.response.status);
+      const isNetworkError = !err.response || [500, 502, 503, 504].includes(err.response.status);
 
       if (isNetworkError) {
         // Back to pending/queue

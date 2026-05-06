@@ -22,6 +22,7 @@ export interface OrderAuditEntry {
   source: 'customer' | 'staff' | 'system';
   reason?: string;
   itemCount?: number;
+  restaurantId?: string | null;
 }
 
 @Injectable()
@@ -45,6 +46,7 @@ export class OrderAuditService {
             source: entry.source,
             reason: entry.reason,
             itemCount: entry.itemCount,
+            restaurantId: entry.restaurantId,
           },
         }),
       );

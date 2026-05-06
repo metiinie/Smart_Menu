@@ -6,7 +6,7 @@ import {
   ConflictException,
   Logger,
 } from '@nestjs/common';
-import { OrderStatus, Prisma } from '@prisma/client';
+import { OrderStatus, OrderItemStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { CreateOrderDto, UpdateOrderStatusDto } from './dto/create-order.dto';
@@ -15,9 +15,9 @@ import { OrderAuditService } from './order-audit.service';
 
 const STATUS_TRANSITIONS: Record<string, string[]> = {
   CREATED: ['CONFIRMED'],
-  CONFIRMED: ['PREPARING'],
-  PREPARING: ['READY'],
-  READY: ['DELIVERED'],
+  CONFIRMED: ['PREPARING', 'CREATED'],
+  PREPARING: ['READY', 'CONFIRMED'],
+  READY: ['DELIVERED', 'PREPARING'],
   DELIVERED: [],
 };
 
@@ -49,7 +49,7 @@ export class OrdersService {
           table: { 
             include: { 
               branch: { 
-                select: { id: true, vatRate: true, serviceChargeRate: true } 
+                select: { id: true, restaurantId: true, vatRate: true, serviceChargeRate: true } 
               } 
             } 
           } 
@@ -96,6 +96,7 @@ export class OrdersService {
         sessionId: session.id,
         customerRef: dto.customerRef,
         itemCount: dto.items.length,
+        restaurantId: table.branch.restaurantId,
         reason: 'One or more items were unavailable or invalid',
       });
       throw new BadRequestException('One or more items are unavailable or do not exist');
@@ -137,8 +138,9 @@ export class OrdersService {
     const totalPrice = subTotal + serviceChargeAmount + vatAmount;
 
     // 5. Create order + items in a single transaction.
-    const order = await this.prisma.$transaction(async (tx: any) => {
-      const counter = await tx.branchOrderCounter.upsert({
+    const order = await this.prisma.withRetry(() =>
+      this.prisma.$transaction(async (tx: any) => {
+        const counter = await tx.branchOrderCounter.upsert({
         where: {
           branchId_counterDate: {
             branchId: table.branchId,
@@ -168,6 +170,7 @@ export class OrdersService {
           serviceChargeAmount,
           totalPrice,
           notes: dto.notes,
+          restaurantId: table.branch.restaurantId,
           status: OrderStatus.CREATED,
           paymentStatus: 'UNPAID',
           items: {
@@ -191,7 +194,8 @@ export class OrdersService {
         },
       });
       return newOrder;
-    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, maxWait: 10000, timeout: 20000 })
+    );
 
     // 6. Notify kitchen via socket (branch-isolated room)
     this.realtime.emitNewOrder(order, table.branchId);
@@ -205,12 +209,20 @@ export class OrdersService {
       orderId: order.id,
       displayNumber: order.displayNumber,
       itemCount: dto.items.length,
+      restaurantId: table.branch.restaurantId,
     });
 
     return {
       ...order,
       totalPrice: Number(order.totalPrice),
-      items: order.items.map((i: any) => ({ ...i, unitPrice: Number(i.unitPrice) })),
+      items: order.items.map((i: any) => ({ 
+        ...i, 
+        unitPrice: Number(i.unitPrice),
+        options: i.options?.map((opt: any) => ({
+          ...opt,
+          optionPrice: Number(opt.optionPrice)
+        }))
+      })),
     };
   }
 
@@ -233,7 +245,14 @@ export class OrdersService {
       vatAmount: Number(order.vatAmount),
       serviceChargeAmount: Number(order.serviceChargeAmount),
       totalPrice: Number(order.totalPrice),
-      items: order.items.map((i: any) => ({ ...i, unitPrice: Number(i.unitPrice) })),
+      items: order.items.map((i: any) => ({ 
+        ...i, 
+        unitPrice: Number(i.unitPrice),
+        options: i.options?.map((opt: any) => ({
+          ...opt,
+          optionPrice: Number(opt.optionPrice)
+        }))
+      })),
     };
   }
 
@@ -266,6 +285,14 @@ export class OrdersService {
     );
     if (transition.count === 0) {
       throw new ConflictException('Order status changed by another request. Please retry.');
+    }
+
+    // If order is READY, mark all items as READY
+    if (dto.status === OrderStatus.READY) {
+      await this.prisma.orderItem.updateMany({
+        where: { orderId: id },
+        data: { status: OrderItemStatus.READY },
+      });
     }
 
     const updated = await this.prisma.withRetry(() =>
@@ -338,7 +365,7 @@ export class OrdersService {
         },
         orderBy: { createdAt: 'desc' },
         include: {
-          items: { include: { menuItem: { select: { name: true } }, options: true } },
+          items: { include: { menuItem: { select: { name: true, imageUrl: true, categoryId: true, category: { select: { name: true } } } }, options: true } },
           table: { select: { tableNumber: true } },
         },
       }),
@@ -349,8 +376,81 @@ export class OrdersService {
       subTotal: Number(o.subTotal),
       vatAmount: Number(o.vatAmount),
       serviceChargeAmount: Number(o.serviceChargeAmount),
-      totalPrice: Number(o.totalPrice) 
+      totalPrice: Number(o.totalPrice),
+      items: o.items.map((i: any) => ({
+        ...i,
+        unitPrice: Number(i.unitPrice),
+        options: i.options?.map((opt: any) => ({
+          ...opt,
+          optionPrice: Number(opt.optionPrice),
+        })),
+      })),
     }));
+  }
+
+  async updateItemStatus(itemId: string, status: OrderItemStatus, actingBranchId?: string) {
+    const item = await this.prisma.withRetry(() =>
+      this.prisma.orderItem.findUnique({
+        where: { id: itemId },
+        include: { order: { select: { id: true, table: { select: { branchId: true } } } } },
+      }),
+    );
+    if (!item) throw new NotFoundException('Order item not found');
+    if (actingBranchId && item.order.table.branchId !== actingBranchId) {
+      throw new ForbiddenException('Item does not belong to your branch');
+    }
+
+    const updated = await this.prisma.withRetry(() =>
+      this.prisma.orderItem.update({
+        where: { id: itemId },
+        data: { status },
+        include: { menuItem: { select: { name: true } } },
+      }),
+    );
+
+    // Get the full order to notify via socket
+    const order = await this.getOrder(item.orderId);
+    this.realtime.emitOrderUpdated(order);
+
+    return updated;
+  }
+
+  async moveOrderBack(id: string, actingBranchId?: string) {
+    const order = await this.prisma.withRetry(() =>
+      this.prisma.order.findUnique({
+        where: { id },
+        select: { id: true, status: true, table: { select: { branchId: true } } },
+      }),
+    );
+    if (!order) throw new NotFoundException('Order not found');
+    if (actingBranchId && order.table.branchId !== actingBranchId) {
+      throw new ForbiddenException('Order does not belong to your branch');
+    }
+
+    const PREVIOUS_STATUS: Record<string, OrderStatus | null> = {
+      CONFIRMED: OrderStatus.CREATED,
+      PREPARING: OrderStatus.CONFIRMED,
+      READY:     OrderStatus.PREPARING,
+      DELIVERED: null, // Usually don't undo delivered
+      CREATED:   null,
+    };
+
+    const prev = PREVIOUS_STATUS[order.status];
+    if (!prev) throw new BadRequestException(`Cannot move back from ${order.status}`);
+
+    const updated = await this.prisma.withRetry(() =>
+      this.prisma.order.update({
+        where: { id },
+        data: { status: prev },
+        include: {
+          items: { include: { menuItem: { select: { name: true } }, options: true } },
+          table: { select: { tableNumber: true, branchId: true } },
+        },
+      }),
+    );
+
+    this.realtime.emitOrderUpdated(updated);
+    return updated;
   }
 
   // ─── Ratings ──────────────────────────────────────────────────────
@@ -434,7 +534,14 @@ export class OrdersService {
       vatAmount: Number(o.vatAmount),
       serviceChargeAmount: Number(o.serviceChargeAmount),
       totalPrice: Number(o.totalPrice),
-      items: o.items.map((i: any) => ({ ...i, unitPrice: Number(i.unitPrice) })),
+      items: o.items.map((i: any) => ({ 
+        ...i, 
+        unitPrice: Number(i.unitPrice),
+        options: i.options?.map((opt: any) => ({
+          ...opt,
+          optionPrice: Number(opt.optionPrice)
+        }))
+      })),
     }));
   }
 }

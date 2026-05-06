@@ -1,6 +1,7 @@
 'use client';
 
 import { forwardRef } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface PrintableTicketProps {
   order: {
@@ -27,6 +28,7 @@ interface PrintableTicketProps {
 
 export const PrintableTicket = forwardRef<HTMLDivElement, PrintableTicketProps>(
   function PrintableTicket({ order }, ref) {
+    const { t } = useTranslation();
     const time = new Date(order.createdAt).toLocaleString('en-ET', {
       hour: '2-digit',
       minute: '2-digit',
@@ -53,7 +55,7 @@ export const PrintableTicket = forwardRef<HTMLDivElement, PrintableTicketProps>(
           <div style={{ fontSize: '18px', fontWeight: 'bold', letterSpacing: '2px' }}>
             SMART MENU
           </div>
-          <div style={{ fontSize: '10px', color: '#666' }}>Kitchen Order Ticket</div>
+          <div style={{ fontSize: '10px', color: '#666' }}>{t('kitchenOrderTicket')}</div>
           <div
             style={{
               borderBottom: '2px dashed #000',
@@ -96,7 +98,7 @@ export const PrintableTicket = forwardRef<HTMLDivElement, PrintableTicketProps>(
             )}
             {item.note && (
               <div style={{ paddingLeft: '12px', fontSize: '10px', fontStyle: 'italic', color: '#666' }}>
-                Note: {item.note}
+                {t('note')}: {item.note}
               </div>
             )}
           </div>
@@ -108,19 +110,19 @@ export const PrintableTicket = forwardRef<HTMLDivElement, PrintableTicketProps>(
         <div style={{ fontSize: '11px' }}>
           {order.subTotal !== undefined && (
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span>Subtotal</span>
+              <span>{t('subtotal')}</span>
               <span>{Number(order.subTotal).toFixed(0)}</span>
             </div>
           )}
           {order.serviceChargeAmount !== undefined && order.serviceChargeAmount > 0 && (
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span>Service</span>
+              <span>{t('serviceCharge')}</span>
               <span>{Number(order.serviceChargeAmount).toFixed(0)}</span>
             </div>
           )}
           {order.vatAmount !== undefined && order.vatAmount > 0 && (
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span>VAT</span>
+              <span>{t('vatRate')}</span>
               <span>{Number(order.vatAmount).toFixed(0)}</span>
             </div>
           )}
@@ -136,21 +138,21 @@ export const PrintableTicket = forwardRef<HTMLDivElement, PrintableTicketProps>(
             fontSize: '16px',
           }}
         >
-          <span>TOTAL</span>
+          <span>{t('total')}</span>
           <span>ETB {Number(order.totalPrice).toFixed(0)}</span>
         </div>
 
         {order.notes && (
           <>
             <div style={{ borderBottom: '1px dashed #999', margin: '6px 0' }} />
-            <div style={{ fontSize: '10px', fontStyle: 'italic' }}>Note: {order.notes}</div>
+            <div style={{ fontSize: '10px', fontStyle: 'italic' }}>{t('note')}: {order.notes}</div>
           </>
         )}
 
         {/* Footer */}
         <div style={{ textAlign: 'center', marginTop: '12px', fontSize: '9px', color: '#999' }}>
-          <div>Thank you for dining with us!</div>
-          <div>Powered by ArifSmart Menu</div>
+          <div>{t('thankYouDining')}</div>
+          <div>{t('poweredBy')}</div>
         </div>
       </div>
     );

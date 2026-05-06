@@ -12,10 +12,12 @@ import { WsJwtGuard } from './ws-jwt.guard';
 
 @WebSocketGateway({
   cors: { 
-    origin: true, // true allows all origins in Socket.io
-    credentials: true 
+    origin: true,
+    credentials: true,
+    methods: ['GET', 'POST'],
   },
   namespace: '/',
+  allowEIO3: true,
 })
 export class RealtimeGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
@@ -31,6 +33,9 @@ export class RealtimeGateway
 
   handleConnection(client: Socket) {
     this.logger.log(`Client connected: ${client.id}`);
+    this.logger.debug(`Handshake Query: ${JSON.stringify(client.handshake.query)}`);
+    this.logger.debug(`Handshake Auth: ${JSON.stringify(client.handshake.auth)}`);
+    
     // Auto-join rooms based on query params
     const { room } = client.handshake.query;
     if (room && typeof room === 'string') {
@@ -57,47 +62,60 @@ export class RealtimeGateway
   }
 
   @SubscribeMessage('call-waiter')
-  handleCallWaiter(_client: Socket, data: { tableNumber: number; tableId: string; requestType: string }) {
-    this.logger.log(`🔔 Call Waiter: Table ${data.tableNumber} — ${data.requestType}`);
-    // Tenant isolation: Call waiter should be scoped to branch/restaurant
-    // Broadcast to the branch admin room instead of global
-    this.server.to(`kitchen:${data.tableId}`).emit('waiter-call', {
+  handleCallWaiter(_client: Socket, data: { tableNumber: number; tableId: string; branchId: string; requestType: string }) {
+    this.logger.log(`🔔 Call Waiter: Branch ${data.branchId} Table ${data.tableNumber} — ${data.requestType}`);
+    
+    // Broadcast to staff and admin rooms for this branch
+    const payload = {
       tableNumber: data.tableNumber,
       tableId: data.tableId,
+      branchId: data.branchId,
       requestType: data.requestType,
       timestamp: new Date().toISOString(),
-    });
+    };
+
+    this.server.to(`staff:${data.branchId}`).emit('waiter-call', payload);
+    this.server.to(`admin:${data.branchId}`).emit('waiter-call', payload);
+    
+    // Also support tenant-namespaced rooms if present
+    this.server.to(`rest:any:staff:${data.branchId}`).emit('waiter-call', payload);
   }
 
-  /** Emit to kitchen room when new order arrives */
+  /** Emit to kitchen and staff rooms when new order arrives */
   emitNewOrder(order: any, branchId?: string) {
-    const restaurantId = order.restaurantId || 'legacy';
+    const restaurantId = order.restaurantId || 'any';
     
     if (branchId) {
       this.logger.log(`📢 REALTIME: Emitting 'new-order' to room: [rest:${restaurantId}:kitchen:${branchId}]`);
-      this.server.to(`rest:${restaurantId}:kitchen:${branchId}`).emit('new-order', order);
-      this.server.to(`rest:${restaurantId}:admin:${branchId}`).emit('new-order', order);
       
-      // Backward compatibility during migration
-      this.server.to(`kitchen:${branchId}`).emit('new-order', order);
-      this.server.to(`admin:${branchId}`).emit('new-order', order);
+      const rooms = [
+        `rest:${restaurantId}:kitchen:${branchId}`,
+        `kitchen:${branchId}`,
+      ];
+
+      rooms.forEach(room => this.server.to(room).emit('new-order', order));
     } else {
       this.logger.warn('⚠️ emitNewOrder called without branchId, falling back to tenant global broadcast');
       this.server.to(`rest:${restaurantId}:global`).emit('new-order', order);
     }
   }
 
-  /** Emit to order-specific room when status changes */
+  /** Emit to order-specific room and staff/kitchen when status changes */
   emitOrderUpdated(order: any) {
-    const restaurantId = order.restaurantId || 'legacy';
+    const restaurantId = order.restaurantId || 'any';
+    const bId = order.table?.branchId;
     
-    if (order.table?.branchId) {
-      this.server.to(`rest:${restaurantId}:kitchen:${order.table.branchId}`).emit('order-updated', order);
-      this.server.to(`rest:${restaurantId}:admin:${order.table.branchId}`).emit('order-updated', order);
-      
-      // Backward compatibility
-      this.server.to(`kitchen:${order.table.branchId}`).emit('order-updated', order);
-      this.server.to(`admin:${order.table.branchId}`).emit('order-updated', order);
+    if (bId) {
+      const rooms = [
+        `rest:${restaurantId}:kitchen:${bId}`,
+        `rest:${restaurantId}:admin:${bId}`,
+        `rest:${restaurantId}:staff:${bId}`,
+        `kitchen:${bId}`,
+        `admin:${bId}`,
+        `staff:${bId}`,
+      ];
+
+      rooms.forEach(room => this.server.to(room).emit('order-updated', order));
     } else {
       this.server.to(`rest:${restaurantId}:global`).emit('order-updated', order);
     }

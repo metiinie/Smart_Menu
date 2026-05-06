@@ -36,4 +36,11 @@ export class AuthController {
   getDefaultBranch() {
     return this.authService.getDefaultBranch();
   }
+
+  @Post('refresh')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Exchange a refresh token for a new access + refresh token pair' })
+  refresh(@Body() body: { refreshToken: string }) {
+    return this.authService.refreshSession(body.refreshToken);
+  }
 }

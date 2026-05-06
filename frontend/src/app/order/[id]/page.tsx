@@ -13,20 +13,23 @@ import { PageTransition } from '@/components/ui/PageTransition';
 import Link from 'next/link';
 import type { Order } from '@/shared/types';
 import { RatingModal } from '@/components/feedback/RatingModal';
+import { NotificationManager } from '@/components/notifications/NotificationManager';
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface PageProps {
   params: Promise<{ id: string }>;
 }
 
-const STATUS_MESSAGES: Record<string, { title: string; subtitle: string; emoji: string }> = {
-  CREATED:   { title: 'Order Received!',     subtitle: 'Waiting for confirmation...', emoji: '🎉' },
-  CONFIRMED: { title: 'Order Confirmed',      subtitle: 'Kitchen is getting ready',    emoji: '✅' },
-  PREPARING: { title: 'Being Prepared',       subtitle: 'Your food is being cooked!',  emoji: '👨‍🍳' },
-  READY:     { title: 'Ready to Serve!',      subtitle: 'A staff member will bring it', emoji: '🔔' },
-  DELIVERED: { title: 'Enjoy your meal!',     subtitle: 'Thank you for choosing us',   emoji: '🍽️' },
-};
+const getStatusMessages = (t: any) => ({
+  CREATED:   { title: t('orderReceived'),     subtitle: t('waitingForConfirmation'), emoji: '🎉' },
+  CONFIRMED: { title: t('orderConfirmed'),    subtitle: t('kitchenIsGettingReady'),    emoji: '✅' },
+  PREPARING: { title: t('beingPrepared'),     subtitle: t('yourFoodIsBeingCooked'),  emoji: '👨‍🍳' },
+  READY:     { title: t('readyToServe'),      subtitle: t('staffWillBringIt'), emoji: '🔔' },
+  DELIVERED: { title: t('enjoyYourMeal'),     subtitle: t('thankYouForChoosingUs'),   emoji: '🍽️' },
+});
 
 export default function OrderStatusPage({ params }: PageProps) {
+  const { t } = useTranslation();
   const resolvedParams = use(params);
   const [orderId, setOrderId] = useState('');
   const [showRating, setShowRating] = useState(false);
@@ -60,7 +63,8 @@ export default function OrderStatusPage({ params }: PageProps) {
     };
   }, [orderId, refetch]);
 
-  const msg = order ? STATUS_MESSAGES[order.status] ?? STATUS_MESSAGES.CREATED : null;
+  const statusMessages = getStatusMessages(t);
+  const msg = order ? (statusMessages as any)[order.status] ?? statusMessages.CREATED : null;
   const isDelivered = order?.status === 'DELIVERED';
   const hasRated = (order as any)?.ratings?.some((r: any) => !r.menuItemId);
 
@@ -68,7 +72,7 @@ export default function OrderStatusPage({ params }: PageProps) {
     return (
       <div className="min-h-dvh flex items-center justify-center bg-surface p-6">
         <ErrorState
-          message={error instanceof Error ? error.message : 'Could not load order'}
+          message={error instanceof Error ? error.message : t('couldNotLoadOrder')}
           errorType="ORDER_FETCH_FAILED"
           orderId={orderId}
           onRetry={refetch}
@@ -92,9 +96,9 @@ export default function OrderStatusPage({ params }: PageProps) {
     return (
       <div className="min-h-dvh flex items-center justify-center bg-surface p-6">
         <NotFoundState
-          title="Order Not Found"
-          message="We couldn't find an order with this ID. It may have expired or belongs to a different session."
-          returnLabel="Back to Menu"
+          title={t('orderNotFound')}
+          message={t('noData')}
+          returnLabel={t('backToMenu')}
         />
       </div>
     );
@@ -110,8 +114,8 @@ export default function OrderStatusPage({ params }: PageProps) {
               <ArrowLeft size={20} className="text-slate-800" />
             </Link>
             <div>
-              <h1 className="font-display font-black text-slate-800 text-lg uppercase tracking-tight">Order Status</h1>
-              <p className="text-slate-400 text-[10px] uppercase font-bold tracking-widest leading-none">Real-time Updates</p>
+              <h1 className="font-display font-black text-slate-800 text-lg uppercase tracking-tight">{t('orderStatus')}</h1>
+              <p className="text-slate-400 text-[10px] uppercase font-bold tracking-widest leading-none">{t('realTimeUpdates')}</p>
             </div>
           </div>
         </header>
@@ -134,17 +138,17 @@ export default function OrderStatusPage({ params }: PageProps) {
 
             <div className="flex items-center justify-center gap-6 mt-8 pt-8 border-t border-slate-100">
               <div className="text-center">
-                <p className="text-slate-400 text-[10px] uppercase font-black tracking-widest mb-1">Table</p>
+                <p className="text-slate-400 text-[10px] uppercase font-black tracking-widest mb-1">{t('table')}</p>
                 <p className="font-display font-black text-slate-800 text-xl">{order.table?.tableNumber ?? '—'}</p>
               </div>
               <div className="w-px h-10 bg-slate-100" />
               <div className="text-center">
-                <p className="text-slate-400 text-[10px] uppercase font-black tracking-widest mb-1">Total</p>
+                <p className="text-slate-400 text-[10px] uppercase font-black tracking-widest mb-1">{t('total')}</p>
                 <p className="font-display font-black text-brand-500 text-xl">ETB {Number(order.totalPrice).toFixed(0)}</p>
               </div>
               <div className="w-px h-10 bg-slate-100" />
               <div className="text-center">
-                <p className="text-slate-400 text-[10px] uppercase font-black tracking-widest mb-1">Items</p>
+                <p className="text-slate-400 text-[10px] uppercase font-black tracking-widest mb-1">{t('items')}</p>
                 <p className="font-display font-black text-slate-800 text-xl">{order.items?.length ?? 0}</p>
               </div>
             </div>
@@ -153,14 +157,14 @@ export default function OrderStatusPage({ params }: PageProps) {
         {/* Items list */}
         <div className="bg-white rounded-3xl p-6 mb-6 border border-brand-500/5 shadow-sm">
           <h3 className="font-display font-black text-[10px] uppercase tracking-[0.2em] text-slate-400 mb-4 flex items-center gap-2">
-            <Utensils size={14} className="text-brand-500" /> Your Selection
+            <Utensils size={14} className="text-brand-500" /> {t('yourSelection')}
           </h3>
           <div className="space-y-4">
             {order.items?.map((item) => (
               <div key={item.id} className="flex justify-between items-center py-2 border-b border-slate-50 last:border-0 border-dashed">
                 <div>
-                  <span className="text-slate-800 text-sm font-bold block">{item.menuItem?.name ?? 'Item'}</span>
-                  <span className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">Qty: {item.quantity}</span>
+                  <span className="text-slate-800 text-sm font-bold block">{item.menuItem?.name ?? t('items')}</span>
+                  <span className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">{t('qty')}: {item.quantity}</span>
                 </div>
                 <span className="text-slate-800 text-sm font-display font-black">
                   ETB {(Number(item.unitPrice) * item.quantity).toFixed(0)}
@@ -173,16 +177,18 @@ export default function OrderStatusPage({ params }: PageProps) {
         {/* Timeline */}
         <div className="bg-white rounded-3xl p-6 border border-brand-500/5 shadow-sm">
           <h3 className="font-display font-black text-[10px] uppercase tracking-[0.2em] text-slate-400 mb-6 flex items-center gap-2">
-            <Clock size={14} className="text-brand-500" /> Progress Timeline
+            <Utensils size={14} className="text-brand-500" /> {t('progressTimeline')}
           </h3>
           <OrderTimeline status={order.status} />
         </div>
 
+        {!isDelivered && <NotificationManager />}
+
         {isDelivered && (
           <div className="mt-6 text-center animate-in fade-in slide-in-from-bottom-4 duration-700">
             <CheckCircle size={40} className="text-emerald-400 mx-auto mb-3" />
-            <p className="text-emerald-600 font-bold text-lg mb-1">Delivered! Enjoy your meal 🎊</p>
-            <p className="text-slate-400 text-xs mb-6 px-10">We hope you liked everything. Your feedback means the world to us!</p>
+            <p className="text-emerald-600 font-bold text-lg mb-1">{t('deliveredEnjoy')}</p>
+            <p className="text-slate-400 text-xs mb-6 px-10">{t('feedbackRequest')}</p>
             
             {!hasRated && !showRating && (
               <motion.button
@@ -191,14 +197,14 @@ export default function OrderStatusPage({ params }: PageProps) {
                 className="inline-flex items-center gap-2 bg-brand-500 text-white px-8 py-4 rounded-2xl font-bold shadow-xl shadow-brand-500/20"
               >
                 <Star size={18} className="fill-white" />
-                Rate Experience
+                {t('rateExperience')}
               </motion.button>
             )}
 
             {hasRated && (
               <div className="bg-emerald-50 text-emerald-700 p-4 rounded-2xl border border-emerald-100 flex items-center justify-center gap-2">
                 <CheckCircle size={16} />
-                <span className="text-sm font-bold">Thank you for your rating!</span>
+                <span className="text-sm font-bold">{t('thankYouForRating')}</span>
               </div>
             )}
           </div>

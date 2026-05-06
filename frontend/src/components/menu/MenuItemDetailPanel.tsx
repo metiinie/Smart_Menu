@@ -7,7 +7,7 @@ import { ArrowLeft, Plus, Minus, ShoppingCart, MessageSquare, Zap, Dumbbell, Dro
 import { useState, useEffect, useMemo } from 'react';
 import Script from 'next/script';
 import { Tooltip } from '@/components/ui/Tooltip';
-import { getLocalized } from '@/lib/i18n';
+import { getLocalized, UI_STRINGS } from '@/lib/i18n';
 
 declare global {
   namespace JSX {
@@ -26,7 +26,6 @@ declare global {
   }
 }
 import type { MenuItem } from '@/shared/types';
-type AllergenLine = { label: string; present: boolean };
 type IngredientLine = { name: string; detail?: string };
 type NutritionRow = { nutrient: string; amount: string; dailyValue?: string; sub?: boolean; };
 type NutritionSection = { title: string; rows: NutritionRow[]; };
@@ -34,7 +33,6 @@ type NutritionSection = { title: string; rows: NutritionRow[]; };
 type IngredientInsights = {
   headline: string;
   servingLine: string;
-  allergens: AllergenLine[];
   ingredients: IngredientLine[];
   dietaryTags: string[];
   nutritionSections: NutritionSection[];
@@ -44,7 +42,6 @@ function buildInsights(item: any): IngredientInsights {
   return {
     headline: item.description || '—',
     servingLine: 'Per serving',
-    allergens: item.allergens || [],
     ingredients: item.ingredients || [],
     dietaryTags: (item.dietaryTags || []).map((t: any) => t.label),
     nutritionSections: item.nutritionSections || []
@@ -67,10 +64,10 @@ type DetailTabId = 'nutrition' | 'ingredients' | 'currency';
 
 type NutritionFilterId = 'all' | 'macros' | 'fats' | 'vitamins' | 'minerals';
 
-const DETAIL_TABS: { id: DetailTabId; label: string }[] = [
-  { id: 'nutrition', label: 'Nutrition' },
-  { id: 'ingredients', label: 'Ingredients' },
-  { id: 'currency', label: 'Currency' },
+const DETAIL_TABS: { id: DetailTabId; labelKey: keyof typeof UI_STRINGS.en }[] = [
+  { id: 'nutrition', labelKey: 'nutrition' },
+  { id: 'ingredients', labelKey: 'ingredients' },
+  { id: 'currency', labelKey: 'currency' },
 ];
 
 interface Props {
@@ -84,6 +81,7 @@ interface Props {
 
 export function MenuItemDetailPanel({ item, quantity, onClose, onAdd, onRemove, onOpenCart }: Props) {
   const { language } = useFavoritesStore();
+  const t = (UI_STRINGS as any)[language];
   const [note, setNote] = useState('');
   const [detailTab, setDetailTab] = useState<DetailTabId>('nutrition');
   const [is3DMode, setIs3DMode] = useState(false);
@@ -207,11 +205,11 @@ export function MenuItemDetailPanel({ item, quantity, onClose, onAdd, onRemove, 
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
             transition={{ type: 'spring', stiffness: 380, damping: 34 }}
-            className="fixed inset-0 z-[75] flex h-[100dvh] max-h-[100dvh] flex-col overflow-hidden bg-[#06a06e] font-sans"
+            className="fixed inset-0 z-[75] flex h-[100dvh] max-h-[100dvh] flex-col overflow-hidden bg-[var(--brand-primary)] font-sans transition-colors duration-300"
           >
             {/* Scroll height = content only; modest bottom pad */}
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain">
-              <div className="relative bg-[#FBF8F3]">
+              <div className="relative bg-[rgb(var(--background-rgb))]">
                 <div className="pointer-events-none absolute inset-0 opacity-[0.06]">
                   <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
                     <pattern id="detailSketch" x="0" y="0" width="180" height="180" patternUnits="userSpaceOnUse">
@@ -234,13 +232,13 @@ export function MenuItemDetailPanel({ item, quantity, onClose, onAdd, onRemove, 
                     <button
                       type="button"
                       onClick={onClose}
-                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#1E1E1E]/[0.06] text-[#1E1E1E] transition-transform active:scale-95"
+                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-foreground/[0.06] text-foreground transition-transform active:scale-95"
                       aria-label="Back to menu"
                     >
                       <ArrowLeft size={22} strokeWidth={2} />
                     </button>
                   </Tooltip>
-                  <p className="text-[11px] font-serif uppercase tracking-[0.2em] text-slate-500">Dish</p>
+                  <p className="text-[11px] font-serif uppercase tracking-[0.2em] text-slate-500">{t.menu}</p>
                   <div className="flex items-center gap-2">
                     <Tooltip label={is3DMode ? "View Gallery" : "View in 3D"}>
                       <motion.button
@@ -248,8 +246,8 @@ export function MenuItemDetailPanel({ item, quantity, onClose, onAdd, onRemove, 
                         onClick={() => setIs3DMode(!is3DMode)}
                         className={`flex h-11 w-11 items-center justify-center rounded-2xl transition-colors ${
                           is3DMode 
-                            ? 'bg-[#1E1E1E] text-[#44CFA0]' 
-                            : 'bg-[#1E1E1E]/[0.06] text-[#1E1E1E] hover:bg-[#1E1E1E]/10'
+                            ? 'bg-foreground text-brand-400' 
+                            : 'bg-foreground/[0.06] text-foreground hover:bg-foreground/10'
                         }`}
                         aria-label="Toggle AR Stage View"
                       >
@@ -264,7 +262,7 @@ export function MenuItemDetailPanel({ item, quantity, onClose, onAdd, onRemove, 
                             onClose();
                             onOpenCart();
                           }}
-                          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#1E1E1E]/[0.06] text-[#1E1E1E] transition-transform active:scale-95"
+                          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-foreground/[0.06] text-foreground transition-transform active:scale-95"
                           aria-label="Open cart"
                         >
                           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
@@ -287,7 +285,7 @@ export function MenuItemDetailPanel({ item, quantity, onClose, onAdd, onRemove, 
                       className="relative h-[min(52vw,200px)] w-[min(52vw,200px)] min-h-[140px] min-w-[140px] max-h-[200px] max-w-[200px]"
                     >
                       {is3DMode ? (
-                        <div className="absolute inset-0 flex items-center justify-center w-full h-full rounded-full z-10 bg-[#06a06e]/20 ring-4 ring-white/20 shadow-2xl overflow-hidden backdrop-blur-sm">
+                        <div className="absolute inset-0 flex items-center justify-center w-full h-full rounded-full z-10 bg-brand-500/20 ring-4 ring-white/20 shadow-2xl overflow-hidden backdrop-blur-sm">
                           {/* True 3D Model Viewer */}
                           {/* @ts-ignore */}
                 <model-viewer
@@ -304,9 +302,9 @@ export function MenuItemDetailPanel({ item, quantity, onClose, onAdd, onRemove, 
                         </div>
                       ) : (
                         <>
-                          <div className="absolute bottom-[6%] left-1/2 h-[12%] w-[78%] -translate-x-1/2 rounded-full bg-[#08AE75]/20 blur-2xl" />
-                          <div className="absolute inset-0 scale-[0.88] rounded-full bg-[#44CFA0]/70 blur-xl" />
-                          <div className="absolute inset-[18%] rounded-full bg-[#39C798]" />
+                          <div className="absolute bottom-[6%] left-1/2 h-[12%] w-[78%] -translate-x-1/2 rounded-full bg-brand-500/20 blur-2xl" />
+                          <div className="absolute inset-0 scale-[0.88] rounded-full bg-brand-400/70 blur-xl" />
+                          <div className="absolute inset-[18%] rounded-full bg-brand-300/40" />
                           <div className="absolute inset-[22%] z-10 overflow-hidden rounded-full shadow-lg ring-2 ring-white/50 bg-white">
                             {mockImages.length > 0 ? (
                               <AnimatePresence mode="wait">
@@ -329,8 +327,8 @@ export function MenuItemDetailPanel({ item, quantity, onClose, onAdd, onRemove, 
                       )}
 
                       {item.isFasting && !is3DMode && (
-                        <span className="absolute -top-0.5 left-1/2 z-20 -translate-x-1/2 whitespace-nowrap rounded-full border border-white/40 bg-[#08AE75] px-2.5 py-1 text-[9px] font-bold uppercase tracking-widest text-white shadow-lg">
-                          Fasting
+                        <span className="absolute -top-0.5 left-1/2 z-20 -translate-x-1/2 whitespace-nowrap rounded-full border border-white/40 bg-[var(--brand-accent)] px-2.5 py-1 text-[9px] font-bold uppercase tracking-widest text-white shadow-lg">
+                          {t.fasting}
                         </span>
                       )}
                     </motion.div>
@@ -344,7 +342,7 @@ export function MenuItemDetailPanel({ item, quantity, onClose, onAdd, onRemove, 
                           key={idx}
                           onClick={() => setCurrentImageIndex(idx)}
                           className={`h-1.5 rounded-full transition-all duration-300 ${
-                            currentImageIndex === idx ? 'w-5 bg-[#1E1E1E]' : 'w-1.5 bg-[#1E1E1E]/30'
+                            currentImageIndex === idx ? 'w-5 bg-foreground' : 'w-1.5 bg-foreground/30'
                           }`}
                           aria-label={`Go to image ${idx + 1}`}
                         />
@@ -354,7 +352,7 @@ export function MenuItemDetailPanel({ item, quantity, onClose, onAdd, onRemove, 
 
                   <h1
                     id="item-detail-title"
-                    className="mt-3 max-w-[20rem] text-center font-serif text-lg font-semibold leading-tight tracking-tight text-[#1E1E1E] line-clamp-2 sm:text-xl"
+                    className="mt-3 max-w-[20rem] text-center font-serif text-lg font-semibold leading-tight tracking-tight text-foreground line-clamp-2 sm:text-xl"
                   >
                     {getLocalized((item as any).nameTranslations, item.name, language)}
                   </h1>
@@ -365,11 +363,11 @@ export function MenuItemDetailPanel({ item, quantity, onClose, onAdd, onRemove, 
                 </div>
               </div>
 
-              <div className="relative border-t border-white/15 bg-gradient-to-b from-[#059c6a] to-[#048a5e] px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom,0px))] sm:px-5">
+              <div className="relative border-t border-white/15 bg-gradient-to-b from-[var(--brand-primary)] to-[var(--brand-primary)] px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom,0px))] sm:px-5">
                 <div className="mx-auto max-w-md mb-4">
                   <nav aria-label="Dish details">
                     <div className="flex gap-1.5 overflow-x-auto rounded-2xl bg-white/20 p-1.5 ring-1 ring-white/25 backdrop-blur-md no-scrollbar [-webkit-overflow-scrolling:touch]">
-                      {DETAIL_TABS.map(({ id, label }) => {
+                      {DETAIL_TABS.map(({ id, labelKey }) => {
                         const active = detailTab === id;
                         return (
                           <button
@@ -389,7 +387,7 @@ export function MenuItemDetailPanel({ item, quantity, onClose, onAdd, onRemove, 
                                 transition={{ type: 'spring', stiffness: 400, damping: 28 }}
                               />
                             )}
-                            <span className="relative z-10 flex h-full items-center justify-center px-2">{label}</span>
+                            <span className="relative z-10 flex h-full items-center justify-center px-2">{t[labelKey]}</span>
                           </button>
                         );
                       })}
@@ -416,17 +414,17 @@ export function MenuItemDetailPanel({ item, quantity, onClose, onAdd, onRemove, 
               </div>
             </div>
 
-            <div className="shrink-0 border-t border-white/20 bg-white/95 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 shadow-[0_-12px_40px_rgba(0,0,0,0.1)] backdrop-blur-xl sm:px-5 space-y-3">
+            <div className="shrink-0 border-t border-surface-200 bg-surface-card px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 shadow-[0_-12px_40px_rgba(0,0,0,0.1)] backdrop-blur-xl sm:px-5 space-y-3">
                 <label className="flex items-center gap-2 text-slate-600 text-[10px] font-bold uppercase tracking-[0.16em]">
                   <MessageSquare size={12} className="text-[#08AE75]" />
-                  Note to kitchen
+                  {t.noteToKitchen}
                 </label>
                 <textarea
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
-                  placeholder="e.g. No onions, mild spice…"
+                  placeholder={t.notePlaceholder}
                   rows={2}
-                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 outline-none transition-shadow placeholder:text-slate-400 focus:border-[#08AE75]/40 focus:ring-2 focus:ring-[#08AE75]/15 resize-none"
+                  className="w-full rounded-2xl border border-surface-200 bg-surface-100 px-3 py-2.5 text-sm text-foreground outline-none transition-shadow placeholder:text-foreground/40 focus:border-brand-500/40 focus:ring-2 focus:ring-brand-500/15 resize-none"
                 />
                 <div className="flex items-center gap-3">
                   <div className="flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50/90 p-1.5">
@@ -441,13 +439,13 @@ export function MenuItemDetailPanel({ item, quantity, onClose, onAdd, onRemove, 
                         <Minus size={18} />
                       </motion.button>
                     </Tooltip>
-                    <span className="w-7 text-center font-black text-lg tabular-nums text-slate-800">{quantity}</span>
+                    <span className="w-7 text-center font-black text-lg tabular-nums text-foreground">{quantity}</span>
                     <Tooltip label="Increase">
                       <motion.button
                         type="button"
                         whileTap={{ scale: 0.88 }}
                         onClick={handleAdd}
-                        className="flex h-10 w-10 items-center justify-center rounded-full bg-[#08AE75] text-white shadow-md"
+                        className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--brand-accent)] text-white shadow-md"
                       >
                         <Plus size={18} />
                       </motion.button>
@@ -458,10 +456,10 @@ export function MenuItemDetailPanel({ item, quantity, onClose, onAdd, onRemove, 
                       type="button"
                       whileTap={{ scale: 0.96 }}
                       onClick={handleAdd}
-                      className="flex h-[3.25rem] flex-1 items-center justify-center gap-2 rounded-2xl border border-slate-800/10 bg-[#2A5D55] font-black text-[15px] uppercase tracking-[0.12em] text-white shadow-lg transition-colors active:bg-[#234d48]"
+                      className="flex h-[3.25rem] flex-1 items-center justify-center gap-2 rounded-2xl border border-black/10 bg-brand-600 font-black text-[15px] uppercase tracking-[0.12em] text-white shadow-lg transition-colors active:bg-brand-700"
                     >
                       <ShoppingCart size={18} />
-                      {quantity > 0 ? 'Update' : 'Add'}
+                      {quantity > 0 ? t.update : t.add}
                     </motion.button>
                   </Tooltip>
                 </div>
@@ -487,7 +485,7 @@ export function MenuItemDetailPanel({ item, quantity, onClose, onAdd, onRemove, 
                   className="fixed bottom-0 left-0 right-0 max-h-[85vh] bg-white rounded-t-3xl z-[90] flex flex-col shadow-2xl"
                 >
                   <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-                    <h3 className="font-bold text-lg text-slate-900">Customize</h3>
+                    <h3 className="font-bold text-lg text-slate-900">{t.customize}</h3>
                     <button onClick={() => setShowModifiers(false)} className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center">
                       <ArrowLeft size={16} className="text-slate-500" />
                     </button>
@@ -498,7 +496,7 @@ export function MenuItemDetailPanel({ item, quantity, onClose, onAdd, onRemove, 
                         <div className="flex items-center justify-between">
                           <h4 className="font-semibold text-slate-800">{group.name}</h4>
                           <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">
-                            {group.isRequired ? 'Required' : 'Optional'}
+                            {group.isRequired ? t.required : t.optional}
                             {group.maxSelections ? ` (Max ${group.maxSelections})` : ''}
                           </span>
                         </div>
@@ -517,7 +515,7 @@ export function MenuItemDetailPanel({ item, quantity, onClose, onAdd, onRemove, 
                                   {opt.name}
                                 </span>
                                 <span className="text-sm font-semibold text-slate-500">
-                                  {opt.price > 0 ? `+ETB ${opt.price}` : 'Free'}
+                                  {opt.price > 0 ? `+ETB ${opt.price}` : t.free}
                                 </span>
                               </button>
                             );
@@ -528,14 +526,14 @@ export function MenuItemDetailPanel({ item, quantity, onClose, onAdd, onRemove, 
                   </div>
                   <div className="p-4 border-t border-slate-100 safe-bottom bg-slate-50">
                     <div className="flex items-center justify-between mb-4">
-                      <span className="text-sm font-semibold text-slate-500">Total Selection</span>
+                      <span className="text-sm font-semibold text-slate-500">{t.totalSelection}</span>
                       <span className="text-xl font-black text-slate-900">ETB {Math.round(totalItemPrice)}</span>
                     </div>
                     <button
                       onClick={handleAdd}
                       className="w-full btn-primary flex items-center justify-center gap-2 py-4"
                     >
-                      <ShoppingCart size={18} /> Add to Cart
+                      <ShoppingCart size={18} /> {t.addToCart}
                     </button>
                   </div>
                 </motion.div>
@@ -600,11 +598,11 @@ function useNutritionFilterTabs(insights: IngredientInsights) {
     const vitSec = findVitaminsSection(insights);
     const minSec = findMineralsSection(insights);
     const fats = fatDetailRows(macroSec);
-    const tabs: { id: NutritionFilterId; label: string }[] = [{ id: 'all', label: 'All' }];
-    if (macroSec) tabs.push({ id: 'macros', label: 'Macros' });
-    if (fats.length) tabs.push({ id: 'fats', label: 'Fats' });
-    if (vitSec) tabs.push({ id: 'vitamins', label: 'Vitamins' });
-    if (minSec) tabs.push({ id: 'minerals', label: 'Minerals' });
+    const tabs: { id: NutritionFilterId; labelKey: keyof typeof UI_STRINGS.en }[] = [{ id: 'all', labelKey: 'all' }];
+    if (macroSec) tabs.push({ id: 'macros', labelKey: 'macros' });
+    if (fats.length) tabs.push({ id: 'fats', labelKey: 'fats' });
+    if (vitSec) tabs.push({ id: 'vitamins', labelKey: 'vitamins' });
+    if (minSec) tabs.push({ id: 'minerals', labelKey: 'minerals' });
     return { tabs, macroSec, vitSec, minSec, fatRows: fats };
   }, [insights]);
 }
@@ -613,10 +611,12 @@ function NutritionSectionTable({
   section,
   displayTitle,
   index,
+  language,
 }: {
   section: NutritionSection;
   displayTitle?: string;
   index: number;
+  language: string;
 }) {
   const title = displayTitle ?? section.title;
   return (
@@ -624,17 +624,17 @@ function NutritionSectionTable({
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.04 + index * 0.04 }}
-      className="mt-5 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm"
+      className="mt-5 overflow-hidden rounded-2xl border border-surface-200 bg-surface shadow-sm"
     >
-      <div className="flex items-center gap-3 border-b border-slate-100 bg-slate-50/90 px-4 py-3 sm:px-5">
-        <span className="h-8 w-1 shrink-0 rounded-full bg-gradient-to-b from-[#08AE75] to-cyan-500" />
-        <h2 className="text-sm font-bold tracking-tight text-slate-800">{title}</h2>
+      <div className="flex items-center gap-3 border-b border-surface-200 bg-surface-100 px-4 py-3 sm:px-5">
+        <span className="h-8 w-1 shrink-0 rounded-full bg-gradient-to-b from-brand-500 to-cyan-500" />
+        <h2 className="text-sm font-bold tracking-tight text-foreground">{title}</h2>
       </div>
       <div className="px-2 pb-1 sm:px-3">
-        <div className="grid grid-cols-[minmax(0,1fr)_auto_3.25rem] gap-x-2 border-b border-slate-100 px-2 py-2.5 font-mono text-[10px] font-bold uppercase tracking-wider text-slate-400 sm:px-3">
-          <span>Nutrient</span>
-          <span className="text-right">Amount</span>
-          <span className="text-right">% DV</span>
+        <div className="grid grid-cols-[minmax(0,1fr)_auto_3.25rem] gap-x-2 border-b border-surface-200 px-2 py-2.5 font-mono text-[10px] font-bold uppercase tracking-wider text-foreground/40 sm:px-3">
+          <span>{(UI_STRINGS as any)[language].nutrient}</span>
+          <span className="text-right">{(UI_STRINGS as any)[language].amount}</span>
+          <span className="text-right">{(UI_STRINGS as any)[language].dv}</span>
         </div>
         {section.rows.map((row) => (
           <NutritionRowModern key={`${title}-${row.nutrient}`} row={row} />
@@ -662,21 +662,21 @@ function NutritionModern({ insights, resetKey, item, language }: { insights: Ing
   const macroTiles = useMemo(() => {
     const list = [
       {
-        label: 'Energy',
+        label: (UI_STRINGS as any)[language].energy,
         value: summary.energy,
         icon: Zap,
         gradient: 'from-amber-400 to-orange-500',
         iconWrap: 'bg-amber-100 text-amber-800',
       },
       {
-        label: 'Protein',
+        label: (UI_STRINGS as any)[language].protein,
         value: summary.protein,
         icon: Dumbbell,
         gradient: 'from-emerald-400 to-teal-500',
         iconWrap: 'bg-emerald-100 text-emerald-800',
       },
       {
-        label: 'Total fat',
+        label: (UI_STRINGS as any)[language].totalFat,
         value: summary.fat,
         icon: Droplets,
         gradient: 'from-sky-400 to-indigo-500',
@@ -734,8 +734,8 @@ function NutritionModern({ insights, resetKey, item, language }: { insights: Ing
               whileTap={{ scale: 0.96 }}
               className={`relative shrink-0 rounded-2xl px-3.5 py-2.5 text-xs font-bold transition-colors sm:px-4 sm:text-sm ${
                 on
-                  ? 'text-slate-950 shadow-md shadow-cyan-500/15'
-                  : 'bg-slate-100 text-slate-600 ring-1 ring-slate-200/80 hover:bg-slate-50'
+                  ? 'text-foreground shadow-md shadow-cyan-500/15 bg-surface'
+                  : 'bg-surface-100 text-foreground/60 ring-1 ring-surface-200 hover:bg-surface-200'
               }`}
             >
               {on && (
@@ -745,7 +745,7 @@ function NutritionModern({ insights, resetKey, item, language }: { insights: Ing
                   transition={{ type: 'spring', stiffness: 400, damping: 28 }}
                 />
               )}
-              <span className="relative z-10 whitespace-nowrap">{tab.label}</span>
+              <span className="relative z-10 whitespace-nowrap">{(UI_STRINGS as any)[language][tab.labelKey]}</span>
             </motion.button>
           );
         })}
@@ -754,11 +754,11 @@ function NutritionModern({ insights, resetKey, item, language }: { insights: Ing
       <motion.div
         initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative mt-5 overflow-hidden rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4 sm:p-5"
+        className="relative mt-5 overflow-hidden rounded-2xl border border-surface-200 bg-surface-100 p-4 sm:p-5"
       >
-        <p className="relative font-mono text-[11px] leading-relaxed text-slate-500">{insights.servingLine}</p>
+        <p className="relative font-mono text-[11px] leading-relaxed text-foreground/40">{insights.servingLine}</p>
         {hasTextHeadline(getLocalized((item as any)?.descriptionTranslations, item?.description || '', language as any)) ? (
-          <p className="relative mt-3 text-base font-semibold leading-snug text-slate-800 sm:text-lg">
+          <p className="relative mt-3 text-base font-semibold leading-snug text-foreground sm:text-lg">
             {getLocalized((item as any)?.descriptionTranslations, item?.description || '', language as any)}
           </p>
         ) : null}
@@ -778,7 +778,7 @@ function NutritionModern({ insights, resetKey, item, language }: { insights: Ing
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.06 + i * 0.05 }}
-                className="relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-3 shadow-sm sm:p-3.5"
+                className="relative overflow-hidden rounded-2xl border border-surface-200 bg-surface p-3 shadow-sm sm:p-3.5"
               >
                 <div
                   className={`pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${cell.gradient} opacity-90`}
@@ -786,8 +786,8 @@ function NutritionModern({ insights, resetKey, item, language }: { insights: Ing
                 <div className={`relative mb-2 inline-flex rounded-lg p-1.5 ${cell.iconWrap}`}>
                   <Icon className="h-4 w-4" strokeWidth={2} />
                 </div>
-                <p className="relative text-[9px] font-bold uppercase tracking-wider text-slate-500">{cell.label}</p>
-                <p className="relative mt-0.5 text-sm font-bold tabular-nums leading-tight text-slate-900 sm:text-base">
+                <p className="relative text-[9px] font-bold uppercase tracking-wider text-foreground/40">{cell.label}</p>
+                <p className="relative mt-0.5 text-sm font-bold tabular-nums leading-tight text-foreground sm:text-base">
                   {cell.value}
                 </p>
               </motion.div>
@@ -809,11 +809,12 @@ function NutritionModern({ insights, resetKey, item, language }: { insights: Ing
             section={b.section}
             displayTitle={b.title}
             index={idx}
+            language={language}
           />
         ))}
 
         {sectionBlocks.length === 0 && (
-          <p className="mt-5 rounded-2xl border border-dashed border-slate-200 bg-slate-50/80 px-4 py-6 text-center text-sm text-slate-500">
+          <p className="mt-5 rounded-2xl border border-dashed border-surface-200 bg-surface-100 px-4 py-6 text-center text-sm text-foreground/40">
             No data for this view.
           </p>
         )}
@@ -824,12 +825,12 @@ function NutritionModern({ insights, resetKey, item, language }: { insights: Ing
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.12 }}
-          className="mt-5 flex flex-wrap gap-2 rounded-2xl border border-emerald-100/80 bg-emerald-50/50 p-4"
+          className="mt-5 flex flex-wrap gap-2 rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-4"
         >
           {insights.dietaryTags.map((t) => (
             <span
               key={t}
-              className="inline-flex items-center rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-emerald-800 ring-1 ring-emerald-200/80 shadow-sm"
+              className="inline-flex items-center rounded-full bg-surface px-3 py-1.5 text-xs font-semibold text-emerald-500 ring-1 ring-emerald-500/20 shadow-sm"
             >
               {t}
             </span>
@@ -851,27 +852,27 @@ function NutritionRowModern({ row }: { row: NutritionRow }) {
   const pct = parseDailyPercent(row.dailyValue);
   return (
     <div
-      className={`grid grid-cols-[minmax(0,1fr)_auto_3.25rem] items-center gap-x-2 border-b border-slate-100 px-2 py-2.5 last:border-b-0 sm:px-3 ${
-        row.sub ? 'bg-slate-50/80' : ''
+      className={`grid grid-cols-[minmax(0,1fr)_auto_3.25rem] items-center gap-x-2 border-b border-surface-200 px-2 py-2.5 last:border-b-0 sm:px-3 ${
+        row.sub ? 'bg-surface-100' : ''
       }`}
     >
       <span
         className={`min-w-0 text-[13px] leading-snug ${
-          row.sub ? 'border-l-2 border-[#08AE75]/50 pl-2.5 text-slate-500' : 'font-semibold text-slate-800'
+          row.sub ? 'border-l-2 border-brand-500/50 pl-2.5 text-foreground/40' : 'font-semibold text-foreground'
         }`}
       >
         {row.nutrient}
       </span>
-      <span className="shrink-0 text-right text-[13px] font-semibold tabular-nums text-slate-900">{row.amount}</span>
+      <span className="shrink-0 text-right text-[13px] font-semibold tabular-nums text-foreground">{row.amount}</span>
       <div className="flex min-h-[2.25rem] flex-col items-end justify-center gap-1">
-        <span className="text-[11px] tabular-nums text-slate-500">{row.dailyValue ?? '—'}</span>
+        <span className="text-[11px] tabular-nums text-foreground/40">{row.dailyValue ?? '—'}</span>
         {pct != null ? (
-          <div className="h-1 w-full max-w-[2.75rem] overflow-hidden rounded-full bg-slate-200">
+          <div className="h-1 w-full max-w-[2.75rem] overflow-hidden rounded-full bg-surface-200">
             <motion.div
               initial={{ width: 0 }}
               animate={{ width: `${pct}%` }}
               transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-              className="h-full rounded-full bg-gradient-to-r from-[#08AE75] to-cyan-500"
+              className="h-full rounded-full bg-gradient-to-r from-brand-500 to-cyan-500"
             />
           </div>
         ) : null}
@@ -887,9 +888,9 @@ function IngredientsModern({ insights }: { insights: IngredientInsights }) {
         <motion.div
           initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
-          className="overflow-hidden rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4 sm:p-5"
+          className="overflow-hidden rounded-2xl border border-surface-200 bg-surface-100 p-4 sm:p-5"
         >
-          <p className="text-[15px] font-medium leading-snug text-slate-800 sm:text-base">{insights.headline}</p>
+          <p className="text-[15px] font-medium leading-snug text-foreground sm:text-base">{insights.headline}</p>
         </motion.div>
       ) : null}
 
@@ -900,14 +901,14 @@ function IngredientsModern({ insights }: { insights: IngredientInsights }) {
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: i * 0.04 }}
-            className="flex gap-4 overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm"
+            className="flex gap-4 overflow-hidden rounded-2xl border border-surface-200 bg-surface p-4 shadow-sm"
           >
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-200 via-white to-violet-200 text-sm font-black text-slate-900 shadow-sm ring-1 ring-slate-200/50">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-200 via-surface to-violet-200 text-sm font-black text-foreground shadow-sm ring-1 ring-surface-200">
               {i + 1}
             </span>
             <div className="min-w-0 flex-1 pt-0.5">
-              <p className="text-[15px] font-semibold leading-tight text-slate-900">{ing.name}</p>
-              {ing.detail ? <p className="mt-1 text-[13px] leading-snug text-slate-500">{ing.detail}</p> : null}
+              <p className="text-[15px] font-semibold leading-tight text-foreground">{ing.name}</p>
+              {ing.detail ? <p className="mt-1 text-[13px] leading-snug text-foreground/40">{ing.detail}</p> : null}
             </div>
           </motion.li>
         ))}

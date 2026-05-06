@@ -5,7 +5,7 @@ import { useFavoritesStore } from '@/stores/favoritesStore';
 import { useCartStore } from '@/stores/cartStore';
 import { useMemo } from 'react';
 
-export type TabId = 'home' | 'favorite' | 'cart' | 'profile';
+export type TabId = 'home' | 'favorite' | 'cart' | 'service' | 'profile';
 
 interface Props {
   activeTab: TabId;
@@ -19,11 +19,11 @@ function HomeIcon({ active }: { active: boolean }) {
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <path
         d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"
-        stroke={active ? '#08AE75' : '#8B8B8B'}
-        fill={active ? '#08AE75' : 'none'}
+        stroke={active ? 'var(--customer-dark-orange)' : '#8B8B8B'}
+        fill={active ? 'var(--customer-dark-orange)' : 'none'}
         fillOpacity={active ? 0.12 : 0}
       />
-      <path d="M9 21V13h6v8" stroke={active ? '#08AE75' : '#8B8B8B'} />
+      <path d="M9 21V13h6v8" stroke={active ? 'var(--customer-dark-orange)' : '#8B8B8B'} />
     </svg>
   );
 }
@@ -44,21 +44,22 @@ function HeartIcon({ active }: { active: boolean }) {
 function CartIcon({ active }: { active: boolean }) {
   return (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" stroke={active ? '#08AE75' : '#8B8B8B'} fill={active ? '#08AE75' : 'none'} fillOpacity={active ? 0.12 : 0} />
-      <line x1="3" y1="6" x2="21" y2="6" stroke={active ? '#08AE75' : '#8B8B8B'} />
-      <path d="M16 10a4 4 0 01-8 0" stroke={active ? '#08AE75' : '#8B8B8B'} />
+      <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" stroke={active ? 'var(--customer-dark-orange)' : '#8B8B8B'} fill={active ? 'var(--customer-dark-orange)' : 'none'} fillOpacity={active ? 0.12 : 0} />
+      <line x1="3" y1="6" x2="21" y2="6" stroke={active ? 'var(--customer-dark-orange)' : '#8B8B8B'} />
+      <path d="M16 10a4 4 0 01-8 0" stroke={active ? 'var(--customer-dark-orange)' : '#8B8B8B'} />
     </svg>
   );
 }
 
-function ProfileIcon({ active }: { active: boolean }) {
+function ServiceIcon({ active }: { active: boolean }) {
   return (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" stroke={active ? '#08AE75' : '#8B8B8B'} />
-      <circle cx="12" cy="7" r="4" stroke={active ? '#08AE75' : '#8B8B8B'} fill={active ? '#08AE75' : 'none'} fillOpacity={active ? 0.12 : 0} />
+      <path d="M18 8a6 6 0 00-12 0c0 7-3 9-3 9h18s-3-2-3-9" stroke={active ? 'var(--customer-dark-orange)' : '#8B8B8B'} fill={active ? 'var(--customer-dark-orange)' : 'none'} fillOpacity={active ? 0.12 : 0} />
+      <path d="M13.73 21a2 2 0 01-3.46 0" stroke={active ? 'var(--customer-dark-orange)' : '#8B8B8B'} />
     </svg>
   );
 }
+
 
 
 import { UI_STRINGS } from '@/lib/i18n';
@@ -75,10 +76,10 @@ export function BottomTabBar({ activeTab, onTabChange }: Props) {
   const favCount = favorites.length;
 
   const getTabs = () => [
-    { id: 'home' as TabId, label: 'Home', Icon: HomeIcon },
+    { id: 'home' as TabId, label: t.home || 'Home', Icon: HomeIcon },
     { id: 'favorite' as TabId, label: t.favorites || 'Favorites', Icon: HeartIcon },
     { id: 'cart' as TabId, label: t.cart || 'Cart', Icon: CartIcon },
-    { id: 'profile' as TabId, label: t.profile || 'Profile', Icon: ProfileIcon },
+    { id: 'service' as TabId, label: t.service || 'Service', Icon: ServiceIcon },
   ];
 
   return (

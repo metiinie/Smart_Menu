@@ -9,7 +9,7 @@ import { useState, useMemo } from 'react';
 import { LocalOrder, LocalOrderStatus, MenuCategoryDto } from '@/shared/types';
 import { syncManager } from '@/lib/syncManager';
 import { useFavoritesStore } from '@/stores/favoritesStore';
-import { getLocalized } from '@/lib/i18n';
+import { getLocalized, UI_STRINGS } from '@/lib/i18n';
 import { formatPrice } from '@/lib/formatters';
 
 // ── Tax rate defaults (used when branch settings are unavailable) ─────────
@@ -136,9 +136,11 @@ export function CartView({ groupedMenu = [] }: Props) {
           >
             <ShoppingBag size={48} />
           </motion.div>
-          <h3 className="cart-view__empty-title text-surface-900">Your cart is empty</h3>
+          <h3 className="cart-view__empty-title text-surface-900">{UI_STRINGS[language].cartEmpty}</h3>
           <p className="cart-view__empty-subtitle text-surface-500">
-            Browse the menu and add your favorite dishes
+            {language === 'en' ? 'Browse the menu and add your favorite dishes' : 
+             language === 'am' ? 'ሜኑውን ይመልከቱ እና የሚወዱትን ምግብ ይጨምሩ' : 
+             'Meenuu ilaalaa akkasumas nyaatawwan jaallattan ida’aa'}
           </p>
         </div>
       </div>
@@ -150,11 +152,11 @@ export function CartView({ groupedMenu = [] }: Props) {
       {/* Header summary */}
       <div className="cart-view__header flex items-center justify-between p-5 border-b border-surface-200">
         <div>
-          <h3 className="cart-view__title font-display font-bold text-xl text-surface-900">My Order</h3>
-          <p className="cart-view__subtitle text-surface-500">{itemCount} item{itemCount !== 1 ? 's' : ''} in cart</p>
+          <h3 className="cart-view__title font-display font-bold text-xl text-surface-900">{UI_STRINGS[language].myOrder}</h3>
+          <p className="cart-view__subtitle text-surface-500">{itemCount} {UI_STRINGS[language].itemsInCart}</p>
         </div>
         <button onClick={clearCart} className="cart-view__clear text-red-400 font-medium text-sm px-3 py-1 bg-red-400/10 rounded-lg" id="cart-clear-all">
-          Clear All
+          {UI_STRINGS[language].clearAll}
         </button>
       </div>
 
@@ -204,7 +206,7 @@ export function CartView({ groupedMenu = [] }: Props) {
                   {(!item.isAvailable || item.note || (item.options && item.options.length > 0)) && (
                     <div className="flex flex-col gap-0.5 mt-1">
                       {!item.isAvailable && (
-                        <p className="text-[10px] text-red-400 font-medium">Item Unavailable</p>
+                        <p className="text-[10px] text-red-400 font-medium">{UI_STRINGS[language].itemUnavailable}</p>
                       )}
                       {item.note && (
                         <p className="text-[10px] text-amber-400 font-medium italic truncate">
@@ -260,25 +262,25 @@ export function CartView({ groupedMenu = [] }: Props) {
       {/* Footer checkout */}
       <div className="p-4 border-t border-surface-200 space-y-4 bg-surface-50 safe-bottom">
         {error && <p className="text-red-400 text-sm text-center font-medium bg-red-400/10 py-2 rounded-lg">{error}</p>}
-        {hasUnavailable && <p className="text-red-400 text-xs text-center">Please remove unavailable items to checkout.</p>}
+        {hasUnavailable && <p className="text-red-400 text-xs text-center">{UI_STRINGS[language].removeUnavailable}</p>}
         
         {/* Centered Receipt Design */}
         <div className="bg-surface-100/50 rounded-2xl p-4 mx-2 space-y-3 backdrop-blur-sm border border-surface-200/50">
           <div className="flex items-center justify-between text-surface-500 text-xs font-medium">
-            <span>Subtotal</span>
+            <span>{UI_STRINGS[language].subtotal}</span>
             <span>{formatPrice(subTotal)}</span>
           </div>
           <div className="flex items-center justify-between text-surface-500 text-xs font-medium">
-            <span>Service Charge ({serviceChargeRate}%)</span>
+            <span>{UI_STRINGS[language].serviceCharge} ({serviceChargeRate}%)</span>
             <span>{formatPrice(serviceCharge)}</span>
           </div>
           <div className="flex items-center justify-between text-surface-500 text-xs font-medium">
-            <span>VAT ({vatRate}%)</span>
+            <span>{UI_STRINGS[language].vat} ({vatRate}%)</span>
             <span>{formatPrice(vat)}</span>
           </div>
           
           <div className="border-t border-surface-200/50 pt-3 flex items-center justify-between">
-            <span className="text-surface-900 text-sm font-bold">Grand Total</span>
+            <span className="text-surface-900 text-sm font-bold">{UI_STRINGS[language].grandTotal}</span>
             <span className="font-display font-bold text-xl text-brand-400">
               {formatPrice(grandTotal)}
             </span>
@@ -302,7 +304,7 @@ export function CartView({ groupedMenu = [] }: Props) {
               <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
             ) : (
               <>
-                Place Order <ChevronRight size={16} />
+                {UI_STRINGS[language].placeOrder} <ChevronRight size={16} />
               </>
             )}
           </motion.button>

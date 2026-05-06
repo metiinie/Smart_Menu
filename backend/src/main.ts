@@ -16,6 +16,7 @@ async function bootstrap() {
       ? process.env.ALLOWED_ORIGINS.split(',')
       : ['http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost:3005'],
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   });
 
   // Global validation

@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
-import { Search, Heart, X, Plus,  TrendingUp } from 'lucide-react';
+import { Search, Heart, X, Plus, TrendingUp, ShoppingBag } from 'lucide-react';
 import { useFavoritesStore } from '@/stores/favoritesStore';
 import { useCartStore } from '@/stores/cartStore';
 import type { MenuItem, MenuCategoryDto } from '@/shared/types';
@@ -109,12 +109,12 @@ export function FavoritesView({ groupedMenu, onSelectItem }: Props) {
           >
             <h3 className="fav-view__section-title">
               <Search size={16} />
-              Results for &ldquo;{searchQuery}&rdquo;
+              {t.resultsFor} &ldquo;{searchQuery}&rdquo;
             </h3>
             {searchResults.length === 0 ? (
               <div className="fav-view__empty">
                 <span className="fav-view__empty-emoji">🔍</span>
-                <p>No dishes found for &ldquo;{searchQuery}&rdquo;</p>
+                <p>{t.noDishesFound} &ldquo;{searchQuery}&rdquo;</p>
               </div>
             ) : (
               <div className="fav-view__grid">
@@ -187,7 +187,7 @@ export function FavoritesView({ groupedMenu, onSelectItem }: Props) {
             {/* Popular / Trending section */}
             <div className="fav-view__section">
               <h3 className="fav-view__section-title">
-                <TrendingUp size={16} /> Trending Now
+                <TrendingUp size={16} /> {t.trendingNow}
               </h3>
               <div className="fav-view__grid">
                 {popularItems.map((item) => (
@@ -231,23 +231,27 @@ export function FavItemCard({
   return (
     <motion.div
       layout
-      className="fav-card"
+      className="fav-card group"
       whileTap={{ scale: 0.97 }}
     >
-      <div className="fav-card__image" onClick={onTap}>
-        {item.imageUrl ? (
-          <Image
-            src={item.imageUrl}
-            alt={item.name}
-            fill
-            sizes="140px"
-            className="object-cover"
-          />
-        ) : (
-          <div className="fav-card__placeholder">🍽️</div>
-        )}
+      <div className="fav-card__image">
+        <div className="w-full h-full cursor-pointer" onClick={onTap}>
+          {item.imageUrl ? (
+            <Image
+              src={item.imageUrl}
+              alt={item.name}
+              fill
+              sizes="140px"
+              className="object-cover transition-transform duration-500 group-hover:scale-110"
+            />
+          ) : (
+            <div className="fav-card__placeholder">🍽️</div>
+          )}
+        </div>
+        
+        {/* Favorite Icon (Top Left) */}
         <button
-          className={`fav-card__heart ${isFav ? 'fav-card__heart--active' : ''}`}
+          className={`fav-card__heart ${isFav ? 'fav-card__heart--active' : ''} opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0`}
           onClick={(e) => {
             e.stopPropagation();
             toggleFavorite({
@@ -263,14 +267,24 @@ export function FavItemCard({
         >
           <Heart size={14} fill={isFav ? '#E53935' : 'none'} />
         </button>
+
+        {/* Quick Add Icon (Top Right) */}
+        <button
+          className="absolute top-2 right-2 z-10 w-8 h-8 rounded-full bg-brand-500 text-white flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0 delay-[50ms] active:scale-90"
+          onClick={(e) => {
+            e.stopPropagation();
+            onAddToCart();
+          }}
+          aria-label="Add to cart"
+          title="Add to cart"
+        >
+          <ShoppingBag size={14} />
+        </button>
       </div>
       <div className="fav-card__info" onClick={onTap}>
         <h4 className="fav-card__name">{getLocalized((item as any).nameTranslations, item.name, language)}</h4>
         <p className="fav-card__price">{formatPrice(item.price)}</p>
       </div>
-      <button className="fav-card__add" onClick={onAddToCart} aria-label="Add to cart" title="Add to cart">
-        <Plus size={14} />
-      </button>
     </motion.div>
   );
 }

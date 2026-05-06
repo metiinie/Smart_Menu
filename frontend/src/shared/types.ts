@@ -38,11 +38,6 @@ export const IngredientSchema = z.object({
   detail: z.string().optional().nullable(),
 });
 
-export const AllergenSchema = z.object({
-  id: z.string().uuid().optional(),
-  label: z.string().min(1),
-  present: z.boolean(),
-});
 
 export const DietaryTagSchema = z.object({
   id: z.string().uuid().optional(),
@@ -91,7 +86,6 @@ export const MenuItemSchema = z.object({
   categoryName: z.string().optional(),
   
   ingredients: z.array(IngredientSchema).optional(),
-  allergens: z.array(AllergenSchema).optional(),
   dietaryTags: z.array(DietaryTagSchema).optional(),
   nutritionSections: z.array(NutritionSectionSchema).optional(),
   modifierGroups: z.array(ModifierGroupSchema).optional(),

@@ -1,94 +1,60 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
-
-// ─── Enums ────────────────────────────────────────────────────────────────────
-
-enum OrderStatus {
-  CREATED
-  CONFIRMED
-  PREPARING
-  READY
-  DELIVERED
-}
-
-enum Role {
-  SUPER_ADMIN
-  RESTAURANT_ADMIN
-  MANAGER
-  KITCHEN
-  STAFF
-}
-
-enum SubscriptionStatus {
-  ACTIVE
-  PAST_DUE
-  CANCELED
-  TRIALING
-}
-
-// ─── SaaS Core Models ─────────────────────────────────────────────────────────
 
 model SubscriptionPlan {
-  id             String       @id @default(uuid())
-  name           String       // "Starter", "Pro", "Enterprise"
-  maxBranches    Int          @default(1)
-  maxStaff       Int          @default(5)
-  priceMonthly   Float
-  features       Json?        // Feature gating flags
-  restaurants    Restaurant[]
-  createdAt      DateTime     @default(now())
+  id           String       @id @default(uuid())
+  name         String
+  maxBranches  Int          @default(1)
+  maxStaff     Int          @default(5)
+  priceMonthly Float
+  features     Json?
+  createdAt    DateTime     @default(now())
+  restaurants  Restaurant[]
 
   @@map("subscription_plans")
 }
 
 model Restaurant {
   id                 String             @id @default(uuid())
-  slug               String             @unique // For subdomains: tenant.arifsmart.com
+  slug               String             @unique
   name               String
   isActive           Boolean            @default(true)
   subscriptionStatus SubscriptionStatus @default(TRIALING)
   planId             String
-  plan               SubscriptionPlan   @relation(fields: [planId], references: [id])
-  themeConfig        Json?              // e.g. { "primaryColor": "#ff5500", "logoUrl": "..." }
-  
-  users              User[]
+  themeConfig        Json?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
   branches           Branch[]
   categories         Category[]
   menuItems          MenuItem[]
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime           @updatedAt
+  plan               SubscriptionPlan   @relation(fields: [planId], references: [id])
+  users              User[]
 
   @@map("restaurants")
 }
 
-// ─── Tenant-Scoped Models ─────────────────────────────────────────────────────
-
 model Branch {
-  id           String       @id @default(uuid())
-  restaurantId String?      // [SaaS Phase 1: Nullable for now]
-  name         String
-  address      String
-  phone        String?
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
-  vatRate      Float        @default(15.0)
-  serviceChargeRate Float   @default(10.0)
-  
-  restaurant   Restaurant?  @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
-  tables       DiningTable[]
-  categories   Category[]
-  users        User[]
-  orderCounters BranchOrderCounter[]
-  orderAudits  OrderAudit[]
+  id                String               @id @default(uuid())
+  name              String
+  address           String
+  phone             String?
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+  serviceChargeRate Float                @default(10.0)
+  vatRate           Float                @default(15.0)
+  restaurantId      String?
+  orderCounters     BranchOrderCounter[]
+  restaurant        Restaurant?          @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  categories        Category[]
+  tables            DiningTable[]
+  orderAudits       OrderAudit[]
+  users             User[]
 
   @@index([restaurantId])
   @@map("branches")
@@ -101,7 +67,6 @@ model BranchOrderCounter {
   lastNumber  Int      @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-
   branch      Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
 
   @@unique([branchId, counterDate])
@@ -110,111 +75,105 @@ model BranchOrderCounter {
 
 model DiningTable {
   id           String         @id @default(uuid())
-  restaurantId String?        // [SaaS Phase 1: Nullable]
   branchId     String
   tableNumber  Int
   qrCode       String         @unique
   isActive     Boolean        @default(true)
   createdAt    DateTime       @default(now())
-  
+  restaurantId String?
   branch       Branch         @relation(fields: [branchId], references: [id], onDelete: Cascade)
-  sessions     TableSession[]
-  orders       Order[]
   orderAudits  OrderAudit[]
+  orders       Order[]
+  sessions     TableSession[]
 
+  @@unique([branchId, tableNumber])
   @@index([restaurantId])
   @@index([branchId])
-  @@unique([branchId, tableNumber])
   @@map("dining_tables")
 }
 
 /// Prevents order conflicts: only one active session per table at a time.
 model TableSession {
-  id        String      @id @default(uuid())
-  tableId   String
-  isActive  Boolean     @default(true)
-  startedAt DateTime    @default(now())
-  endedAt   DateTime?
-  table     DiningTable @relation(fields: [tableId], references: [id], onDelete: Cascade)
-  orders    Order[]
+  id          String       @id @default(uuid())
+  tableId     String
+  isActive    Boolean      @default(true)
+  startedAt   DateTime     @default(now())
+  endedAt     DateTime?
   orderAudits OrderAudit[]
+  orders      Order[]
+  table       DiningTable  @relation(fields: [tableId], references: [id], onDelete: Cascade)
 
   @@map("table_sessions")
 }
 
 model Category {
-  id               String     @id @default(uuid())
-  restaurantId     String?    // [SaaS Phase 1: Nullable]
+  id               String      @id @default(uuid())
   name             String
-  nameTranslations Json?      // { "am": "...", "or": "..." }
-  sortOrder        Int        @default(0)
+  sortOrder        Int         @default(0)
   imageUrl         String?
   branchId         String
-  
+  createdAt        DateTime    @default(now())
+  nameTranslations Json?
+  restaurantId     String?
+  branch           Branch      @relation(fields: [branchId], references: [id], onDelete: Cascade)
   restaurant       Restaurant? @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
-  branch           Branch     @relation(fields: [branchId], references: [id], onDelete: Cascade)
   items            MenuItem[]
-  createdAt        DateTime   @default(now())
 
   @@index([restaurantId])
   @@map("categories")
 }
 
 model MenuItem {
-  id                      String      @id @default(uuid())
-  restaurantId            String?     // [SaaS Phase 1: Nullable]
+  id                      String             @id @default(uuid())
   name                    String
-  nameTranslations        Json?       // { "am": "...", "or": "..." }
   description             String?
-  descriptionTranslations Json?       // { "am": "...", "or": "..." }
   price                   Float
-  isAvailable             Boolean     @default(true)
-  isFasting               Boolean     @default(false)
+  isAvailable             Boolean            @default(true)
+  isFasting               Boolean            @default(false)
   imageUrl                String?
-  model3dUrl              String?
   categoryId              String
-  
-  restaurant              Restaurant? @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
-  category                Category    @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  createdAt               DateTime           @default(now())
+  updatedAt               DateTime           @updatedAt
+  descriptionTranslations Json?
+  model3dUrl              String?
+  nameTranslations        Json?
+  restaurantId            String?
+  allergens               Allergen[]
+  dietaryTags             DietaryTag[]
+  favorites               Favorite[]
+  ingredients             Ingredient[]
+  category                Category           @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  restaurant              Restaurant?        @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  modifierGroups          ModifierGroup[]
+  nutritionSections       NutritionSection[]
   orderItems              OrderItem[]
   ratings                 Rating[]
-  
-  // CMS Relations
-  ingredients Ingredient[]
-  allergens   Allergen[]
-  dietaryTags DietaryTag[]
-  nutritionSections NutritionSection[]
-  modifierGroups    ModifierGroup[]
-  favorites         Favorite[]
-
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
 
   @@index([restaurantId])
   @@map("menu_items")
 }
 
 model Order {
-  id         String       @id @default(uuid())
-  restaurantId String?    // [SaaS Phase 1: Nullable]
-  tableId    String
-  sessionId  String
-  status     OrderStatus  @default(CREATED)
-  displayNumber String
-  subTotal      Float        @default(0)
-  vatAmount     Float        @default(0)
-  serviceChargeAmount Float  @default(0)
-  totalPrice    Float
-  customerRef   String
-  paymentStatus String       @default("UNPAID")
-  notes         String?
-  createdAt  DateTime     @default(now())
-  updatedAt  DateTime     @updatedAt
-  table      DiningTable  @relation(fields: [tableId], references: [id])
-  session    TableSession @relation(fields: [sessionId], references: [id])
-  items      OrderItem[]
-  ratings    Rating[]
-  audits     OrderAudit[]
+  id                  String       @id @default(uuid())
+  tableId             String
+  sessionId           String
+  status              OrderStatus  @default(CREATED)
+  totalPrice          Float
+  customerRef         String
+  notes               String?
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+  displayNumber       String
+  paymentStatus       String       @default("UNPAID")
+  serviceChargeAmount Float        @default(0)
+  subTotal            Float        @default(0)
+  vatAmount           Float        @default(0)
+  restaurantId        String?
+  audits              OrderAudit[]
+  items               OrderItem[]
+  session             TableSession @relation(fields: [sessionId], references: [id])
+  table               DiningTable  @relation(fields: [tableId], references: [id])
+  ratings             Rating[]
 
   @@index([restaurantId])
   @@index([tableId])
@@ -223,37 +182,37 @@ model Order {
 }
 
 model OrderItem {
-  id         String   @id @default(uuid())
+  id         String            @id @default(uuid())
   orderId    String
   menuItemId String
   quantity   Int
   unitPrice  Float
   note       String?
+  status     OrderItemStatus   @default(PENDING)
   options    OrderItemOption[]
-  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  menuItem   MenuItem @relation(fields: [menuItemId], references: [id])
+  menuItem   MenuItem          @relation(fields: [menuItemId], references: [id])
+  order      Order             @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@map("order_items")
 }
 
 model User {
   id           String      @id @default(uuid())
-  restaurantId String?     // Nullable ONLY for SUPER_ADMIN or Phase 1 migration
-  branchId     String?     // Nullable if user has access to all branches
   name         String
-  email        String?     @unique // For dashboard login
-  passwordHash String?     // For email/password login
-  pinHash      String?     // Kept for terminal login (optional)
   role         Role
+  pinHash      String?
+  branchId     String?
   isActive     Boolean     @default(true)
-  
-  restaurant   Restaurant? @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
-  branch       Branch?     @relation(fields: [branchId], references: [id], onDelete: SetNull)
   createdAt    DateTime    @default(now())
+  email        String?     @unique
+  restaurantId String?
+  passwordHash String?
+  branch       Branch?     @relation(fields: [branchId], references: [id])
+  restaurant   Restaurant? @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
 
   @@index([restaurantId])
   @@index([email])
-  @@map("staff_users") // Mapped to old table name to prevent data loss
+  @@map("staff_users")
 }
 
 model Ingredient {
@@ -286,57 +245,57 @@ model DietaryTag {
 }
 
 model NutritionSection {
-  id         String   @id @default(uuid())
+  id         String         @id @default(uuid())
   title      String
   menuItemId String
-  menuItem   MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
   rows       NutritionRow[]
+  menuItem   MenuItem       @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
 
   @@map("nutrition_sections")
 }
 
 model NutritionRow {
-  id               String           @id @default(uuid())
-  nutrient         String
-  amount           String
-  dailyValue       String?
-  sub              Boolean          @default(false)
-  sectionId        String
-  section          NutritionSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  id         String           @id @default(uuid())
+  nutrient   String
+  amount     String
+  dailyValue String?
+  sub        Boolean          @default(false)
+  sectionId  String
+  section    NutritionSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
 
   @@map("nutrition_rows")
 }
 
 model ModifierGroup {
-  id            String   @id @default(uuid())
-  name          String   
-  isRequired    Boolean  @default(false)
-  minSelections Int      @default(0)
+  id            String           @id @default(uuid())
+  name          String
+  isRequired    Boolean          @default(false)
+  minSelections Int              @default(0)
   maxSelections Int?
   menuItemId    String
-  menuItem      MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+  menuItem      MenuItem         @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
   options       ModifierOption[]
 
   @@map("modifier_groups")
 }
 
 model ModifierOption {
-  id              String   @id @default(uuid())
-  name            String   
-  price           Float    @default(0) 
-  groupId         String
-  group           ModifierGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  
+  id      String        @id @default(uuid())
+  name    String
+  price   Float         @default(0)
+  groupId String
+  group   ModifierGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
   @@map("modifier_options")
 }
 
 model OrderItemOption {
-  id              String   @id @default(uuid())
-  orderItemId     String
-  orderItem       OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
-  optionName      String   
-  optionPrice     Float
-  
+  id          String    @id @default(uuid())
+  orderItemId String
+  optionName  String
+  optionPrice Float
+  orderItem   OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+
   @@map("order_item_options")
 }
 
@@ -348,8 +307,8 @@ model Rating {
   comment     String?
   customerRef String
   createdAt   DateTime  @default(now())
+  menuItem    MenuItem? @relation(fields: [menuItemId], references: [id])
   order       Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  menuItem    MenuItem? @relation(fields: [menuItemId], references: [id], onDelete: SetNull)
 
   @@index([orderId])
   @@index([customerRef])
@@ -372,7 +331,6 @@ model Favorite {
   customerRef String
   menuItemId  String
   createdAt   DateTime @default(now())
-
   menuItem    MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
 
   @@unique([customerRef, menuItemId])
@@ -381,8 +339,7 @@ model Favorite {
 }
 
 model OrderAudit {
-  id            String   @id @default(uuid())
-  restaurantId  String?  // [SaaS Phase 1: Nullable]
+  id            String        @id @default(uuid())
   branchId      String?
   tableId       String?
   sessionId     String?
@@ -393,12 +350,12 @@ model OrderAudit {
   source        String
   reason        String?
   itemCount     Int?
-  createdAt     DateTime @default(now())
-
-  branch        Branch?       @relation(fields: [branchId], references: [id], onDelete: SetNull)
-  table         DiningTable?  @relation(fields: [tableId], references: [id], onDelete: SetNull)
-  session       TableSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
-  order         Order?        @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  createdAt     DateTime      @default(now())
+  restaurantId  String?
+  branch        Branch?       @relation(fields: [branchId], references: [id])
+  order         Order?        @relation(fields: [orderId], references: [id])
+  session       TableSession? @relation(fields: [sessionId], references: [id])
+  table         DiningTable?  @relation(fields: [tableId], references: [id])
 
   @@index([restaurantId])
   @@index([branchId, createdAt])
@@ -406,4 +363,52 @@ model OrderAudit {
   @@index([sessionId, createdAt])
   @@index([orderId, createdAt])
   @@map("order_audits")
+}
+
+model FrontendErrorLog {
+  id           String   @id @default(uuid())
+  message      String
+  stackTrace   String?
+  url          String
+  userAgent    String?
+  resolved     Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  
+  // Optional context
+  userId       String?
+  restaurantId String?
+  branchId     String?
+
+  @@index([resolved, createdAt])
+  @@index([restaurantId])
+  @@map("frontend_error_logs")
+}
+
+enum OrderStatus {
+  CREATED
+  CONFIRMED
+  PREPARING
+  READY
+  DELIVERED
+}
+
+enum Role {
+  SUPER_ADMIN
+  RESTAURANT_ADMIN
+  MANAGER
+  KITCHEN
+  STAFF
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  TRIALING
+}
+
+enum OrderItemStatus {
+  PENDING
+  PREPARING
+  READY
 }

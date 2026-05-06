@@ -6,8 +6,10 @@ import { LocalOrderStatus } from '@/shared/types';
 import { Loader2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export function OfflineSyncBanner() {
+  const { t } = useTranslation();
   const [mounted, setMounted] = useState(false);
   const pendingOrders = useLocalOrderStore(
     useShallow((s) =>
@@ -33,7 +35,7 @@ export function OfflineSyncBanner() {
           className="bg-amber-500 text-white px-4 py-1.5 flex items-center justify-center gap-2 text-[11px] font-bold shadow-md z-50"
         >
           <Loader2 size={14} className="animate-spin" />
-          <span>⚡ {pendingOrders.length} {pendingOrders.length === 1 ? 'order' : 'orders'} pending sync — reconnecting...</span>
+          <span>⚡ {pendingOrders.length} {pendingOrders.length === 1 ? t('orderPendingSync') : t('ordersPendingSync')}</span>
         </motion.div>
       )}
     </AnimatePresence>

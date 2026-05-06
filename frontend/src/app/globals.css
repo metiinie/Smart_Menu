@@ -4,43 +4,58 @@
 
 :root {
   --foreground-rgb: 30, 41, 59;
-  --background-start-rgb: 252, 250, 247;
-  --background-end-rgb: 252, 250, 247;
+  --background-rgb: 252, 250, 247;
   
-  /* Premium Orange Palette */
-  --brand-50: #fff7ed;
-  --brand-100: #ffedd5;
-  --brand-200: #fed7aa;
-  --brand-300: #fdba74;
-  --brand-400: #fb923c;
-  --brand-500: #f97316;
-  --brand-600: #ea580c;
-  --brand-700: #c2410c;
-  
-  /* Surface colors */
+  /* Semantic Colors - Light Mode (Modernized) */
   --surface-50: #ffffff;
   --surface-100: #f8fafc;
   --surface-200: #f1f5f9;
+  --surface-300: #e2e8f0;
+  --surface-card: #ffffff;
+  --border-color: rgba(0, 0, 0, 0.05);
+  
+  /* Customer-specific (Current Branding) */
+  --customer-bg: #FBF8F3;
+  --customer-orange: #FFA000;
+  --customer-dark-orange: #D35400;
+  --customer-stroke: #E9DFD1;
+  
+  --brand-primary: #06a06e;
+  --brand-accent: #08AE75;
 }
 
 .dark {
-  --foreground-rgb: 248, 250, 252;
-  --background-start-rgb: 15, 23, 42;
-  --background-end-rgb: 15, 23, 42;
+  --foreground-rgb: 241, 245, 249;
+  --background-rgb: 15, 17, 21; /* #0F1115 */
   
-  --surface-50: #0f172a;
-  --surface-100: #1e293b;
-  --surface-200: #334155;
+  /* Semantic Colors - Dark Mode (#0F1115, #181A20) */
+  --surface-50: #181a20;
+  --surface-100: #1e2028;
+  --surface-200: #262932;
+  --surface-300: #313540;
+  --surface-card: #22252d;
+  --border-color: rgba(255, 255, 255, 0.08);
+
+  /* Customer-specific (Dark Transition) */
+  --customer-bg: #0F1115;
+  --customer-stroke: #262932;
   
-  background-color: #0f172a !important;
+  --brand-primary: #0F1115;
+  --brand-accent: #FFA000;
+  
+  background-color: #0f1115 !important;
 }
 
 @layer base {
+  * {
+    border-color: var(--border-color);
+  }
   body {
     color: rgb(var(--foreground-rgb));
-    background: #FCFAF7; /* Light Cream */
+    background: rgb(var(--background-rgb));
     font-family: 'Inter', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
+    transition: background-color 0.3s ease, color 0.3s ease;
   }
 }
 
@@ -50,7 +65,14 @@
   }
   
   .glass {
-    @apply bg-white/70 backdrop-blur-md border border-white/20;
+    @apply backdrop-blur-md border transition-all duration-300;
+    background-color: var(--border-color);
+    border-color: var(--border-color);
+  }
+
+  .dark .glass {
+    background-color: rgba(255, 255, 255, 0.03);
+    border-color: rgba(255, 255, 255, 0.1);
   }
   
   .no-scrollbar::-webkit-scrollbar {
@@ -61,6 +83,7 @@
     scrollbar-width: none;
   }
 }
+
 
 /* Custom animations */
 @keyframes float {

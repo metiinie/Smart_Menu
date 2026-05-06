@@ -21,6 +21,7 @@ import {
 import { useRouter } from 'next/navigation';
 import { AdminHeader } from '@/components/admin/AdminHeader';
 import { useAuthStore } from '@/stores/authStore';
+import { useTranslation } from '@/hooks/useTranslation';
 
 // ── Plan Data ───────────────────────────────────────────────────────────────
 const PLANS = [
@@ -98,6 +99,7 @@ const PLANS = [
 
 // ── Contact Modal ────────────────────────────────────────────────────────────
 function ContactModal({ planName, onClose }: { planName: string; onClose: () => void }) {
+  const { t } = useTranslation();
   return (
     <>
       <motion.div
@@ -109,14 +111,14 @@ function ContactModal({ planName, onClose }: { planName: string; onClose: () => 
         initial={{ scale: 0.9, opacity: 0, y: 20 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
         exit={{ scale: 0.9, opacity: 0, y: 20 }}
-        className="fixed inset-x-4 top-1/2 -translate-y-1/2 z-50 bg-white rounded-3xl p-7 shadow-2xl max-w-sm mx-auto text-center"
+        className="fixed inset-x-4 top-1/2 -translate-y-1/2 z-50 bg-surface rounded-3xl p-7 shadow-2xl max-w-sm mx-auto text-center border border-surface-200"
       >
         <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-brand-400 to-indigo-500 flex items-center justify-center mx-auto mb-5 shadow-lg">
           <Mail size={28} className="text-white" />
         </div>
-        <h3 className="font-black text-slate-900 text-xl mb-2">Upgrade to {planName}</h3>
-        <p className="text-slate-500 text-sm mb-5 leading-relaxed">
-          We&apos;ll set up your {planName} plan personally. Contact us and we&apos;ll get you upgraded within 24 hours.
+        <h3 className="font-black text-foreground text-xl mb-2">{t('upgradeTo')} {planName}</h3>
+        <p className="text-foreground/40 text-sm mb-5 leading-relaxed">
+          {t('upgradeAnytime')}
         </p>
         <a
           href="mailto:hello@arifsmart.com?subject=Upgrade to ArifSmart Pro"
@@ -126,12 +128,12 @@ function ContactModal({ planName, onClose }: { planName: string; onClose: () => 
         </a>
         <a
           href="tel:+251912345678"
-          className="block w-full py-3.5 rounded-2xl bg-slate-100 text-slate-700 font-bold text-sm mb-4"
+          className="block w-full py-3.5 rounded-2xl bg-surface-100 text-foreground/60 font-bold text-sm mb-4"
         >
           📞 +251 91 234 5678
         </a>
-        <button onClick={onClose} className="text-xs text-slate-400 hover:text-slate-600 transition-colors">
-          Maybe later
+        <button onClick={onClose} className="text-xs text-foreground/20 hover:text-foreground/40 transition-colors">
+          {t('maybeLater')}
         </button>
       </motion.div>
     </>
@@ -139,19 +141,20 @@ function ContactModal({ planName, onClose }: { planName: string; onClose: () => 
 }
 
 // ── Plan Card ────────────────────────────────────────────────────────────────
-function PlanCard({ plan, index, onUpgrade }: { plan: typeof PLANS[0]; index: number; onUpgrade: (name: string) => void }) {
+function PlanCard({ plan, index, onUpgrade }: { plan: any; index: number; onUpgrade: (name: string) => void }) {
+  const { t } = useTranslation();
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.05 * index, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-      className={`relative bg-white rounded-3xl shadow-sm border overflow-hidden ${plan.current ? 'border-brand-300 ring-2 ring-brand-500/20' : 'border-slate-100'}`}
+      className={`relative bg-surface rounded-3xl shadow-sm border overflow-hidden transition-all duration-300 ${plan.current ? 'border-brand-300 ring-2 ring-brand-500/20' : 'border-surface-200'}`}
     >
       {/* Popular badge */}
       {plan.popular && (
         <div className="absolute top-4 right-4">
           <span className="flex items-center gap-1 bg-gradient-to-r from-brand-500 to-indigo-500 text-white text-[9px] font-black uppercase tracking-wider rounded-full px-2.5 py-1 shadow-md">
-            <Star size={8} fill="white" /> Most Popular
+            <Star size={8} fill="white" /> {t('mostPopular')}
           </span>
         </div>
       )}
@@ -160,7 +163,7 @@ function PlanCard({ plan, index, onUpgrade }: { plan: typeof PLANS[0]; index: nu
       {plan.current && (
         <div className="absolute top-4 right-4">
           <span className="flex items-center gap-1 bg-emerald-100 text-emerald-600 text-[9px] font-black uppercase tracking-wider rounded-full px-2.5 py-1">
-            <Check size={8} /> Current Plan
+            <Check size={8} /> {t('currentPlan')}
           </span>
         </div>
       )}
@@ -168,10 +171,10 @@ function PlanCard({ plan, index, onUpgrade }: { plan: typeof PLANS[0]; index: nu
       {/* Gradient header */}
       <div className={`bg-gradient-to-br ${plan.gradient} p-5 pb-6`}>
         <div className="text-3xl mb-2">{plan.emoji}</div>
-        <h3 className="text-white font-black text-xl">{plan.name}</h3>
+        <h3 className="text-white font-black text-xl">{t(plan.id as any)}</h3>
         <p className="text-white/70 text-xs mt-0.5">{plan.description}</p>
         <div className="mt-4">
-          <span className="text-white font-black text-3xl">{plan.price}</span>
+          <span className="text-white font-black text-3xl">{plan.price === 'Free' ? t('free' as any) : plan.price}</span>
           <span className="text-white/60 text-sm ml-2">/ {plan.period}</span>
         </div>
       </div>
@@ -180,15 +183,15 @@ function PlanCard({ plan, index, onUpgrade }: { plan: typeof PLANS[0]; index: nu
       <div className="p-5">
         {/* Limits */}
         <div className="grid grid-cols-2 gap-3 mb-5">
-          <div className="bg-slate-50 rounded-xl p-3 text-center">
-            <Building2 size={16} className="text-slate-400 mx-auto mb-1" />
-            <p className="font-black text-slate-900 text-lg">{plan.maxBranches}</p>
-            <p className="text-[10px] text-slate-400 font-medium">Branch{typeof plan.maxBranches === 'number' && plan.maxBranches > 1 ? 'es' : ''}</p>
+          <div className="bg-surface-100 rounded-xl p-3 text-center border border-surface-200">
+            <Building2 size={16} className="text-foreground/20 mx-auto mb-1" />
+            <p className="font-black text-foreground text-lg">{plan.maxBranches}</p>
+            <p className="text-[10px] text-foreground/40 font-medium">{t('branches')}</p>
           </div>
-          <div className="bg-slate-50 rounded-xl p-3 text-center">
-            <Users size={16} className="text-slate-400 mx-auto mb-1" />
-            <p className="font-black text-slate-900 text-lg">{plan.maxStaff}</p>
-            <p className="text-[10px] text-slate-400 font-medium">Staff</p>
+          <div className="bg-surface-100 rounded-xl p-3 text-center border border-surface-200">
+            <div className="flex justify-center mb-1"><Users size={16} className="text-foreground/20" /></div>
+            <p className="font-black text-foreground text-lg">{plan.maxStaff}</p>
+            <p className="text-[10px] text-foreground/40 font-medium">{t('staff')}</p>
           </div>
         </div>
 
@@ -196,20 +199,20 @@ function PlanCard({ plan, index, onUpgrade }: { plan: typeof PLANS[0]; index: nu
         <ul className="space-y-2.5 mb-5">
           {plan.features.map((f, i) => (
             <li key={i} className="flex items-center gap-2.5">
-              <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${f.included ? 'bg-emerald-100' : 'bg-slate-100'}`}>
+              <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${f.included ? 'bg-emerald-500/10' : 'bg-surface-100'}`}>
                 {f.included
-                  ? <Check size={11} className="text-emerald-600" />
-                  : <X size={11} className="text-slate-300" />}
+                  ? <Check size={11} className="text-emerald-500" />
+                  : <X size={11} className="text-foreground/10" />}
               </div>
-              <span className={`text-xs ${f.included ? 'text-slate-700 font-medium' : 'text-slate-300'}`}>{f.label}</span>
+              <span className={`text-xs ${f.included ? 'text-foreground/60 font-medium' : 'text-foreground/20'}`}>{f.label}</span>
             </li>
           ))}
         </ul>
 
         {/* CTA */}
         {plan.current ? (
-          <div className="w-full py-3 rounded-2xl bg-slate-100 text-slate-400 font-semibold text-sm text-center">
-            ✓ Your Current Plan
+          <div className="w-full py-3 rounded-2xl bg-surface-100 text-foreground/20 font-semibold text-sm text-center">
+            ✓ {t('yourCurrentPlan')}
           </div>
         ) : (
           <motion.button
@@ -217,7 +220,7 @@ function PlanCard({ plan, index, onUpgrade }: { plan: typeof PLANS[0]; index: nu
             onClick={() => onUpgrade(plan.name)}
             className={`w-full py-3 rounded-2xl font-bold text-sm text-white shadow-md bg-gradient-to-r ${plan.gradient}`}
           >
-            {plan.id === 'enterprise' ? 'Contact Sales →' : `Upgrade to ${plan.name} →`}
+            {plan.id === 'enterprise' ? t('contactSales') : `${t('upgradeTo')} ${t(plan.id as any)} →`}
           </motion.button>
         )}
       </div>
@@ -227,19 +230,20 @@ function PlanCard({ plan, index, onUpgrade }: { plan: typeof PLANS[0]; index: nu
 
 // ── Main Page ────────────────────────────────────────────────────────────────
 export default function SubscriptionPage() {
+  const { t } = useTranslation();
   const { logout } = useAuthStore();
   const router = useRouter();
   const [contactModal, setContactModal] = useState<string | null>(null);
 
   return (
     <>
-      <AdminHeader title="Subscription" onLogout={logout}>
+      <AdminHeader title={t('subscription')} onLogout={logout}>
         <motion.button
           whileTap={{ scale: 0.9 }}
           onClick={() => router.back()}
-          className="w-8 h-8 rounded-full bg-surface-100 flex items-center justify-center"
+          className="w-8 h-8 rounded-full bg-surface-100 flex items-center justify-center transition-colors"
         >
-          <ChevronLeft size={16} className="text-white/60" />
+          <ChevronLeft size={16} className="text-foreground/60" />
         </motion.button>
       </AdminHeader>
 
@@ -255,16 +259,16 @@ export default function SubscriptionPage() {
               <Zap size={20} className="text-white" />
             </div>
             <div>
-              <p className="text-white font-black text-sm">Free Trial Active</p>
-              <p className="text-white/80 text-[11px]">Explore all Starter features — upgrade anytime</p>
+              <p className="text-white font-black text-sm">{t('freeTrialActive')}</p>
+              <p className="text-white/80 text-[11px]">{t('upgradeAnytime')}</p>
             </div>
           </div>
         </motion.div>
 
         {/* Heading */}
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="text-center px-2">
-          <h2 className="font-black text-slate-900 text-2xl leading-tight">Choose Your Plan</h2>
-          <p className="text-slate-500 text-sm mt-1">Scale as your restaurant grows</p>
+          <h2 className="font-black text-foreground text-2xl leading-tight">{t('chooseYourPlan')}</h2>
+          <p className="text-foreground/40 text-sm mt-1">{t('scaleAsRestaurantGrows')}</p>
         </motion.div>
 
         {/* Plan Cards */}
@@ -282,27 +286,27 @@ export default function SubscriptionPage() {
         {/* Trust Badges */}
         <motion.div
           initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-          className="bg-slate-50 border border-slate-200 rounded-2xl p-5"
+          className="bg-surface-100 border border-surface-200 rounded-2xl p-5"
         >
-          <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider text-center mb-4">Why ArifSmart</p>
+          <p className="text-foreground/20 text-[10px] font-bold uppercase tracking-wider text-center mb-4">{t('whyArifSmart')}</p>
           <div className="grid grid-cols-2 gap-3">
             {[
-              { icon: Shield,       label: 'Secure & Reliable',     sub: '99.9% uptime SLA' },
-              { icon: BarChart3,    label: 'Real-time Analytics',   sub: 'Live order tracking' },
-              { icon: Globe,        label: 'Multi-Language',        sub: 'AM, EN, OR support' },
-              { icon: Headphones,   label: 'Local Support',         sub: 'Addis Ababa team' },
-              { icon: Lock,         label: 'Data Privacy',          sub: 'Your data, your rules' },
-              { icon: Zap,          label: 'Instant Setup',         sub: 'Live in under 1 hour' },
+              { icon: Shield,       label: t('secureReliable'),     sub: '99.9% uptime SLA' },
+              { icon: BarChart3,    label: t('realTimeAnalytics'),  sub: 'Live order tracking' },
+              { icon: Globe,        label: t('multiLanguage'),      sub: 'AM, EN, OR support' },
+              { icon: Headphones,   label: t('localSupport'),       sub: 'Addis Ababa team' },
+              { icon: Lock,         label: t('dataPrivacy'),        sub: 'Your data, your rules' },
+              { icon: Zap,          label: t('instantSetup'),       sub: 'Live in under 1 hour' },
             ].map((item, i) => {
               const Icon = item.icon;
               return (
                 <div key={i} className="flex items-start gap-2.5">
-                  <div className="w-7 h-7 rounded-lg bg-slate-200/50 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <Icon size={14} className="text-slate-500" />
+                  <div className="w-7 h-7 rounded-lg bg-surface-200 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <Icon size={14} className="text-foreground/40" />
                   </div>
                   <div>
-                    <p className="text-slate-700 text-xs font-semibold leading-tight">{item.label}</p>
-                    <p className="text-slate-400 text-[10px] mt-0.5">{item.sub}</p>
+                    <p className="text-foreground/60 text-xs font-semibold leading-tight">{item.label}</p>
+                    <p className="text-foreground/20 text-[10px] mt-0.5">{item.sub}</p>
                   </div>
                 </div>
               );
@@ -311,7 +315,7 @@ export default function SubscriptionPage() {
         </motion.div>
 
         {/* Footer note */}
-        <p className="text-center text-slate-400 text-[10px] pb-2">
+        <p className="text-center text-foreground/20 text-[10px] pb-2">
           All plans include a 14-day free trial. No credit card required to start.
         </p>
       </main>

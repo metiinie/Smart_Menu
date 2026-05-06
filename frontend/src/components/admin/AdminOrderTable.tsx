@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Clock, Printer, CheckCircle2, XCircle } from 'lucide-react';
 import { adminApi } from '@/lib/api';
 import { PrintableTicket } from './PrintableTicket';
+import { useTranslation } from '@/hooks/useTranslation';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -41,16 +42,17 @@ interface Props {
 // ── Status helpers ─────────────────────────────────────────────────────────
 
 const STATUS_BADGE: Record<string, string> = {
-  CREATED:   'badge-status-created',
-  CONFIRMED: 'badge-status-confirmed',
-  PREPARING: 'badge-status-preparing',
-  READY:     'badge-status-ready',
-  DELIVERED: 'badge-status-delivered',
+  CREATED:   'bg-surface-200 text-foreground font-black px-2 py-0.5 rounded text-[10px] uppercase tracking-wider',
+  CONFIRMED: 'bg-blue-500/10 text-blue-500 font-black px-2 py-0.5 rounded text-[10px] uppercase tracking-wider',
+  PREPARING: 'bg-amber-500/10 text-amber-500 font-black px-2 py-0.5 rounded text-[10px] uppercase tracking-wider',
+  READY:     'bg-emerald-500/10 text-emerald-500 font-black px-2 py-0.5 rounded text-[10px] uppercase tracking-wider',
+  DELIVERED: 'bg-surface-200 text-foreground/40 font-black px-2 py-0.5 rounded text-[10px] uppercase tracking-wider',
 };
 
 // ── Component ──────────────────────────────────────────────────────────────
 
 export function AdminOrderTable({ orders, onOrdersChange }: Props) {
+  const { t } = useTranslation();
   const [printOrder, setPrintOrder] = useState<Order | null>(null);
   // Track which order is showing an inline close-session confirmation
   const [confirmCloseId, setConfirmCloseId] = useState<string | null>(null);
@@ -66,7 +68,7 @@ export function AdminOrderTable({ orders, onOrdersChange }: Props) {
 
   const handleCloseSession = async (order: Order) => {
     if (!order.sessionId) {
-      setCloseError('Session ID not available for this order.');
+      setCloseError(t('sessionNotAvailable'));
       return;
     }
     setClosingId(order.id);
@@ -76,7 +78,7 @@ export function AdminOrderTable({ orders, onOrdersChange }: Props) {
       setConfirmCloseId(null);
       onOrdersChange?.();
     } catch (err: any) {
-      setCloseError(err.message ?? 'Failed to close session. Please try again.');
+      setCloseError(err.message ?? t('failedToCloseSession'));
     } finally {
       setClosingId(null);
     }
@@ -88,27 +90,27 @@ export function AdminOrderTable({ orders, onOrdersChange }: Props) {
         {(orders ?? []).map((order) => (
           <div
             key={order.id}
-            className="card p-4"
+            className="bg-surface rounded-2xl border border-surface-200 p-4 shadow-sm transition-colors duration-300"
             id={`admin-order-${order.id}`}
           >
             {/* ── Order header ──────────────────────────────────── */}
             <div className="flex items-start justify-between gap-2">
               <div>
                 <div className="flex items-center gap-2 mb-1 flex-wrap">
-                  <span className="font-bold text-white text-sm">Table {order.table.tableNumber}</span>
+                  <span className="font-bold text-foreground text-sm">{t('tables')} {order.table.tableNumber}</span>
                   {order.displayNumber && (
-                    <span className="text-[10px] font-mono bg-white/10 px-1.5 py-0.5 rounded text-white/50">
+                    <span className="text-[10px] font-mono bg-surface-100 px-1.5 py-0.5 rounded text-foreground/40 border border-surface-200">
                       #{order.displayNumber}
                     </span>
                   )}
-                  <span className={STATUS_BADGE[order.status] ?? 'badge'}>{order.status}</span>
+                  <span className={STATUS_BADGE[order.status] ?? 'badge'}>{t(order.status.toLowerCase() as any)}</span>
                 </div>
-                <p className="text-white/40 text-xs flex items-center gap-1">
+                <p className="text-foreground/30 text-xs flex items-center gap-1">
                   <Clock size={10} />
                   {new Date(order.createdAt).toLocaleString()}
                 </p>
               </div>
-              <span className="font-display font-bold text-brand-400 text-sm flex-shrink-0">
+              <span className="font-display font-bold text-brand-500 text-sm flex-shrink-0">
                 ETB {Number(order.totalPrice).toFixed(0)}
               </span>
             </div>
@@ -116,15 +118,15 @@ export function AdminOrderTable({ orders, onOrdersChange }: Props) {
             {/* ── Item list ─────────────────────────────────────── */}
             <div className="mt-2 space-y-1">
               {(order.items ?? []).map((item) => (
-                <div key={item.id} className="text-white/50 text-xs">
-                  <span>{item.quantity}× {item.menuItem?.name ?? 'Item'}</span>
+                <div key={item.id} className="text-foreground/50 text-xs">
+                  <span>{item.quantity}× {item.menuItem?.name ?? t('restaurant')}</span>
                   {item.options && item.options.length > 0 && (
-                    <span className="text-white/30 ml-1">
+                    <span className="text-foreground/30 ml-1">
                       ({item.options.map((o) => o.optionName).join(', ')})
                     </span>
                   )}
                   {item.note && (
-                    <span className="text-amber-400/60 ml-1 italic">&quot;{item.note}&quot;</span>
+                    <span className="text-amber-500/60 ml-1 italic">&quot;{item.note}&quot;</span>
                   )}
                 </div>
               ))}
@@ -132,7 +134,7 @@ export function AdminOrderTable({ orders, onOrdersChange }: Props) {
 
             {/* ── Tax breakdown ─────────────────────────────────── */}
             {(order.subTotal ?? 0) > 0 && (
-              <div className="mt-2 pt-2 border-t border-surface-200 flex gap-3 text-[10px] text-white/30">
+              <div className="mt-2 pt-2 border-t border-surface-200 flex gap-3 text-[10px] text-foreground/30">
                 <span>Sub: ETB {Number(order.subTotal).toFixed(0)}</span>
                 {(order.serviceChargeAmount ?? 0) > 0 && (
                   <span>Svc: ETB {Number(order.serviceChargeAmount).toFixed(0)}</span>
@@ -149,9 +151,9 @@ export function AdminOrderTable({ orders, onOrdersChange }: Props) {
                 <motion.button
                   whileTap={{ scale: 0.9 }}
                   onClick={() => handlePrint(order)}
-                  className="text-xs text-brand-400 bg-brand-500/10 px-3 py-1.5 rounded flex items-center gap-1.5 font-semibold transition hover:bg-brand-500/20"
+                  className="text-xs text-brand-500 bg-brand-500/10 px-3 py-1.5 rounded flex items-center gap-1.5 font-semibold transition hover:bg-brand-500/20"
                 >
-                  <Printer size={12} /> Print Ticket
+                  <Printer size={12} /> {t('printTicket')}
                 </motion.button>
 
                 {order.status === 'DELIVERED' && (
@@ -163,7 +165,7 @@ export function AdminOrderTable({ orders, onOrdersChange }: Props) {
                     className="text-xs text-red-400 bg-red-500/10 px-3 py-1.5 rounded flex items-center gap-1.5 font-semibold transition hover:bg-red-500/20"
                     id={`close-session-${order.id}`}
                   >
-                    Close Session
+                    {t('closeSession')}
                   </button>
                 )}
               </div>
@@ -177,17 +179,17 @@ export function AdminOrderTable({ orders, onOrdersChange }: Props) {
                     exit={{ opacity: 0, height: 0 }}
                     className="overflow-hidden"
                   >
-                    <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 text-xs text-white/80 space-y-3">
-                      <p>Close this session and reset the table? This cannot be undone.</p>
+                    <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 text-xs text-foreground/80 space-y-3">
+                      <p>{t('closeSessionConfirm')}</p>
                       {closeError && (
                         <p className="text-red-400 font-medium">{closeError}</p>
                       )}
                       <div className="flex gap-2 justify-end">
                         <button
                           onClick={() => setConfirmCloseId(null)}
-                          className="flex items-center gap-1 text-white/50 hover:text-white/80 font-semibold transition"
+                          className="flex items-center gap-1 text-foreground/30 hover:text-foreground font-semibold transition"
                         >
-                          <XCircle size={14} /> Cancel
+                          <XCircle size={14} /> {t('cancel')}
                         </button>
                         <button
                           onClick={() => handleCloseSession(order)}
@@ -199,7 +201,7 @@ export function AdminOrderTable({ orders, onOrdersChange }: Props) {
                           ) : (
                             <CheckCircle2 size={14} />
                           )}
-                          Confirm Close
+                          {t('confirmClose')}
                         </button>
                       </div>
                     </div>

@@ -5,16 +5,26 @@ import { motion } from 'framer-motion';
 import { Mail, Lock, LogIn, AlertCircle, Fingerprint } from 'lucide-react';
 import { authApi } from '@/lib/api';
 import { BrandLogo } from './BrandLogo';
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface Props {
-  onSuccess: (token: string, user: any) => void;
+  onSuccess: (token: string, user: any, refreshToken?: string) => void;
 }
 
 export function EmailLogin({ onSuccess }: Props) {
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Remember email for better UX
+  useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('last_login_email');
+      if (saved && !email) setEmail(saved);
+    }
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,10 +34,13 @@ export function EmailLogin({ onSuccess }: Props) {
     setError('');
 
     try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('last_login_email', email);
+      }
       const res = await authApi.login(email, password);
-      onSuccess(res.token, res.user);
+      onSuccess(res.token ?? res.accessToken, res.user, res.refreshToken);
     } catch (err: any) {
-      setError(err.message || 'Invalid email or password. Please try again.');
+      setError(err.message || t('invalidCredentials' as any));
     } finally {
       setLoading(false);
     }
@@ -45,15 +58,15 @@ export function EmailLogin({ onSuccess }: Props) {
 
         <div className="bg-white/40 backdrop-blur-xl border border-white/60 p-8 rounded-[2.5rem] shadow-2xl space-y-6">
           <div className="text-center space-y-2 mb-4">
-            <h2 className="text-2xl font-display font-black text-slate-900 uppercase tracking-tight">Welcome Back</h2>
-            <p className="text-slate-500 text-sm font-medium">Sign in to manage your restaurant</p>
+            <h2 className="text-2xl font-display font-black text-slate-900 uppercase tracking-tight">{t('welcomeBack' as any)}</h2>
+            <p className="text-slate-500 text-sm font-medium">{t('signInToManage' as any)}</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-4">
               {/* Email Field */}
               <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 ml-1">Email Address</label>
+                <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 ml-1">{t('emailAddress' as any)}</label>
                 <div className="relative group">
                   <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-gold-600 transition-colors">
                     <Mail size={18} />
@@ -63,6 +76,7 @@ export function EmailLogin({ onSuccess }: Props) {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="admin@arifsmart.com"
+                    autoComplete="email"
                     required
                     className="w-full bg-white/60 border border-white/80 focus:border-gold-500/50 focus:bg-white rounded-2xl py-4 pl-12 pr-4 outline-none transition-all text-slate-900 font-medium placeholder:text-slate-300 shadow-sm"
                   />
@@ -71,7 +85,7 @@ export function EmailLogin({ onSuccess }: Props) {
 
               {/* Password Field */}
               <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 ml-1">Password</label>
+                <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 ml-1">{t('password' as any)}</label>
                 <div className="relative group">
                   <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-gold-600 transition-colors">
                     <Lock size={18} />
@@ -81,6 +95,7 @@ export function EmailLogin({ onSuccess }: Props) {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
+                    autoComplete="current-password"
                     required
                     className="w-full bg-white/60 border border-white/80 focus:border-gold-500/50 focus:bg-white rounded-2xl py-4 pl-12 pr-4 outline-none transition-all text-slate-900 font-medium placeholder:text-slate-300 shadow-sm"
                   />
@@ -110,7 +125,7 @@ export function EmailLogin({ onSuccess }: Props) {
               ) : (
                 <>
                   <LogIn size={20} className="group-hover:translate-x-1 transition-transform" />
-                  <span className="uppercase tracking-widest text-sm">Sign In</span>
+                  <span className="uppercase tracking-widest text-sm">{t('signIn' as any)}</span>
                 </>
               )}
             </motion.button>
@@ -119,13 +134,13 @@ export function EmailLogin({ onSuccess }: Props) {
           <div className="pt-4 border-t border-slate-100/50 flex flex-col items-center gap-3">
              <div className="flex items-center gap-2 text-slate-300">
                 <Fingerprint size={14} />
-                <p className="text-[10px] font-bold uppercase tracking-widest">Secure Dashboard Access</p>
+                <p className="text-[10px] font-bold uppercase tracking-widest">{t('secureDashboardAccess' as any)}</p>
              </div>
           </div>
         </div>
         
         <p className="text-center text-slate-400 text-xs font-medium">
-          Forgot your password? <span className="text-gold-600 font-bold cursor-pointer hover:underline">Contact Support</span>
+          {t('forgotPassword' as any)} <span className="text-gold-600 font-bold cursor-pointer hover:underline">{t('contactSupport' as any)}</span>
         </p>
       </motion.div>
     </div>

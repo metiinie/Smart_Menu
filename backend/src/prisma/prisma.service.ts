@@ -20,8 +20,11 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
         if (readWriteActions.includes(params.action)) {
           if (!params.args) params.args = {};
           if (!params.args.where) params.args.where = {};
-          // Deeply inject the tenant filter
-          params.args.where.restaurantId = context.restaurantId;
+          
+          // Deeply inject the tenant filter ONLY if restaurantId is present in context
+          if (context.restaurantId) {
+            params.args.where.restaurantId = context.restaurantId;
+          }
         }
       }
       return next(params);
@@ -69,6 +72,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
           await new Promise((res) => setTimeout(res, 300 * attempt));
           await this.$connect().catch(() => undefined);
         } else {
+          console.error(`[PrismaService] DB operation failed: ${err.message}`, err);
           throw err;
         }
       }

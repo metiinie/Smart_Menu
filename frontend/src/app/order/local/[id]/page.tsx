@@ -8,12 +8,14 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { LocalOrderStatus } from '@/shared/types';
 import { syncManager } from '@/lib/syncManager';
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface PageProps {
   params: Promise<{ id: string }>;
 }
 
 export default function LocalOrderPage({ params }: PageProps) {
+  const { t } = useTranslation();
   const router = useRouter();
   const resolvedParams = use(params);
   const { id } = resolvedParams;
@@ -57,9 +59,9 @@ export default function LocalOrderPage({ params }: PageProps) {
     return (
       <div className="min-h-dvh flex flex-col items-center justify-center bg-surface p-6 text-center">
         <AlertCircle size={48} className="text-red-400 mb-4" />
-        <h1 className="text-white font-bold text-xl mb-2">Order Not Found</h1>
-        <p className="text-white/50 text-sm mb-6">We couldn&apos;t find the details for this local order.</p>
-        <Link href="/" className="btn-primary px-8">Back to Menu</Link>
+        <h1 className="text-white font-bold text-xl mb-2">{t('orderNotFound')}</h1>
+        <p className="text-white/50 text-sm mb-6">{t('noData')}</p>
+        <Link href="/" className="btn-primary px-8">{t('backToMenu')}</Link>
       </div>
     );
   }
@@ -75,12 +77,12 @@ export default function LocalOrderPage({ params }: PageProps) {
           <Link href="/" className="w-9 h-9 rounded-full bg-surface-100 flex items-center justify-center">
             <ArrowLeft size={18} className="text-white/70" />
           </Link>
-          <h1 className="font-display font-bold text-white text-lg">Order Status</h1>
+          <h1 className="font-display font-bold text-white text-lg">{t('orderStatus')}</h1>
         </div>
         <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider
           ${isFailed ? 'bg-red-500/20 text-red-400' : 'bg-amber-500/20 text-amber-400'}`}>
           {isFailed ? <AlertCircle size={10} /> : <WifiOff size={10} />}
-          {isFailed ? 'Sync Failed' : 'Offline Mode'}
+          {isFailed ? t('syncFailed' as any) : t('offlineMode' as any)}
         </div>
       </header>
 
@@ -100,28 +102,28 @@ export default function LocalOrderPage({ params }: PageProps) {
           </div>
 
           <h2 className="font-display font-bold text-2xl text-white">
-            {isFailed ? 'Sync Failed' : isSyncing ? 'Syncing Order...' : 'Order Queued'}
+            {isFailed ? t('syncFailed' as any) : isSyncing ? t('syncingOrder' as any) : t('orderQueued' as any)}
           </h2>
           <div className="mt-3 mb-1">
             <p className={`text-sm max-w-[260px] mx-auto font-bold px-3 py-2 rounded-xl border ${
               isFailed ? 'text-red-300 bg-red-500/10 border-red-500/20' : 'text-amber-300 bg-amber-500/10 border-amber-500/20'
             }`}>
               {isFailed
-                ? (order.error || 'Server rejected the order. Please try again or ask staff.')
-                : 'Connection Issue: Your order is queued. Please DO NOT close your browser until connection is restored.'}
+                ? (order.error || t('incorrectPin' as any))
+                : t('connectionIssue' as any)}
             </p>
           </div>
 
           <div className="flex items-center justify-center gap-4 mt-6 pt-6 border-t border-surface-200">
             <div className="text-center">
-              <p className="text-white/40 text-xs">Status</p>
+              <p className="text-white/40 text-xs">{t('status')}</p>
               <p className={`font-bold text-sm uppercase mt-0.5 ${isFailed ? 'text-red-400' : 'text-amber-400'}`}>
-                {order.status}
+                {t(order.status.toLowerCase() as any)}
               </p>
             </div>
             <div className="w-px h-8 bg-surface-200" />
             <div className="text-center">
-              <p className="text-white/40 text-xs">Total</p>
+              <p className="text-white/40 text-xs">{t('total')}</p>
               <p className="font-bold text-brand-400 text-lg">ETB {order.totalPrice.toFixed(0)}</p>
             </div>
           </div>
@@ -140,7 +142,7 @@ export default function LocalOrderPage({ params }: PageProps) {
             ) : (
               <RefreshCw size={18} />
             )}
-            {isRetrying ? 'Syncing...' : 'Retry Synchronization'}
+            {isRetrying ? t('syncingOrder' as any) : t('retrySynchronization' as any)}
           </motion.button>
         )}
 
@@ -150,21 +152,21 @@ export default function LocalOrderPage({ params }: PageProps) {
             href={`/menu/${order.branchId}/${order.tableId}`}
             className="w-full bg-surface-100 text-white/80 font-semibold py-4 rounded-2xl mb-6 flex items-center justify-center gap-2 border border-surface-200"
           >
-            <Utensils size={18} /> Continue Browsing Menu
+            <Utensils size={18} /> {t('continueBrowsingMenu' as any)}
           </Link>
         )}
 
         {/* Items List */}
         <div className="card p-4">
           <h3 className="font-semibold text-white text-sm mb-4 flex items-center gap-2">
-            <CheckCircle2 size={14} className="text-brand-400" /> Order Details
+            <CheckCircle2 size={14} className="text-brand-400" /> {t('orderDetails' as any)}
           </h3>
           <div className="space-y-3">
             {order.items.map((item, idx) => (
               <div key={idx} className="flex justify-between items-center py-1">
                 <div className="flex flex-col">
                   <span className="text-white/80 text-sm font-medium">{item.name}</span>
-                  <span className="text-white/30 text-[10px]">Price per unit: ETB {item.priceAtAdd}</span>
+                  <span className="text-white/30 text-[10px]">{t('pricePerUnit' as any)}: ETB {item.priceAtAdd}</span>
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="text-white/40 text-xs">×{item.quantity}</span>
