@@ -32,6 +32,7 @@ RUN apk add --no-cache libc6-compat openssl
 RUN npm install -g pnpm
 
 WORKDIR /app
+RUN mkdir -p uploads
 
 ENV NODE_ENV=production
 
