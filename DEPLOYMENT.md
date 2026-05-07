@@ -50,17 +50,28 @@ This document explains how to deploy the Smart Menu application: **Backend on Re
 
 ---
 
+## 🏁 Production Checklist
+
+### Vercel (Frontend)
+- [ ] **Root Directory**: Set to `frontend` (Found in Settings -> General).
+- [ ] **NEXT_PUBLIC_API_URL**: Set to `https://your-api.onrender.com/api`.
+- [ ] **NEXT_PUBLIC_WS_URL**: Set to `https://your-api.onrender.com`.
+
+### Render (Backend)
+- [ ] **FRONTEND_URL**: Set to `https://your-app.vercel.app`.
+- [ ] **ALLOWED_ORIGINS**: Set to `https://your-app.vercel.app` (No trailing slash).
+- [ ] **DATABASE_URL**: Set to your production Postgres string.
+
+---
+
 ## 💡 Troubleshooting
 
-### WebSockets on Render
-- Render's free tier supports WebSockets, but the service might "sleep" after 15 minutes of inactivity. The first connection from the frontend might take a few seconds to wake it up.
+### 404 Not Found (Vercel)
+- If you see a Vercel 404 page, it means Vercel is looking for your app in the wrong folder. Go to **Settings > General** and ensure **Root Directory** is set to `frontend`. Trigger a new deployment after changing this.
 
-### CORS Errors
-- If the frontend cannot fetch data, double-check that `ALLOWED_ORIGINS` in Render exactly matches your Vercel domain (including `https://` and no trailing slash).
+### 404 /api Not Found
+- Ensure your `NEXT_PUBLIC_API_URL` includes the `/api` suffix.
+- Check the Render logs to ensure the service is active and not "sleeping" (Free tier).
 
-### Database Migrations
-- If you see database errors, ensure you have run migrations:
-  ```bash
-  cd backend
-  npx prisma migrate deploy
-  ```
+### TypeError: Cannot read properties of undefined
+- This usually means the frontend failed to fetch data from the backend. Check your browser's **Network tab** to see if the API requests are failing with CORS or 404 errors.

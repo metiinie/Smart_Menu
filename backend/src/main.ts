@@ -45,7 +45,18 @@ async function bootstrap() {
   // Root Landing (Redirect to frontend)
   const adapter = app.getHttpAdapter();
   adapter.get('/', (_req, res) => {
-    res.redirect(process.env.FRONTEND_URL || 'http://localhost:3000');
+    if (process.env.FRONTEND_URL) {
+      res.redirect(process.env.FRONTEND_URL);
+    } else {
+      res.status(200).send(`
+        <div style="font-family: sans-serif; text-align: center; padding: 50px;">
+          <h1>🚀 ArifSmart API is Running</h1>
+          <p>The backend is successfully deployed.</p>
+          <p style="color: #666;">Note: FRONTEND_URL is not set, so redirect is disabled.</p>
+          <a href="/api/docs" style="color: #f97316; font-weight: bold;">View API Documentation</a>
+        </div>
+      `);
+    }
   });
   adapter.get('/api', (_req, res) => res.redirect('/api/docs'));
   
