@@ -15,6 +15,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { FavoritesModule } from './favorites/favorites.module';
 import { PlatformModule } from './platform/platform.module';
 import { validateEnv } from './config/env.validation';
+import { PublicController } from './public.controller';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { TenantInterceptor } from './common/tenant/tenant.interceptor';
 
@@ -38,6 +39,7 @@ import { TenantInterceptor } from './common/tenant/tenant.interceptor';
     FavoritesModule,
     PlatformModule,
   ],
+  controllers: [PublicController],
   providers: [
     {
       provide: APP_INTERCEPTOR,
