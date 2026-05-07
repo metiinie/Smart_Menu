@@ -197,7 +197,7 @@ function PlanCard({ plan, index, onUpgrade }: { plan: any; index: number; onUpgr
 
         {/* Features */}
         <ul className="space-y-2.5 mb-5">
-          {plan.features.map((f, i) => (
+          {plan.features.map((f: { label: string; included: boolean }, i: number) => (
             <li key={i} className="flex items-center gap-2.5">
               <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${f.included ? 'bg-emerald-500/10' : 'bg-surface-100'}`}>
                 {f.included

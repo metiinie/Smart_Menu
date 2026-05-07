@@ -401,13 +401,13 @@ export default function MenuPage({ params }: PageProps) {
                     }}
                   >
                     <div className={`min-w-0 shrink-0 flex justify-end items-end overflow-hidden pb-5 sm:pb-7 ${count > 1 ? 'w-[26%] sm:w-[24%]' : 'w-0'}`}>
-                      {prevItem && <FoodCarouselItem item={prevItem} quantity={getQuantity(prevItem.id)} variant="side" isFavorite={isFavorite(prevItem.id)} onToggleFavorite={(it) => toggleFavorite({ menuItemId: it.id, name: it.name, price: it.price, imageUrl: it.imageUrl })} onAdd={() => setSelectedItem(prevItem)} onTap={() => setCurrentIndex((currentIndex - 1 + count) % count)} />}
+                      {prevItem && <FoodCarouselItem item={prevItem} quantity={getQuantity(prevItem.id)} variant="side" isFavorite={isFavorite(prevItem.id)} onToggleFavorite={(it) => toggleFavorite({ menuItemId: it.id, name: it.name, price: it.price, imageUrl: it.imageUrl ?? undefined })} onAdd={() => setSelectedItem(prevItem)} onTap={() => setCurrentIndex((currentIndex - 1 + count) % count)} />}
                     </div>
                     <div className={`min-w-0 shrink-0 flex justify-center items-end z-10 pb-0 ${count > 1 ? 'w-[48%] sm:w-[52%]' : 'w-full'}`}>
-                      {currentItem && <FoodCarouselItem item={currentItem} quantity={getQuantity(currentItem.id)} variant="center" isFavorite={isFavorite(currentItem.id)} onToggleFavorite={(it) => toggleFavorite({ menuItemId: it.id, name: it.name, price: it.price, imageUrl: it.imageUrl })} onAdd={() => setSelectedItem(currentItem)} onTap={() => setSelectedItem(currentItem)} />}
+                      {currentItem && <FoodCarouselItem item={currentItem} quantity={getQuantity(currentItem.id)} variant="center" isFavorite={isFavorite(currentItem.id)} onToggleFavorite={(it) => toggleFavorite({ menuItemId: it.id, name: it.name, price: it.price, imageUrl: it.imageUrl ?? undefined })} onAdd={() => setSelectedItem(currentItem)} onTap={() => setSelectedItem(currentItem)} />}
                     </div>
                     <div className={`min-w-0 shrink-0 flex justify-start items-end overflow-hidden pb-5 sm:pb-7 ${count > 1 ? 'w-[26%] sm:w-[24%]' : 'w-0'}`}>
-                      {nextItem && <FoodCarouselItem item={nextItem} quantity={getQuantity(nextItem.id)} variant="side" isFavorite={isFavorite(nextItem.id)} onToggleFavorite={(it) => toggleFavorite({ menuItemId: it.id, name: it.name, price: it.price, imageUrl: it.imageUrl })} onAdd={() => setSelectedItem(nextItem)} onTap={() => setCurrentIndex((currentIndex + 1) % count)} />}
+                      {nextItem && <FoodCarouselItem item={nextItem} quantity={getQuantity(nextItem.id)} variant="side" isFavorite={isFavorite(nextItem.id)} onToggleFavorite={(it) => toggleFavorite({ menuItemId: it.id, name: it.name, price: it.price, imageUrl: it.imageUrl ?? undefined })} onAdd={() => setSelectedItem(nextItem)} onTap={() => setCurrentIndex((currentIndex + 1) % count)} />}
                     </div>
                   </motion.div>
                 </motion.div>

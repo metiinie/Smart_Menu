@@ -46,6 +46,7 @@ function StatCard({
 }
 
 function SubStatusBadge({ status, count }: { status: string; count: number }) {
+  const { t } = useTranslation();
   const config: Record<string, { label: string; color: string }> = {
     ACTIVE: { label: t('active'), color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' },
     TRIALING: { label: t('trialing'), color: 'text-violet-400 bg-violet-500/10 border-violet-500/20' },
