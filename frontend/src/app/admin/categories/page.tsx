@@ -217,7 +217,7 @@ export default function AdminCategoriesPage() {
               className="fixed bottom-0 left-0 right-0 z-50 bg-surface rounded-t-3xl p-6 shadow-2xl max-w-lg mx-auto border-t border-surface-200"
             >
               <div className="flex items-center justify-between mb-6">
-                <h3 className="font-bold text-foreground text-lg">{editItem ? t('editPlan') : t('newCategory')}</h3>
+                <h3 className="font-bold text-foreground text-lg">{editItem ? t('editCategory') : t('newCategory')}</h3>
                 <button onClick={() => setFormOpen(false)} className="w-8 h-8 rounded-full bg-surface-100 flex items-center justify-center transition-colors">
                   <X size={16} className="text-foreground/40" />
                 </button>
