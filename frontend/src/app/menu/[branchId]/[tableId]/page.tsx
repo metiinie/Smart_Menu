@@ -330,10 +330,10 @@ export default function MenuPage({ params }: PageProps) {
                 <ThemeToggle />
                 <Link 
                   href="/login"
-                  className="w-5 h-5 rounded-sm bg-surface-100/10 hover:bg-surface-100/20 flex items-center justify-center border border-white/10 shadow-sm active:scale-90 transition-all backdrop-blur-sm"
+                  className="w-8 h-8 rounded-full bg-slate-900/60 hover:bg-slate-900/80 flex items-center justify-center border border-white/20 shadow-lg active:scale-95 transition-all backdrop-blur-md"
                   title={t('profile')}
                 >
-                  <User size={8} className="text-white/80" />
+                  <User size={14} className="text-white/90" />
                 </Link>
               </div>
             </header>

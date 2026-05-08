@@ -27,11 +27,11 @@ export function LanguageSwitcher() {
     <div className="relative" ref={containerRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-0.5 px-1 rounded-sm bg-surface-100/10 hover:bg-surface-100/20 border border-white/10 transition-all active:scale-95 backdrop-blur-sm"
+        className="flex items-center gap-1.5 px-2.5 h-8 rounded-full bg-slate-900/60 hover:bg-slate-900/80 border border-white/20 transition-all active:scale-95 backdrop-blur-md shadow-lg"
         title="Switch Language"
       >
-        <span className="text-[10px]">{currentLang.flag}</span>
-        <span className="text-[6px] font-black uppercase tracking-tighter text-white/80 hidden xs:inline">
+        <span className="text-[14px]">{currentLang.flag}</span>
+        <span className="text-[10px] font-bold uppercase tracking-wide text-white/90 hidden xs:inline">
           {currentLang.code}
         </span>
       </button>
