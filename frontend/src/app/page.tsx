@@ -3,55 +3,31 @@
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Globe} from 'lucide-react';
 import { PageTransition } from '@/components/ui/PageTransition';
-import { useFavoritesStore } from '@/stores/favoritesStore';
 import { authApi } from '@/lib/api';
-import { useTranslation } from '@/hooks/useTranslation';
-
-const LANGUAGES = [
-  { code: 'en' as const, label: 'English' },
-  { code: 'am' as const, label: 'አማርኛ' },
-  { code: 'or' as const, label: 'Afaan Oromoo' },
-];
 
 export default function HomePage() {
-  const { t } = useTranslation();
   const router = useRouter();
-  const { language, setLanguage } = useFavoritesStore();
-  const [resolvedBranchId, setResolvedBranchId] = useState('');
+  const [error, setError] = useState(false);
 
-  /**
-   * In production, customers scan a QR code that encodes:
-   *   /menu/{branchId}/{tableId}
-   * This landing page is a fallback for direct visits.
-   * We dynamically fetch the default branch from the backend.
-   */
   useEffect(() => {
-    if (resolvedBranchId) return;
     authApi
       .getDefaultBranch()
       .then((branch) => {
-        if (branch?.id) setResolvedBranchId(branch.id);
+        if (branch?.id) {
+          router.push(`/menu/${branch.id}/table-01`);
+        } else {
+          setError(true);
+        }
       })
       .catch(() => {
-        // keep empty if backend has no branch yet
+        setError(true);
       });
-  }, [resolvedBranchId]);
-
-  const handleScanSimulation = () => {
-    if (!resolvedBranchId) {
-      // No branch configured — can't proceed
-      return;
-    }
-    // Navigate to the menu; the table-context endpoint will
-    // resolve "table-01" → tableNumber 1 via its fallback parser
-    router.push(`/menu/${resolvedBranchId}/table-01`);
-  };
+  }, [router]);
 
   return (
     <PageTransition>
-      <main className="min-h-dvh relative flex flex-col items-center justify-between bg-surface px-6 py-12 md:py-20 lg:py-32 overflow-hidden">
+      <main className="min-h-dvh relative flex flex-col items-center justify-center bg-surface px-6 overflow-hidden">
         {/* Background Pattern Overlay */}
         <div className="absolute inset-0 opacity-[0.03] pointer-events-none select-none">
           <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
@@ -77,87 +53,35 @@ export default function HomePage() {
 
         {/* Center Content */}
         <div className="flex-1 flex flex-col items-center justify-center z-10 text-center w-full max-w-xl mx-auto">
-          <motion.div 
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.2, duration: 0.8 }}
-            className="space-y-4 px-4 mb-12"
-          >
-            <span className="font-display text-[10px] md:text-xs font-black tracking-[0.4em] text-slate-400 uppercase block opacity-60">
-              ArifSmart Experience
-            </span>
-            <h1 className="font-display text-4xl md:text-6xl lg:text-7xl font-black text-[#1E293B] leading-[0.9] tracking-tighter">
-              {t('readyToOrder' as any)}
-            </h1>
-            <p className="text-slate-400 text-[10px] md:text-sm font-medium max-w-[280px] md:max-w-md mx-auto leading-relaxed mt-4 uppercase tracking-widest">
-              {t('culinaryJourney' as any)}
-            </p>
-          </motion.div>
-
-          <motion.button
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: 0.4, duration: 0.5, type: "spring" }}
-            onClick={handleScanSimulation}
-            className="group relative px-12 py-5 bg-brand-500 text-white rounded-full font-black text-lg tracking-widest uppercase shadow-[0_0_40px_rgba(249,115,22,0.4)] hover:shadow-[0_0_60px_rgba(249,115,22,0.6)] hover:bg-brand-600 transition-all active:scale-95 overflow-hidden"
-          >
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-shimmer" />
-            <span className="relative z-10 flex items-center gap-3">
-              {t('continue' as any)}
-              <motion.span
-                animate={{ x: [0, 5, 0] }}
-                transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+          {!error ? (
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.5 }}
+              className="flex flex-col items-center gap-6"
+            >
+              <div className="w-16 h-16 border-4 border-brand-100 border-t-brand-500 rounded-full animate-spin" />
+              <h2 className="font-display text-xl md:text-2xl font-bold text-slate-800 animate-pulse">
+                Preparing your experience...
+              </h2>
+            </motion.div>
+          ) : (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="space-y-4"
+            >
+              <h2 className="text-xl font-bold text-red-500">Could not load menu</h2>
+              <p className="text-slate-500">Please scan the QR code at your table again.</p>
+              <button 
+                onClick={() => window.location.reload()}
+                className="px-6 py-2 bg-brand-500 text-white rounded-full text-sm font-bold mt-4"
               >
-                →
-              </motion.span>
-            </span>
-          </motion.button>
+                Retry
+              </button>
+            </motion.div>
+          )}
         </div>
-
-        {/* Language Selector Footer */}
-        <motion.div 
-          initial={{ y: 50, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.4, duration: 0.8 }}
-          className="w-full max-w-2xl flex flex-col items-center gap-8 z-10 pb-8"
-        >
-          <div className="flex items-center gap-2 px-6 py-2 rounded-full bg-brand-50 border border-brand-100/50 shadow-sm">
-            <Globe size={14} className="text-brand-500" />
-            <span className="font-display text-[11px] text-brand-600 font-black tracking-[0.2em] uppercase">
-              {t('selectLanguage' as any)}
-            </span>
-          </div>
-          
-          <div className="flex flex-wrap justify-center gap-4">
-            {LANGUAGES.map((lang) => (
-              <motion.button
-                key={lang.code}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setLanguage(lang.code)}
-                className={`px-8 py-4 rounded-3xl text-sm font-black transition-all duration-300 border ${language === lang.code
-                  ? 'bg-brand-500 text-white border-transparent shadow-2xl shadow-brand-500/30'
-                  : 'bg-white text-slate-500 border-slate-100 hover:border-brand-200'
-                  }`}
-              >
-                {lang.label}
-              </motion.button>
-            ))}
-          </div>
-
-          <div className="mt-8 flex flex-col items-center gap-3">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-[1px] bg-slate-200" />
-              <p className="text-[10px] md:text-[11px] text-slate-400 font-bold uppercase tracking-[0.3em] opacity-60">
-                ArifSmart Premium
-              </p>
-              <div className="w-12 h-[1px] bg-slate-200" />
-            </div>
-            <span className="px-3 py-1 rounded-full bg-slate-100 text-[8px] font-mono text-slate-400 uppercase tracking-tighter">
-              v2.0-STABLE
-            </span>
-          </div>
-        </motion.div>
       </main>
     </PageTransition>
   );
